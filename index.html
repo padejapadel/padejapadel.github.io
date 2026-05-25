@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Padel Pals - Live Score</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0D1B2A; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+    .logo { font-size: 13px; font-weight: 800; letter-spacing: 4px; color: #00D4AA; margin-bottom: 8px; }
+    .live-badge { display: flex; align-items: center; gap: 6px; background: rgba(255,0,0,0.1); border: 1px solid rgba(255,0,0,0.3); border-radius: 20px; padding: 4px 12px; margin-bottom: 24px; }
+    .live-dot { width: 8px; height: 8px; background: red; border-radius: 50%; animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .live-text { font-size: 11px; font-weight: 800; letter-spacing: 3px; color: red; }
+    .card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 28px 24px; width: 100%; max-width: 380px; margin-bottom: 16px; }
+    .sets-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; background: rgba(255,255,255,0.04); border-radius: 12px; padding: 12px 16px; }
+    .team-names { display: flex; flex-direction: column; gap: 8px; }
+    .team-name-a { font-size: 14px; font-weight: 700; color: #00D4AA; }
+    .team-name-b { font-size: 14px; font-weight: 700; color: #FF6B6B; }
+    .sets-scores { display: flex; gap: 12px; }
+    .set-col { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    .set-num { font-size: 18px; font-weight: 900; color: rgba(255,255,255,0.5); }
+    .set-num.winner-a { color: #00D4AA; }
+    .set-num.winner-b { color: #FF6B6B; }
+    .scores { display: flex; gap: 12px; }
+    .score-box { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 20px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .score-box.adv-a { background: rgba(0,212,170,0.15); border-color: rgba(0,212,170,0.5); }
+    .score-box.adv-b { background: rgba(255,107,107,0.15); border-color: rgba(255,107,107,0.5); }
+    .score-label { font-size: 8px; font-weight: 900; letter-spacing: 2px; height: 12px; color: transparent; }
+    .score-label.deuce { color: #FFD700; }
+    .score-label.adv-a { color: #00D4AA; }
+    .score-label.adv-b { color: #FF6B6B; }
+    .score-number { font-size: 52px; font-weight: 900; line-height: 1; }
+    .score-a { color: #00D4AA; }
+    .score-b { color: #FF6B6B; }
+    .score-name { font-size: 11px; color: rgba(255,255,255,0.4); }
+    .divider { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+    .divider-line { font-size: 28px; color: rgba(255,255,255,0.2); font-weight: 300; }
+    .game-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.3); letter-spacing: 1px; text-align: center; }
+    .tb-label { font-size: 10px; font-weight: 900; color: #FFD700; letter-spacing: 2px; }
+    .winner-card { background: rgba(255,215,0,0.1); border: 2px solid rgba(255,215,0,0.3); border-radius: 24px; padding: 32px 24px; text-align: center; width: 100%; max-width: 380px; }
+    .trophy { font-size: 48px; margin-bottom: 12px; }
+    .winner-label { font-size: 11px; font-weight: 800; letter-spacing: 4px; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
+    .winner-name { font-size: 32px; font-weight: 900; color: #FFD700; }
+    .not-found { text-align: center; color: rgba(255,255,255,0.4); }
+    .not-found h2 { font-size: 24px; margin-bottom: 8px; }
+    .footer { margin-top: 24px; font-size: 11px; color: rgba(255,255,255,0.2); text-align: center; }
+    .code-badge { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.3); letter-spacing: 2px; margin-bottom: 4px; }
+    .loading { color: rgba(255,255,255,0.3); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="logo">PADEL PALS</div>
+  <div id="content" class="loading">Loading...</div>
+  <div id="code-badge" class="code-badge" style="display:none"></div>
+  <div class="footer">Padel Pals · Updates every 3 seconds</div>
+
+  <script>
+    const SUPABASE_URL = "https://odrckirnjavfptlfygbo.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo";
+
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+
+    document.getElementById("code-badge").textContent = code || "";
+    if (code) document.getElementById("code-badge").style.display = "inline-block";
+
+    async function fetchScore() {
+      if (!code) {
+        document.getElementById("content").innerHTML = '<div class="not-found"><h2>No match code</h2><p>Please use the link shared from the Padel Pals app.</p></div>';
+        return;
+      }
+
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/live_matches?match_code=eq.${code}&select=*`, {
+          headers: {
+            "apikey": SUPABASE_KEY,
+            "Authorization": `Bearer ${SUPABASE_KEY}`
+          }
+        });
+
+        const data = await res.json();
+        const match = data && data.length > 0 ? data[0] : null;
+
+        if (!match) {
+          document.getElementById("content").innerHTML = '<div class="not-found"><h2>Match not found</h2><p>This match code does not exist or has ended.</p></div>';
+          return;
+        }
+
+        if (match.match_state === "finished") {
+          const winnerName = match.match_winner === "Team A" ? match.team_a : match.team_b;
+          document.getElementById("content").innerHTML = `
+            <div class="winner-card">
+              <div class="trophy">🏆</div>
+              <div class="winner-label">MATCH WINNER</div>
+              <div class="winner-name">${winnerName}</div>
+            </div>`;
+          return;
+        }
+
+        // Build sets HTML
+        let setsHtml = "";
+        try {
+          const sets = JSON.parse(match.sets_json || "[]");
+          sets.forEach(s => {
+            const classA = s.completed ? (s.a > s.b ? "winner-a" : "") : "";
+            const classB = s.completed ? (s.b > s.a ? "winner-b" : "") : "";
+            setsHtml += `<div class="set-col"><div class="set-num ${classA}">${s.a}</div><div class="set-num ${classB}">${s.b}</div></div>`;
+          });
+        } catch(e) {}
+
+        const isDeuce = match.is_deuce;
+        const advA = !isDeuce && match.point_display_a === "Ad";
+        const advB = !isDeuce && match.point_display_b === "Ad";
+        const scoreA = isDeuce ? "–" : (match.point_display_a || "0");
+        const scoreB = isDeuce ? "–" : (match.point_display_b || "0");
+        const labelA = isDeuce ? "DEUCE" : advA ? "ADVANTAGE" : "";
+        const labelB = isDeuce ? "DEUCE" : advB ? "ADVANTAGE" : "";
+        const labelClassA = isDeuce ? "score-label deuce" : advA ? "score-label adv-a" : "score-label";
+        const labelClassB = isDeuce ? "score-label deuce" : advB ? "score-label adv-b" : "score-label";
+        const boxClassA = advA ? "score-box adv-a" : "score-box";
+        const boxClassB = advB ? "score-box adv-b" : "score-box";
+        const setCount = match.sets_json ? JSON.parse(match.sets_json).length : 1;
+        const tbHtml = match.is_tiebreak ? '<div class="tb-label">TB</div>' : "";
+
+        document.getElementById("content").innerHTML = `
+          <div class="live-badge"><div class="live-dot"></div><div class="live-text">LIVE</div></div>
+          <div class="card">
+            <div class="sets-row">
+              <div class="team-names">
+                <div class="team-name-a">${match.team_a || "Team A"}</div>
+                <div class="team-name-b">${match.team_b || "Team B"}</div>
+              </div>
+              <div class="sets-scores">${setsHtml}</div>
+            </div>
+            <div class="scores">
+              <div class="${boxClassA}">
+                <div class="${labelClassA}">${labelA}</div>
+                <div class="score-number score-a">${scoreA}</div>
+                <div class="score-name">${match.team_a || "Team A"}</div>
+              </div>
+              <div class="divider">
+                ${tbHtml}
+                <div class="divider-line">–</div>
+                <div class="game-label">Set ${setCount} · ${match.game_a || 0}–${match.game_b || 0}</div>
+              </div>
+              <div class="${boxClassB}">
+                <div class="${labelClassB}">${labelB}</div>
+                <div class="score-number score-b">${scoreB}</div>
+                <div class="score-name">${match.team_b || "Team B"}</div>
+              </div>
+            </div>
+          </div>`;
+
+      } catch(e) {
+        document.getElementById("content").innerHTML = '<div class="not-found"><h2>Connection error</h2><p>Could not connect to the match. Please try again.</p></div>';
+      }
+    }
+
+    fetchScore();
+    setInterval(fetchScore, 3000);
+  </script>
+</body>
+</html>
