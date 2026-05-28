@@ -66,10 +66,13 @@
     if (code) document.getElementById("code-badge").style.display = "inline-block";
 
     function isStale(updatedAt) {
-      if (!updatedAt) return false;
-      const updated = new Date(updatedAt);
-      const diffMinutes = (new Date() - updated) / 1000 / 60;
-      return diffMinutes > 5;
+  if (!updatedAt) return false;
+  const updated = new Date(updatedAt);
+  const diffMinutes = (new Date() - updated) / 1000 / 60;
+  // Live matches expire after 10 minutes inactivity
+  // Finished matches stay visible for 24 hours
+  return diffMinutes > 1440;
+}
     }
 
     async function fetchScore() {
