@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>Padel Pals - Live Score</title>
+  <title>Padeja - Live Score</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0D1B2A; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
@@ -47,13 +47,16 @@
     .footer { margin-top: 24px; font-size: 11px; color: rgba(255,255,255,0.2); text-align: center; }
     .code-badge { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.3); letter-spacing: 2px; margin-bottom: 4px; }
     .loading { color: rgba(255,255,255,0.3); font-size: 14px; }
+    .back-btn { margin-top: 20px; background: transparent; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 12px 28px; color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, sans-serif; cursor: pointer; letter-spacing: 0.5px; transition: border-color 0.15s, color 0.15s; }
+    .back-btn:hover { border-color: #00D4AA; color: #00D4AA; }
   </style>
 </head>
 <body>
-  <div class="logo">PADEL PALS</div>
+  <div class="logo">PADEJA</div>
   <div id="content" class="loading">Loading...</div>
   <div id="code-badge" class="code-badge" style="display:none"></div>
-  <div class="footer">Padel Pals · Updates every 3 seconds</div>
+  <button class="back-btn" onclick="window.location.href='display.html'">⬅ Enter a new code</button>
+  <div class="footer">Padeja · Updates every 3 seconds</div>
 
   <script>
     const SUPABASE_URL = "https://odrckirnjavfptlfygbo.supabase.co";
@@ -67,7 +70,7 @@
 
     async function fetchScore() {
       if (!code) {
-        document.getElementById("content").innerHTML = '<div class="not-found"><h2>No match code</h2><p>Please use the link shared from the Padel Pals app.</p></div>';
+        document.getElementById("content").innerHTML = '<div class="not-found"><h2>No match code</h2><p>Please use the link shared from the Padeja app.</p></div>';
         return;
       }
 
@@ -98,7 +101,6 @@
           return;
         }
 
-        // Build sets HTML
         let setsHtml = "";
         try {
           const sets = JSON.parse(match.sets_json || "[]");
