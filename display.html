@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Padeja — Live Score Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      background: #0a1628;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .court-bg {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 120vw;
+      height: 120vh;
+      opacity: 0.04;
+      pointer-events: none;
+    }
+
+    .card {
+      background: #0f1f38;
+      border: 1px solid #1e3050;
+      border-radius: 20px;
+      padding: 3rem 2.5rem;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo-mark {
+      width: 60px;
+      height: 60px;
+      background: #3ecf8e;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.25rem;
+      font-size: 28px;
+    }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #3ecf8e;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 400;
+      margin-bottom: 2.5rem;
+    }
+
+    .prompt {
+      font-size: 15px;
+      color: #8aa8c8;
+      margin-bottom: 1.25rem;
+    }
+
+    .code-boxes {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+
+    .code-box {
+      width: 52px;
+      height: 64px;
+      background: #0a1628;
+      border: 1.5px solid #1e3050;
+      border-radius: 10px;
+      font-size: 28px;
+      font-weight: 700;
+      color: #3ecf8e;
+      text-align: center;
+      font-family: 'Outfit', monospace;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      caret-color: #3ecf8e;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .code-box:focus {
+      border-color: #3ecf8e;
+      background: #0d2040;
+    }
+
+    .code-box.filled {
+      border-color: #2a6e50;
+    }
+
+    .show-btn {
+      width: 100%;
+      background: #3ecf8e;
+      color: #0a1628;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .show-btn:hover { background: #2db87a; }
+    .show-btn:active { transform: scale(0.98); }
+    .show-btn:disabled {
+      background: #1a2e48;
+      color: #3a5a7a;
+      cursor: not-allowed;
+    }
+
+    .error-msg {
+      font-size: 13px;
+      color: #e24b4a;
+      margin-top: 1rem;
+      min-height: 18px;
+    }
+
+    .footer-text {
+      margin-top: 2rem;
+      font-size: 12px;
+      color: #2a4060;
+    }
+
+    @media (max-width: 480px) {
+      .card { padding: 2rem 1.5rem; }
+      .code-box { width: 44px; height: 56px; font-size: 24px; }
+      .code-boxes { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <svg class="court-bg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <rect x="80" y="50" width="640" height="400" stroke="white" stroke-width="3" fill="none"/>
+    <line x1="400" y1="50" x2="400" y2="450" stroke="white" stroke-width="3"/>
+    <line x1="80" y1="250" x2="720" y2="250" stroke="white" stroke-width="3"/>
+    <line x1="200" y1="130" x2="600" y2="130" stroke="white" stroke-width="2"/>
+    <line x1="200" y1="370" x2="600" y2="370" stroke="white" stroke-width="2"/>
+    <line x1="200" y1="130" x2="200" y2="370" stroke="white" stroke-width="2"/>
+    <line x1="600" y1="130" x2="600" y2="370" stroke="white" stroke-width="2"/>
+  </svg>
+
+  <div class="card">
+    <div class="logo-mark" aria-hidden="true">🎾</div>
+    <h1>Padeja</h1>
+    <p class="subtitle">Live Score Viewer</p>
+
+    <p class="prompt">Enter your 6-digit match code</p>
+
+    <div class="code-boxes" id="codeBoxes" role="group" aria-label="6-digit match code">
+      <input class="code-box" maxlength="1" type="text" inputmode="text" autocomplete="off" aria-label="Digit 1">
+      <input class="code-box" maxlength="1" type="text" inputmode="text" autocomplete="off" aria-label="Digit 2">
+      <input class="code-box" maxlength="1" type="text" inputmode="text" autocomplete="off" aria-label="Digit 3">
+      <input class="code-box" maxlength="1" type="text" inputmode="text" autocomplete="off" aria-label="Digit 4">
+      <input class="code-box" maxlength="1" type="text" inputmode="text" autocomplete="off" aria-label="Digit 5">
+      <input class="code-box" maxlength="1" type="text" inputmode="text" autocomplete="off" aria-label="Digit 6">
+    </div>
+
+    <button class="show-btn" id="showBtn" disabled>Show Live Score</button>
+    <p class="error-msg" id="errorMsg" role="alert"></p>
+
+    <p class="footer-text">Your Padel Companion</p>
+  </div>
+
+  <script>
+    const boxes = document.querySelectorAll('.code-box');
+    const btn = document.getElementById('showBtn');
+    const err = document.getElementById('errorMsg');
+
+    boxes.forEach((box, i) => {
+      box.addEventListener('input', () => {
+        box.value = box.value.replace(/[^a-zA-Z0-9]/g, '').slice(-1).toUpperCase();
+        box.classList.toggle('filled', box.value !== '');
+        if (box.value && i < 5) boxes[i + 1].focus();
+        checkComplete();
+      });
+
+      box.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !box.value && i > 0) {
+          boxes[i - 1].value = '';
+          boxes[i - 1].classList.remove('filled');
+          boxes[i - 1].focus();
+          checkComplete();
+        }
+        if (e.key === 'ArrowLeft' && i > 0) boxes[i - 1].focus();
+        if (e.key === 'ArrowRight' && i < 5) boxes[i + 1].focus();
+        if (e.key === 'Enter') btn.click();
+      });
+
+      box.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const paste = (e.clipboardData || window.clipboardData).getData('text').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 6);
+        paste.split('').forEach((ch, idx) => {
+          if (boxes[idx]) {
+            boxes[idx].value = ch;
+            boxes[idx].classList.add('filled');
+          }
+        });
+        const next = Math.min(paste.length, 5);
+        boxes[next].focus();
+        checkComplete();
+      });
+
+      box.addEventListener('focus', () => box.select());
+    });
+
+    function checkComplete() {
+      const code = Array.from(boxes).map(b => b.value).join('');
+      btn.disabled = code.length < 6;
+      if (code.length === 6) err.textContent = '';
+    }
+
+    btn.addEventListener('click', () => {
+      const code = Array.from(boxes).map(b => b.value).join('');
+      if (code.length === 6) {
+        window.location.href = `https://woodfoja1984.github.io/padel-score/?code=${code}`;
+      } else {
+        err.textContent = 'Please enter all 6 digits.';
+      }
+    });
+
+    boxes[0].focus();
+  </script>
+</body>
+</html>
