@@ -160,7 +160,7 @@
   <div id="code-badge" class="code-badge" style="display:none"></div>
   <div class="btn-row">
     <button class="back-btn" onclick="window.location.href='display.html'">⬅ Enter a new code</button>
-    <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔊 Announcements on</button>
+    <button class="mute-btn muted" id="muteBtn" onclick="toggleMute()">🔇 Tap to enable announcements</button>
   </div>
   <div class="footer">Padeja · Updates every 3 seconds</div>
 
@@ -176,7 +176,7 @@
 
     // ── SPEECH ──
     let lastAnnouncementKey = null;
-    let isMuted = false;
+    let isMuted = true;
 
     function toggleMute() {
       isMuted = !isMuted;
@@ -188,6 +188,8 @@
       } else {
         btn.textContent = '🔊 Announcements on';
         btn.classList.remove('muted');
+        // Play a short phrase to unlock browser audio policy
+        speak('Announcements enabled');
       }
     }
 
