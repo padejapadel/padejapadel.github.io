@@ -184,7 +184,8 @@
       if (isMuted) {
         btn.textContent = '🔇 Announcements off';
         btn.classList.add('muted');
-        window.speechSynthesis.cancel();
+        if (window.AndroidTTS) AndroidTTS.stop();
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
       } else {
         btn.textContent = '🔊 Announcements on';
         btn.classList.remove('muted');
@@ -194,14 +195,19 @@
     }
 
     function speak(text) {
-      if (!window.speechSynthesis || isMuted) return;
-      window.speechSynthesis.cancel();
-      const utt = new SpeechSynthesisUtterance(text);
-      utt.lang = 'en-GB';
-      utt.rate = 0.9;
-      utt.pitch = 1.0;
-      utt.volume = 1.0;
-      window.speechSynthesis.speak(utt);
+      if (isMuted) return;
+      // Use native Android TTS if available (tablet app), otherwise use browser speech
+      if (window.AndroidTTS) {
+        AndroidTTS.speak(text);
+      } else if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        const utt = new SpeechSynthesisUtterance(text);
+        utt.lang = 'en-GB';
+        utt.rate = 0.9;
+        utt.pitch = 1.0;
+        utt.volume = 1.0;
+        window.speechSynthesis.speak(utt);
+      }
     }
 
     function pointToWords(p) {
