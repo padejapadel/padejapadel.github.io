@@ -6,14 +6,45 @@
   <title>Padeja - Live Score</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0D1B2A; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+
+    body {
+      background: #0D1B2A;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
     .logo { font-size: 13px; font-weight: 800; letter-spacing: 4px; color: #00D4AA; margin-bottom: 8px; }
-    .live-badge { display: flex; align-items: center; gap: 6px; background: rgba(255,0,0,0.1); border: 1px solid rgba(255,0,0,0.3); border-radius: 20px; padding: 4px 12px; margin-bottom: 24px; }
+
+    .live-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,0,0,0.1); border: 1px solid rgba(255,0,0,0.3);
+      border-radius: 20px; padding: 4px 12px; margin-bottom: 24px;
+    }
     .live-dot { width: 8px; height: 8px; background: red; border-radius: 50%; animation: pulse 1.2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
     .live-text { font-size: 11px; font-weight: 800; letter-spacing: 3px; color: red; }
-    .card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 28px 24px; width: 100%; max-width: 380px; margin-bottom: 16px; }
-    .sets-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; background: rgba(255,255,255,0.04); border-radius: 12px; padding: 12px 16px; }
+
+    .card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 380px;
+      margin-bottom: 16px;
+    }
+
+    .sets-row {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px; background: rgba(255,255,255,0.04);
+      border-radius: 12px; padding: 12px 16px;
+    }
     .team-names { display: flex; flex-direction: column; gap: 8px; }
     .team-name-a { font-size: 14px; font-weight: 700; color: #00D4AA; }
     .team-name-b { font-size: 14px; font-weight: 700; color: #FF6B6B; }
@@ -22,33 +53,110 @@
     .set-num { font-size: 18px; font-weight: 900; color: rgba(255,255,255,0.5); }
     .set-num.winner-a { color: #00D4AA; }
     .set-num.winner-b { color: #FF6B6B; }
+
     .scores { display: flex; gap: 12px; }
-    .score-box { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 20px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .score-box {
+      flex: 1; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px; padding: 20px 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
     .score-box.adv-a { background: rgba(0,212,170,0.15); border-color: rgba(0,212,170,0.5); }
     .score-box.adv-b { background: rgba(255,107,107,0.15); border-color: rgba(255,107,107,0.5); }
+
     .score-label { font-size: 8px; font-weight: 900; letter-spacing: 2px; height: 12px; color: transparent; }
     .score-label.deuce { color: #FFD700; }
     .score-label.adv-a { color: #00D4AA; }
     .score-label.adv-b { color: #FF6B6B; }
+
     .score-number { font-size: 52px; font-weight: 900; line-height: 1; }
     .score-a { color: #00D4AA; }
     .score-b { color: #FF6B6B; }
     .score-name { font-size: 11px; color: rgba(255,255,255,0.4); }
+
     .divider { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
     .divider-line { font-size: 28px; color: rgba(255,255,255,0.2); font-weight: 300; }
     .game-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.3); letter-spacing: 1px; text-align: center; }
     .tb-label { font-size: 10px; font-weight: 900; color: #FFD700; letter-spacing: 2px; }
-    .winner-card { background: rgba(255,215,0,0.1); border: 2px solid rgba(255,215,0,0.3); border-radius: 24px; padding: 32px 24px; text-align: center; width: 100%; max-width: 380px; }
+
+    .winner-card {
+      background: rgba(255,215,0,0.1); border: 2px solid rgba(255,215,0,0.3);
+      border-radius: 24px; padding: 32px 24px; text-align: center;
+      width: 100%; max-width: 380px;
+    }
     .trophy { font-size: 48px; margin-bottom: 12px; }
     .winner-label { font-size: 11px; font-weight: 800; letter-spacing: 4px; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
     .winner-name { font-size: 32px; font-weight: 900; color: #FFD700; }
+
     .not-found { text-align: center; color: rgba(255,255,255,0.4); }
     .not-found h2 { font-size: 24px; margin-bottom: 8px; }
+
     .footer { margin-top: 24px; font-size: 11px; color: rgba(255,255,255,0.2); text-align: center; }
-    .code-badge { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.3); letter-spacing: 2px; margin-bottom: 4px; }
+    .code-badge {
+      background: rgba(255,255,255,0.05); border-radius: 8px;
+      padding: 4px 10px; font-size: 11px; font-weight: 700;
+      color: rgba(255,255,255,0.3); letter-spacing: 2px; margin-bottom: 4px;
+    }
     .loading { color: rgba(255,255,255,0.3); font-size: 14px; }
-    .back-btn { margin-top: 20px; background: transparent; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 12px 28px; color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, sans-serif; cursor: pointer; letter-spacing: 0.5px; transition: border-color 0.15s, color 0.15s; }
+
+    .back-btn {
+      margin-top: 20px; background: transparent;
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
+      padding: 12px 28px; color: rgba(255,255,255,0.5);
+      font-size: 13px; font-weight: 600;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      cursor: pointer; letter-spacing: 0.5px;
+      transition: border-color 0.15s, color 0.15s;
+    }
     .back-btn:hover { border-color: #00D4AA; color: #00D4AA; }
+
+    /* ── TABLET STYLES (768px+) ── */
+    @media (min-width: 768px) {
+      body { padding: 32px; justify-content: center; }
+
+      .logo { font-size: 18px; letter-spacing: 6px; margin-bottom: 12px; }
+
+      .live-badge { padding: 6px 18px; margin-bottom: 32px; }
+      .live-dot { width: 12px; height: 12px; }
+      .live-text { font-size: 15px; letter-spacing: 4px; }
+
+      .card {
+        max-width: 100%;
+        padding: 40px 48px;
+        border-radius: 32px;
+        margin-bottom: 24px;
+      }
+
+      .sets-row {
+        padding: 20px 28px;
+        margin-bottom: 36px;
+        border-radius: 16px;
+      }
+      .team-name-a, .team-name-b { font-size: 28px; }
+      .team-names { gap: 16px; }
+      .set-num { font-size: 36px; }
+      .sets-scores { gap: 20px; }
+      .set-col { gap: 16px; }
+
+      .scores { gap: 24px; }
+      .score-box { padding: 40px 24px; border-radius: 28px; gap: 16px; }
+      .score-label { font-size: 14px; height: 20px; letter-spacing: 3px; }
+      .score-number { font-size: 160px; }
+      .score-name { font-size: 22px; }
+
+      .divider-line { font-size: 56px; }
+      .game-label { font-size: 18px; letter-spacing: 2px; }
+      .tb-label { font-size: 18px; letter-spacing: 3px; }
+
+      .winner-card { max-width: 100%; padding: 60px 48px; border-radius: 32px; }
+      .trophy { font-size: 80px; margin-bottom: 20px; }
+      .winner-label { font-size: 18px; letter-spacing: 6px; margin-bottom: 16px; }
+      .winner-name { font-size: 72px; }
+
+      .back-btn { padding: 18px 48px; font-size: 18px; border-radius: 16px; margin-top: 28px; }
+      .footer { font-size: 15px; margin-top: 28px; }
+      .code-badge { font-size: 16px; padding: 8px 16px; margin-bottom: 8px; }
+    }
   </style>
 </head>
 <body>
