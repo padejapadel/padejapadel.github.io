@@ -110,50 +110,45 @@
     }
     .back-btn:hover { border-color: #00D4AA; color: #00D4AA; }
 
+    .btn-row { display: flex; gap: 12px; margin-top: 20px; align-items: center; justify-content: center; flex-wrap: wrap; }
+    .mute-btn {
+      background: transparent; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
+      padding: 12px 20px; color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      cursor: pointer; letter-spacing: 0.5px; transition: border-color 0.15s, color 0.15s;
+    }
+    .mute-btn:hover { border-color: #00D4AA; color: #00D4AA; }
+    .mute-btn.muted { border-color: rgba(255,100,100,0.4); color: rgba(255,100,100,0.6); }
+
     /* ── TABLET STYLES (768px+) ── */
     @media (min-width: 768px) {
       body { padding: 32px; justify-content: center; }
-
       .logo { font-size: 18px; letter-spacing: 6px; margin-bottom: 12px; }
-
       .live-badge { padding: 6px 18px; margin-bottom: 32px; }
       .live-dot { width: 12px; height: 12px; }
       .live-text { font-size: 15px; letter-spacing: 4px; }
-
-      .card {
-        max-width: 100%;
-        padding: 40px 48px;
-        border-radius: 32px;
-        margin-bottom: 24px;
-      }
-
-      .sets-row {
-        padding: 20px 28px;
-        margin-bottom: 36px;
-        border-radius: 16px;
-      }
+      .card { max-width: 100%; padding: 40px 48px; border-radius: 32px; margin-bottom: 24px; }
+      .sets-row { padding: 20px 28px; margin-bottom: 36px; border-radius: 16px; }
       .team-name-a, .team-name-b { font-size: 28px; }
       .team-names { gap: 16px; }
       .set-num { font-size: 36px; }
       .sets-scores { gap: 20px; }
       .set-col { gap: 16px; }
-
       .scores { gap: 24px; }
       .score-box { padding: 40px 24px; border-radius: 28px; gap: 16px; }
       .score-label { font-size: 14px; height: 20px; letter-spacing: 3px; }
       .score-number { font-size: 160px; }
       .score-name { font-size: 22px; }
-
       .divider-line { font-size: 56px; }
       .game-label { font-size: 18px; letter-spacing: 2px; }
       .tb-label { font-size: 18px; letter-spacing: 3px; }
-
       .winner-card { max-width: 100%; padding: 60px 48px; border-radius: 32px; }
       .trophy { font-size: 80px; margin-bottom: 20px; }
       .winner-label { font-size: 18px; letter-spacing: 6px; margin-bottom: 16px; }
       .winner-name { font-size: 72px; }
-
-      .back-btn { padding: 18px 48px; font-size: 18px; border-radius: 16px; margin-top: 28px; }
+      .back-btn { padding: 18px 48px; font-size: 18px; border-radius: 16px; }
+      .mute-btn { padding: 18px 28px; font-size: 18px; border-radius: 16px; }
+      .btn-row { margin-top: 28px; gap: 16px; }
       .footer { font-size: 15px; margin-top: 28px; }
       .code-badge { font-size: 16px; padding: 8px 16px; margin-bottom: 8px; }
     }
@@ -163,7 +158,10 @@
   <div class="logo">PADEJA</div>
   <div id="content" class="loading">Loading...</div>
   <div id="code-badge" class="code-badge" style="display:none"></div>
-  <button class="back-btn" onclick="window.location.href='display.html'">⬅ Enter a new code</button>
+  <div class="btn-row">
+    <button class="back-btn" onclick="window.location.href='display.html'">⬅ Enter a new code</button>
+    <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔊 Announcements on</button>
+  </div>
   <div class="footer">Padeja · Updates every 3 seconds</div>
 
   <script>
@@ -176,6 +174,140 @@
     document.getElementById("code-badge").textContent = code || "";
     if (code) document.getElementById("code-badge").style.display = "inline-block";
 
+    // ── SPEECH ──
+    let lastAnnouncementKey = null;
+    let isMuted = false;
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      const btn = document.getElementById('muteBtn');
+      if (isMuted) {
+        btn.textContent = '🔇 Announcements off';
+        btn.classList.add('muted');
+        window.speechSynthesis.cancel();
+      } else {
+        btn.textContent = '🔊 Announcements on';
+        btn.classList.remove('muted');
+      }
+    }
+
+    function speak(text) {
+      if (!window.speechSynthesis || isMuted) return;
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = 'en-GB';
+      utt.rate = 0.9;
+      utt.pitch = 1.0;
+      utt.volume = 1.0;
+      window.speechSynthesis.speak(utt);
+    }
+
+    function pointToWords(p) {
+      const map = { "0": "Love", "15": "Fifteen", "30": "Thirty", "40": "Forty", "Ad": "Advantage", "–": "Deuce" };
+      return map[p] || p;
+    }
+
+    function buildAnnouncement(match, prevMatch) {
+      // Only announce if something changed
+      if (!prevMatch) return null;
+
+      const prevSets = JSON.parse(prevMatch.sets_json || "[]");
+      const currSets = JSON.parse(match.sets_json || "[]");
+
+      // Match just finished
+      if (match.match_state === "finished" && prevMatch.match_state !== "finished") {
+        const winnerName = match.match_winner === "Team A" ? match.team_a : match.team_b;
+        return `Game, set and match. ${winnerName}!`;
+      }
+
+      // A game just ended — check if games score changed
+      const prevGameA = prevMatch.game_a || 0;
+      const prevGameB = prevMatch.game_b || 0;
+      const currGameA = match.game_a || 0;
+      const currGameB = match.game_b || 0;
+
+      // A set just completed — sets count increased
+      const prevSetCount = prevSets.length;
+      const currSetCount = currSets.length;
+      if (currSetCount > prevSetCount) {
+        // Find the completed set
+        const completedSet = currSets[prevSetCount - 1] || currSets[currSets.length - 2];
+        if (completedSet) {
+          const setA = completedSet.a;
+          const setB = completedSet.b;
+          // Serving team first
+          if (match.serving_team === "B") {
+            return `Set. ${setB} games to ${setA}`;
+          }
+          return `Set. ${setA} games to ${setB}`;
+        }
+        return `Set`;
+      }
+
+      // A game just ended within current set (games score changed, but set not complete)
+      if (currGameA !== prevGameA || currGameB !== prevGameB) {
+        if (match.serving_team === "B") {
+          return `Game. ${currGameB} games to ${currGameA}`;
+        }
+        return `Game. ${currGameA} games to ${currGameB}`;
+      }
+
+      // Points changed — announce current point state
+      const prevPointA = prevMatch.point_display_a || "0";
+      const prevPointB = prevMatch.point_display_b || "0";
+      const currPointA = match.point_display_a || "0";
+      const currPointB = match.point_display_b || "0";
+      const prevDeuce = prevMatch.is_deuce;
+      const currDeuce = match.is_deuce;
+      const prevStarPoint = prevMatch.is_star_point;
+      const currStarPoint = match.is_star_point;
+
+      const pointsChanged = (currPointA !== prevPointA || currPointB !== prevPointB || currDeuce !== prevDeuce);
+      if (!pointsChanged) return null;
+
+      // Deuce
+      if (currDeuce && !prevDeuce) {
+        return "Deuce";
+      }
+
+      // Star Point
+      if (currStarPoint && !prevStarPoint) {
+        return "Star point";
+      }
+
+      // Match point
+      if (match.is_match_point) {
+        const leader = match.serving_team === "B" ? currPointB : currPointA;
+        const trailer = match.serving_team === "B" ? currPointA : currPointB;
+        return `Match point. ${pointToWords(leader)}, ${pointToWords(trailer)}`;
+      }
+
+      // Set point
+      if (match.is_set_point) {
+        const leader = match.serving_team === "B" ? currPointB : currPointA;
+        const trailer = match.serving_team === "B" ? currPointA : currPointB;
+        return `Set point. ${pointToWords(leader)}, ${pointToWords(trailer)}`;
+      }
+
+      // Advantage
+      if (currPointA === "Ad" && !currDeuce) {
+        return `Advantage ${match.team_a}`;
+      }
+      if (currPointB === "Ad" && !currDeuce) {
+        return `Advantage ${match.team_b}`;
+      }
+
+      // Normal point — serving team's score first
+      if (currDeuce) return "Deuce";
+      if (match.serving_team === "B") {
+        return `${pointToWords(currPointB)}, ${pointToWords(currPointA)}`;
+      }
+      return `${pointToWords(currPointA)}, ${pointToWords(currPointB)}`;
+    }
+
+    // ── FETCH & RENDER ──
+    let prevMatch = null;
+
     async function fetchScore() {
       if (!code) {
         document.getElementById("content").innerHTML = '<div class="not-found"><h2>No match code</h2><p>Please use the link shared from the Padeja app.</p></div>';
@@ -184,10 +316,7 @@
 
       try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/live_matches?match_code=eq.${code}&select=*`, {
-          headers: {
-            "apikey": SUPABASE_KEY,
-            "Authorization": `Bearer ${SUPABASE_KEY}`
-          }
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
         });
 
         const data = await res.json();
@@ -195,9 +324,22 @@
 
         if (!match) {
           document.getElementById("content").innerHTML = '<div class="not-found"><h2>Match not found</h2><p>This match code does not exist or has ended.</p></div>';
+          prevMatch = null;
           return;
         }
 
+        // Build a key from current score state to detect changes
+        const stateKey = `${match.point_display_a}|${match.point_display_b}|${match.game_a}|${match.game_b}|${match.sets_json}|${match.match_state}|${match.is_deuce}|${match.is_star_point}`;
+
+        if (stateKey !== lastAnnouncementKey) {
+          const announcement = buildAnnouncement(match, prevMatch);
+          if (announcement) speak(announcement);
+          lastAnnouncementKey = stateKey;
+        }
+
+        prevMatch = match;
+
+        // ── FINISHED ──
         if (match.match_state === "finished") {
           const winnerName = match.match_winner === "Team A" ? match.team_a : match.team_b;
           document.getElementById("content").innerHTML = `
@@ -209,6 +351,7 @@
           return;
         }
 
+        // ── SETS ──
         let setsHtml = "";
         try {
           const sets = JSON.parse(match.sets_json || "[]");
