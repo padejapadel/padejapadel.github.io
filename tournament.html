@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Padeja — Live Tournament</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: #0D1B2A;
+      color: white;
+      min-height: 100vh;
+      padding: 0 0 40px;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #0D1B2A, #1B3A4B);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 20px 20px 16px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .logo { font-size: 11px; font-weight: 700; letter-spacing: 4px; color: #00D4AA; margin-bottom: 6px; }
+
+    .tournament-name {
+      font-size: 22px;
+      font-weight: 900;
+      color: white;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+
+    .format-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .format-mexicano { background: rgba(0,212,170,0.15); color: #00D4AA; border: 1px solid rgba(0,212,170,0.3); }
+    .format-americano { background: rgba(0,168,255,0.15); color: #00A8FF; border: 1px solid rgba(0,168,255,0.3); }
+    .format-league { background: rgba(255,215,0,0.15); color: #FFD700; border: 1px solid rgba(255,215,0,0.3); }
+
+    .live-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,0,0,0.1); border: 1px solid rgba(255,0,0,0.3);
+      border-radius: 20px; padding: 3px 10px;
+    }
+    .live-dot { width: 7px; height: 7px; background: red; border-radius: 50%; animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .live-text { font-size: 10px; font-weight: 800; letter-spacing: 2px; color: red; }
+
+    .container { max-width: 500px; margin: 0 auto; padding: 20px 16px 0; }
+
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: rgba(255,255,255,0.35);
+      margin: 24px 0 10px;
+      text-transform: uppercase;
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin: 16px 0 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: 0;
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px 4px;
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.35);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab.active { color: #00D4AA; border-bottom-color: #00D4AA; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* LEADERBOARD */
+    .leaderboard-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+    }
+    .leaderboard-row.top-1 { background: rgba(255,215,0,0.08); border-color: rgba(255,215,0,0.2); }
+    .leaderboard-row.top-2 { background: rgba(192,192,192,0.06); border-color: rgba(192,192,192,0.15); }
+    .leaderboard-row.top-3 { background: rgba(205,127,50,0.06); border-color: rgba(205,127,50,0.15); }
+
+    .rank {
+      font-size: 16px;
+      font-weight: 900;
+      min-width: 28px;
+      text-align: center;
+    }
+    .rank-1 { color: #FFD700; }
+    .rank-2 { color: #C0C0C0; }
+    .rank-3 { color: #CD7F32; }
+    .rank-other { color: rgba(255,255,255,0.3); font-size: 13px; }
+
+    .player-name {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .player-stats {
+      text-align: right;
+    }
+    .player-points {
+      font-size: 20px;
+      font-weight: 900;
+      color: #00D4AA;
+      line-height: 1;
+    }
+    .player-played {
+      font-size: 10px;
+      color: rgba(255,255,255,0.3);
+      margin-top: 2px;
+    }
+
+    /* ROUNDS / PAIRINGS */
+    .round-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .round-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+    }
+    .round-status {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+    .status-active { background: rgba(0,212,170,0.15); color: #00D4AA; }
+    .status-pending { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
+    .status-finished { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.3); }
+
+    .match-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+
+    .match-teams {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .match-team {
+      flex: 1;
+    }
+    .match-team-a { text-align: left; }
+    .match-team-b { text-align: right; }
+
+    .team-players {
+      font-size: 13px;
+      font-weight: 600;
+      color: white;
+      line-height: 1.4;
+    }
+    .team-players span { display: block; }
+
+    .match-score-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .score-num {
+      font-size: 26px;
+      font-weight: 900;
+      min-width: 32px;
+      text-align: center;
+    }
+    .score-a { color: #00D4AA; }
+    .score-b { color: #FF6B6B; }
+    .score-divider { color: rgba(255,255,255,0.2); font-size: 18px; }
+    .score-pending { color: rgba(255,255,255,0.2); font-size: 13px; font-weight: 600; }
+
+    .sitting-out {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .sitting-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.45);
+    }
+
+    /* LEAGUE TABLE */
+    .league-section { margin-bottom: 24px; }
+    .league-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFD700;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+
+    .league-table { width: 100%; border-collapse: collapse; }
+    .league-table th {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.3);
+      text-align: center;
+      padding: 0 4px 8px;
+      text-transform: uppercase;
+    }
+    .league-table th:first-child { text-align: left; padding-left: 0; }
+    .league-table td {
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      padding: 10px 4px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.7);
+    }
+    .league-table td:first-child { text-align: left; color: white; padding-left: 0; font-size: 14px; }
+    .league-table td.pts { color: #FFD700; font-weight: 900; font-size: 15px; }
+
+    /* FIXTURES */
+    .fixture-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 10px;
+      margin-bottom: 6px;
+    }
+    .fixture-teams { flex: 1; font-size: 13px; font-weight: 600; color: white; }
+    .fixture-vs { color: rgba(255,255,255,0.3); font-size: 11px; margin: 0 4px; }
+    .fixture-score { font-size: 14px; font-weight: 900; color: #00D4AA; }
+    .fixture-pending { font-size: 11px; color: rgba(255,255,255,0.25); }
+
+    .not-found {
+      text-align: center;
+      padding: 60px 20px;
+      color: rgba(255,255,255,0.4);
+    }
+    .not-found h2 { font-size: 20px; margin-bottom: 8px; color: white; }
+
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: rgba(255,255,255,0.3);
+      font-size: 14px;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.15);
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">PADEJA</div>
+  <div id="tournamentName" class="tournament-name">Loading...</div>
+  <div id="formatBadge"></div>
+  <div style="margin-top:8px">
+    <span class="live-badge"><span class="live-dot"></span><span class="live-text">LIVE</span></span>
+  </div>
+</div>
+
+<div class="container">
+  <div id="mainContent" class="loading">Loading tournament...</div>
+  <div class="footer">Padeja · Updates every 5 seconds</div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://odrckirnjavfptlfygbo.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo";
+
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+
+  async function fetchJSON(url) {
+    const res = await fetch(url, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+    });
+    return res.json();
+  }
+
+  let activeTab = 0;
+
+  function setTab(idx) {
+    activeTab = idx;
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+    document.querySelectorAll('.tab-content').forEach((t, i) => t.classList.toggle('active', i === idx));
+  }
+
+  function formatName(format) {
+    return { mexicano: 'Mexicano', americano: 'Americano', league: 'League' }[format] || format;
+  }
+
+  function rankEmoji(r) {
+    return r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : r;
+  }
+
+  function rankClass(r) {
+    return r === 1 ? 'rank-1' : r === 2 ? 'rank-2' : r === 3 ? 'rank-3' : 'rank-other';
+  }
+
+  function rowClass(r) {
+    return r === 1 ? 'top-1' : r === 2 ? 'top-2' : r === 3 ? 'top-3' : '';
+  }
+
+  // ── MEXICANO / AMERICANO ──
+  async function renderIndividual(tournament) {
+    const [players, rounds, matches] = await Promise.all([
+      fetchJSON(`${SUPABASE_URL}/rest/v1/tournament_players?tournament_id=eq.${tournament.id}&select=*&order=total_points.desc`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/tournament_rounds?tournament_id=eq.${tournament.id}&select=*&order=round_number.desc`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/tournament_matches?tournament_id=eq.${tournament.id}&select=*`)
+    ]);
+
+    // Build player lookup
+    const playerMap = {};
+    players.forEach(p => playerMap[p.id] = p);
+
+    // Current round = latest active or most recent
+    const currentRound = rounds.find(r => r.status === 'active') || rounds[0];
+    const currentMatches = currentRound
+      ? matches.filter(m => m.round_id === currentRound.id)
+      : [];
+
+    // Active player IDs in current round
+    const activePlayerIds = new Set();
+    currentMatches.forEach(m => {
+      [m.player_a1_id, m.player_a2_id, m.player_b1_id, m.player_b2_id].forEach(id => { if (id) activePlayerIds.add(id); });
+    });
+
+    const sittingOut = players.filter(p => !activePlayerIds.has(p.id) && currentRound);
+
+    // Leaderboard HTML
+    const leaderboardHtml = players.map((p, i) => {
+      const rank = i + 1;
+      return `
+        <div class="leaderboard-row ${rowClass(rank)}">
+          <div class="rank ${rankClass(rank)}">${rankEmoji(rank)}</div>
+          <div class="player-name">${p.display_name}</div>
+          <div class="player-stats">
+            <div class="player-points">${p.total_points}</div>
+            <div class="player-played">${p.matches_played} match${p.matches_played !== 1 ? 'es' : ''}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Rounds HTML — show all rounds newest first
+    let roundsHtml = '';
+    rounds.forEach(round => {
+      const roundMatches = matches.filter(m => m.round_id === round.id);
+      const statusClass = `status-${round.status}`;
+      const statusLabel = round.status.charAt(0).toUpperCase() + round.status.slice(1);
+
+      const matchesHtml = roundMatches.map(m => {
+        const a1 = playerMap[m.player_a1_id]?.display_name || '';
+        const a2 = playerMap[m.player_a2_id]?.display_name || '';
+        const b1 = playerMap[m.player_b1_id]?.display_name || '';
+        const b2 = playerMap[m.player_b2_id]?.display_name || '';
+        const hasScore = m.score_a !== null && m.score_b !== null;
+
+        return `
+          <div class="match-card">
+            <div class="match-teams">
+              <div class="match-team match-team-a">
+                <div class="team-players">
+                  <span>${a1}</span>
+                  <span style="color:rgba(255,255,255,0.5)">${a2}</span>
+                </div>
+              </div>
+              <div class="match-score-box">
+                ${hasScore
+                  ? `<span class="score-num score-a">${m.score_a}</span>
+                     <span class="score-divider">–</span>
+                     <span class="score-num score-b">${m.score_b}</span>`
+                  : `<span class="score-pending">vs</span>`
+                }
+              </div>
+              <div class="match-team match-team-b">
+                <div class="team-players" style="text-align:right">
+                  <span>${b1}</span>
+                  <span style="color:rgba(255,255,255,0.5)">${b2}</span>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      const sittingOutHtml = round.id === currentRound?.id && sittingOut.length > 0
+        ? `<div style="margin-top:4px;margin-bottom:8px">
+             <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-bottom:6px;letter-spacing:1px">SITTING OUT</div>
+             <div class="sitting-out">${sittingOut.map(p => `<span class="sitting-pill">${p.display_name}</span>`).join('')}</div>
+           </div>`
+        : '';
+
+      roundsHtml += `
+        <div style="margin-bottom:20px">
+          <div class="round-header">
+            <div class="round-title">Round ${round.round_number}</div>
+            <span class="round-status ${statusClass}">${statusLabel}</span>
+          </div>
+          ${sittingOutHtml}
+          ${matchesHtml}
+        </div>`;
+    });
+
+    if (!roundsHtml) roundsHtml = `<div style="color:rgba(255,255,255,0.3);font-size:13px;text-align:center;padding:20px">No rounds started yet</div>`;
+
+    document.getElementById('mainContent').innerHTML = `
+      <div class="tabs">
+        <div class="tab active" onclick="setTab(0)">Leaderboard</div>
+        <div class="tab" onclick="setTab(1)">Rounds</div>
+      </div>
+      <div class="tab-content active" id="tab0">
+        <div style="margin-top:16px">${leaderboardHtml}</div>
+      </div>
+      <div class="tab-content" id="tab1">
+        <div style="margin-top:16px">${roundsHtml}</div>
+      </div>`;
+
+    // Restore active tab
+    setTab(activeTab);
+  }
+
+  // ── LEAGUE ──
+  async function renderLeague(tournament) {
+    const [leagues, teams, matches] = await Promise.all([
+      fetchJSON(`${SUPABASE_URL}/rest/v1/leagues?tournament_id=eq.${tournament.id}&select=*&order=name.asc`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/league_teams?tournament_id=eq.${tournament.id}&select=*`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/league_matches?tournament_id=eq.${tournament.id}&select=*`)
+    ]);
+
+    const teamMap = {};
+    teams.forEach(t => teamMap[t.id] = t);
+
+    let leaguesHtml = '';
+
+    leagues.forEach(league => {
+      const leagueTeams = teams
+        .filter(t => t.league_id === league.id)
+        .sort((a, b) => {
+          if (b.league_points !== a.league_points) return b.league_points - a.league_points;
+          const diffA = a.points_for - a.points_against;
+          const diffB = b.points_for - b.points_against;
+          return diffB - diffA;
+        });
+
+      const leagueMatches = matches.filter(m => m.league_id === league.id);
+
+      const tableRows = leagueTeams.map(t => `
+        <tr>
+          <td>${t.team_name}</td>
+          <td>${t.played}</td>
+          <td>${t.won}</td>
+          <td>${t.drawn}</td>
+          <td>${t.lost}</td>
+          <td>${t.points_for}</td>
+          <td>${t.points_against}</td>
+          <td class="pts">${t.league_points}</td>
+        </tr>`).join('');
+
+      const fixturesHtml = leagueMatches.map(m => {
+        const home = teamMap[m.home_team_id]?.team_name || 'TBC';
+        const away = teamMap[m.away_team_id]?.team_name || 'TBC';
+        const hasScore = m.home_score !== null && m.away_score !== null;
+        return `
+          <div class="fixture-row">
+            <div class="fixture-teams">
+              ${home} <span class="fixture-vs">vs</span> ${away}
+            </div>
+            ${hasScore
+              ? `<div class="fixture-score">${m.home_score} – ${m.away_score}</div>`
+              : `<div class="fixture-pending">Pending</div>`
+            }
+          </div>`;
+      }).join('');
+
+      leaguesHtml += `
+        <div class="league-section">
+          <div class="league-name">🏆 ${league.name}</div>
+          <table class="league-table">
+            <thead>
+              <tr>
+                <th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>PF</th><th>PA</th><th>Pts</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+          ${leagueMatches.length > 0 ? `<div style="margin-top:16px"><div class="section-title">Fixtures</div>${fixturesHtml}</div>` : ''}
+        </div>`;
+    });
+
+    document.getElementById('mainContent').innerHTML = `
+      <div style="margin-top:16px">${leaguesHtml || '<div style="color:rgba(255,255,255,0.3);text-align:center;padding:20px">No leagues set up yet</div>'}</div>`;
+  }
+
+  // ── MAIN FETCH ──
+  async function fetchTournament() {
+    if (!code) {
+      document.getElementById('mainContent').innerHTML = `
+        <div class="not-found"><h2>No tournament code</h2><p>Please use the link shared from the Padeja app.</p></div>`;
+      return;
+    }
+
+    try {
+      const data = await fetchJSON(`${SUPABASE_URL}/rest/v1/tournaments?share_code=eq.${code}&select=*`);
+      const tournament = data && data.length > 0 ? data[0] : null;
+
+      if (!tournament) {
+        document.getElementById('mainContent').innerHTML = `
+          <div class="not-found"><h2>Tournament not found</h2><p>This link may have expired or the tournament hasn't started yet.</p></div>`;
+        return;
+      }
+
+      // Update header
+      document.getElementById('tournamentName').textContent = tournament.name;
+      const formatClass = `format-${tournament.format}`;
+      document.getElementById('formatBadge').innerHTML = `<span class="format-badge ${formatClass}">${formatName(tournament.format)}</span>`;
+
+      if (tournament.format === 'league') {
+        await renderLeague(tournament);
+      } else {
+        await renderIndividual(tournament);
+      }
+
+    } catch(e) {
+      document.getElementById('mainContent').innerHTML = `
+        <div class="not-found"><h2>Connection error</h2><p>Could not load the tournament. Please try again.</p></div>`;
+    }
+  }
+
+  fetchTournament();
+  setInterval(fetchTournament, 5000);
+</script>
+</body>
+</html>
