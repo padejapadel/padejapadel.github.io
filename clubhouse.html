@@ -27,8 +27,10 @@
     }
 
     .page.no-tournament .courts-section { flex: 1; }
-    .page.has-tournament .courts-section { flex: 0 0 58%; }
+    .page.has-tournament .courts-section { flex: 0 0 55%; }
     .page.has-tournament .tournament-section { flex: 1; min-height: 0; }
+    .page.tournament-only .courts-section { flex: 0 0 52%; }
+    .page.tournament-only .tournament-section { flex: 1; min-height: 0; }
 
     /* ── HEADER BAR ── */
     .top-bar {
@@ -49,7 +51,55 @@
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
     .live-text { font-size: 11px; font-weight: 800; letter-spacing: 3px; color: red; }
 
-    /* ── COURTS GRID ── */
+    /* Fixtures panel (tournament-only top half) */
+    .fixtures-panel {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .fixtures-header {
+      font-size: 10px; font-weight: 700; letter-spacing: 3px;
+      color: rgba(255,255,255,0.35); text-transform: uppercase;
+      padding: 8px 14px 6px; border-bottom: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+    .fixtures-body {
+      flex: 1; overflow: hidden;
+      display: flex; gap: 10px; padding: 10px 12px;
+    }
+    .fixture-col {
+      flex: 1; display: flex; flex-direction: column; gap: 8px; overflow: hidden;
+    }
+    .fixture-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex; align-items: center; gap: 10px;
+      flex-shrink: 0;
+    }
+    .fixture-teams { flex: 1; }
+    .fixture-team-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: clamp(11px, 1.3vw, 16px); font-weight: 600; color: white;
+      padding: 2px 0;
+    }
+    .fixture-bar { width: 3px; height: 16px; border-radius: 2px; flex-shrink: 0; }
+    .fixture-bar-a { background: #3ecf8e; }
+    .fixture-bar-b { background: #ff6b6b; }
+    .fixture-score-col { text-align: center; flex-shrink: 0; }
+    .fixture-score {
+      font-size: clamp(18px, 2.5vw, 32px); font-weight: 900;
+      line-height: 1;
+    }
+    .fscore-a { color: #3ecf8e; }
+    .fscore-b { color: #ff6b6b; }
+    .fixture-vs { font-size: 11px; color: rgba(255,255,255,0.25); font-weight: 600; }
+    .round-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 2px;
+      color: rgba(255,255,255,0.3); text-transform: uppercase;
+      margin-bottom: 4px;
+    }
     .courts-section { display: flex; flex-direction: column; min-height: 0; }
     .courts-grid {
       display: grid;
@@ -313,11 +363,24 @@
 
   // Layout
   const page = document.getElementById('page');
+  const tournamentOnly = hasTournament && matchCodes.length === 0;
   if (hasTournament) {
-    page.classList.add('has-tournament');
+    page.classList.add(tournamentOnly ? 'tournament-only' : 'has-tournament');
     document.getElementById('tournamentSection').style.display = 'flex';
   } else {
     page.classList.add('no-tournament');
+  }
+
+  // If tournament-only, show fixtures section in top half
+  const courtsSection = document.getElementById('courtsSection');
+  if (tournamentOnly) {
+    courtsSection.innerHTML = `
+      <div class="court-card" style="height:100%">
+        <div class="fixtures-header">Current Round · Fixtures & Results</div>
+        <div class="fixtures-body" id="fixturesBody">
+          <div style="color:rgba(255,255,255,0.3);font-size:13px;margin:auto">Loading...</div>
+        </div>
+      </div>`;
   }
 
   // Build court cards
@@ -442,6 +505,99 @@
     return r <= 3 ? `top-${r}` : '';
   }
 
+  async function renderFixtures(tournament) {
+    const fixturesBody = document.getElementById('fixturesBody');
+    if (!fixturesBody) return;
+
+    if (tournament.format === 'league') {
+      const [leagues, teams, matches] = await Promise.all([
+        fetchJSON(`${SUPABASE_URL}/rest/v1/leagues?tournament_id=eq.${tournament.id}&select=*&order=name.asc`),
+        fetchJSON(`${SUPABASE_URL}/rest/v1/league_teams?tournament_id=eq.${tournament.id}&select=*`),
+        fetchJSON(`${SUPABASE_URL}/rest/v1/league_matches?tournament_id=eq.${tournament.id}&select=*`)
+      ]);
+      const teamMap = {};
+      teams.forEach(t => teamMap[t.id] = t);
+
+      const colsHtml = leagues.map(league => {
+        const leagueMatches = matches.filter(m => m.league_id === league.id);
+        const cardsHtml = leagueMatches.map(m => {
+          const home = teamMap[m.home_team_id]?.team_name || 'TBC';
+          const away = teamMap[m.away_team_id]?.team_name || 'TBC';
+          const hasScore = m.home_score !== null && m.away_score !== null;
+          return `
+            <div class="fixture-card">
+              <div class="fixture-teams">
+                <div class="fixture-team-row"><div class="fixture-bar fixture-bar-a"></div>${home}</div>
+                <div class="fixture-team-row"><div class="fixture-bar fixture-bar-b"></div>${away}</div>
+              </div>
+              ${hasScore
+                ? `<div class="fixture-score-col">
+                     <div class="fixture-score fscore-a">${m.home_score}</div>
+                     <div class="fixture-vs">–</div>
+                     <div class="fixture-score fscore-b">${m.away_score}</div>
+                   </div>`
+                : `<div class="fixture-vs">vs</div>`
+              }
+            </div>`;
+        }).join('');
+        return `<div class="fixture-col"><div class="round-label">🏆 ${league.name}</div>${cardsHtml}</div>`;
+      }).join('');
+
+      fixturesBody.innerHTML = colsHtml || '<div style="color:rgba(255,255,255,0.3);font-size:13px;margin:auto">No fixtures yet</div>';
+
+    } else {
+      // Mexicano / Americano — show current round pairings
+      const [rounds, matches, players] = await Promise.all([
+        fetchJSON(`${SUPABASE_URL}/rest/v1/tournament_rounds?tournament_id=eq.${tournament.id}&select=*&order=round_number.desc`),
+        fetchJSON(`${SUPABASE_URL}/rest/v1/tournament_matches?tournament_id=eq.${tournament.id}&select=*`),
+        fetchJSON(`${SUPABASE_URL}/rest/v1/tournament_players?tournament_id=eq.${tournament.id}&select=*`)
+      ]);
+
+      const playerMap = {};
+      players.forEach(p => playerMap[p.id] = p);
+
+      const currentRound = rounds.find(r => r.status === 'active') || rounds[0];
+      if (!currentRound) {
+        fixturesBody.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:13px;margin:auto">No rounds started yet</div>';
+        return;
+      }
+
+      const roundMatches = matches.filter(m => m.round_id === currentRound.id);
+
+      // Split into columns of 3
+      const cols = [[], []];
+      roundMatches.forEach((m, i) => cols[i % 2].push(m));
+
+      const colsHtml = cols.filter(c => c.length > 0).map(col => {
+        const cardsHtml = col.map(m => {
+          const a1 = playerMap[m.player_a1_id]?.display_name || '';
+          const a2 = playerMap[m.player_a2_id]?.display_name || '';
+          const b1 = playerMap[m.player_b1_id]?.display_name || '';
+          const b2 = playerMap[m.player_b2_id]?.display_name || '';
+          const hasScore = m.score_a !== null && m.score_b !== null;
+          return `
+            <div class="fixture-card">
+              <div class="fixture-teams">
+                <div class="fixture-team-row"><div class="fixture-bar fixture-bar-a"></div>${a1}${a2 ? ` & ${a2}` : ''}</div>
+                <div class="fixture-team-row"><div class="fixture-bar fixture-bar-b"></div>${b1}${b2 ? ` & ${b2}` : ''}</div>
+              </div>
+              ${hasScore
+                ? `<div class="fixture-score-col">
+                     <div class="fixture-score fscore-a">${m.score_a}</div>
+                     <div class="fixture-vs">–</div>
+                     <div class="fixture-score fscore-b">${m.score_b}</div>
+                   </div>`
+                : `<div class="fixture-vs">vs</div>`
+              }
+            </div>`;
+        }).join('');
+        return `<div class="fixture-col"><div class="round-label">Round ${currentRound.round_number}</div>${cardsHtml}</div>`;
+      }).join('');
+
+      fixturesBody.innerHTML = colsHtml;
+    }
+  }
+
   async function fetchTournament() {
     if (!hasTournament) return;
     try {
@@ -453,6 +609,9 @@
       const fmtEl = document.getElementById('tournamentFormat');
       fmtEl.textContent = formatLabel(t.format).toUpperCase();
       fmtEl.className = `tournament-format fmt-${t.format}`;
+
+      // Render fixtures in top half if tournament-only
+      if (tournamentOnly) await renderFixtures(t);
 
       const body = document.getElementById('tournamentBody');
 
