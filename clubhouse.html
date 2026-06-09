@@ -386,22 +386,24 @@
   // Build court cards
   const grid = document.getElementById('courtsGrid');
   const n = matchCodes.length;
-  grid.className = `courts-grid c${Math.min(n, 6)}`;
+  if (grid) {
+    grid.className = `courts-grid c${Math.min(n, 6)}`;
 
-  matchCodes.forEach((code, i) => {
-    const card = document.createElement('div');
-    card.className = 'court-card';
-    card.id = `court-${i}`;
-    card.innerHTML = `
-      <div class="court-header">
-        <span class="court-number">COURT ${i + 1}</span>
-        <span class="court-sets" id="sets-${i}"></span>
-      </div>
-      <div class="court-body" id="body-${i}">
-        <div class="empty-label">Connecting...</div>
-      </div>`;
-    grid.appendChild(card);
-  });
+    matchCodes.forEach((code, i) => {
+      const card = document.createElement('div');
+      card.className = 'court-card';
+      card.id = `court-${i}`;
+      card.innerHTML = `
+        <div class="court-header">
+          <span class="court-number">COURT ${i + 1}</span>
+          <span class="court-sets" id="sets-${i}"></span>
+        </div>
+        <div class="court-body" id="body-${i}">
+          <div class="empty-label">Connecting...</div>
+        </div>`;
+      grid.appendChild(card);
+    });
+  }
 
   async function fetchJSON(url) {
     const res = await fetch(url, {
