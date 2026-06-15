@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Padeja — Join League</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      background: #0a1628;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 2rem;
+      position: relative; overflow: hidden;
+    }
+    .court-bg {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 120vw; height: 120vh;
+      opacity: 0.04; pointer-events: none;
+    }
+    .card {
+      background: #0f1f38;
+      border: 1px solid #1e3050;
+      border-radius: 24px;
+      padding: 2.5rem 2rem;
+      width: 100%; max-width: 420px;
+      text-align: center;
+      position: relative; z-index: 1;
+    }
+    .logo-mark {
+      width: 60px; height: 60px;
+      background: #3ecf8e; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1rem; font-size: 28px;
+    }
+    .brand { font-size: 13px; font-weight: 700; letter-spacing: 4px; color: #3ecf8e; margin-bottom: 1.5rem; }
+    .league-loading { color: rgba(255,255,255,0.4); font-size: 14px; margin-bottom: 1rem; }
+    .league-name { font-size: 26px; font-weight: 900; color: #fff; margin-bottom: 6px; letter-spacing: -0.3px; }
+    .league-badge {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      background: rgba(0,212,170,0.12); color: #3ecf8e;
+      border: 1px solid rgba(0,212,170,0.25);
+      border-radius: 20px; padding: 3px 12px; margin-bottom: 1.5rem;
+    }
+    .divider { height: 1px; background: rgba(255,255,255,0.07); margin: 1.5rem 0; }
+    .section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      color: rgba(255,255,255,0.35); text-transform: uppercase; margin-bottom: 1rem;
+    }
+    .open-btn {
+      width: 100%; background: #3ecf8e; color: #0a1628;
+      border: none; border-radius: 14px; padding: 16px;
+      font-size: 16px; font-weight: 900; font-family: 'Outfit', sans-serif;
+      cursor: pointer; letter-spacing: 0.5px; margin-bottom: 12px;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .open-btn:hover { background: #2db87a; }
+    .open-btn:active { transform: scale(0.98); }
+    .store-row { display: flex; gap: 10px; }
+    .store-btn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 12px;
+      text-decoration: none; color: white;
+      font-size: 13px; font-weight: 600;
+      transition: background 0.15s;
+    }
+    .store-btn:hover { background: rgba(255,255,255,0.1); }
+    .store-icon { font-size: 18px; }
+    .not-found { color: rgba(255,255,255,0.4); }
+    .not-found h2 { font-size: 20px; color: white; margin-bottom: 8px; }
+    .desc { font-size: 14px; color: rgba(255,255,255,0.4); line-height: 1.6; margin-bottom: 1.5rem; }
+    .teams-section { margin-top: 1rem; text-align: left; }
+    .team-pill {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 10px 14px; margin-bottom: 8px;
+    }
+    .team-logo {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: rgba(0,212,170,0.2); display: flex;
+      align-items: center; justify-content: center; font-size: 16px;
+      flex-shrink: 0; overflow: hidden;
+    }
+    .team-logo img { width: 100%; height: 100%; object-fit: cover; }
+    .team-name { font-size: 14px; font-weight: 600; color: white; }
+    .team-count { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <svg class="court-bg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <rect x="80" y="50" width="640" height="400" stroke="white" stroke-width="3" fill="none"/>
+    <line x1="400" y1="50" x2="400" y2="450" stroke="white" stroke-width="3"/>
+    <line x1="80" y1="250" x2="720" y2="250" stroke="white" stroke-width="3"/>
+    <line x1="200" y1="130" x2="600" y2="130" stroke="white" stroke-width="2"/>
+    <line x1="200" y1="370" x2="600" y2="370" stroke="white" stroke-width="2"/>
+    <line x1="200" y1="130" x2="200" y2="370" stroke="white" stroke-width="2"/>
+    <line x1="600" y1="130" x2="600" y2="370" stroke="white" stroke-width="2"/>
+  </svg>
+
+  <div class="card">
+    <div class="logo-mark">🎾</div>
+    <div class="brand">PADEJA</div>
+    <div id="content" class="league-loading">Loading league...</div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://odrckirnjavfptlfygbo.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo";
+
+    const params = new URLSearchParams(window.location.search);
+    const inviteCode = params.get("code");
+
+    async function fetchJSON(url) {
+      const res = await fetch(url, {
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+      });
+      return res.json();
+    }
+
+    async function load() {
+      if (!inviteCode) {
+        document.getElementById('content').innerHTML = `
+          <div class="not-found"><h2>Invalid link</h2><p>This invite link is not valid.</p></div>`;
+        return;
+      }
+
+      try {
+        const data = await fetchJSON(`${SUPABASE_URL}/rest/v1/tournaments?invite_code=eq.${inviteCode}&select=*`);
+        const tournament = data && data.length > 0 ? data[0] : null;
+
+        if (!tournament) {
+          document.getElementById('content').innerHTML = `
+            <div class="not-found"><h2>League not found</h2><p>This invite link may have expired or the league doesn't exist.</p></div>`;
+          return;
+        }
+
+        // Load submitted teams
+        let teamsHtml = '';
+        try {
+          const leagues = await fetchJSON(`${SUPABASE_URL}/rest/v1/leagues?tournament_id=eq.${tournament.id}&select=id`);
+          if (leagues && leagues.length > 0) {
+            const leagueId = leagues[0].id;
+            const teams = await fetchJSON(`${SUPABASE_URL}/rest/v1/league_teams?league_id=eq.${leagueId}&select=*`);
+            if (teams && teams.length > 0) {
+              teamsHtml = `
+                <div class="teams-section">
+                  <div class="section-label">${teams.length} team${teams.length !== 1 ? 's' : ''} joined</div>
+                  ${teams.map(t => `
+                    <div class="team-pill">
+                      <div class="team-logo">
+                        ${t.team_logo_url ? `<img src="${t.team_logo_url}" alt="${t.team_name}">` : '🎾'}
+                      </div>
+                      <div>
+                        <div class="team-name">${t.team_name}</div>
+                      </div>
+                    </div>`).join('')}
+                </div>`;
+            }
+          }
+        } catch(e) {}
+
+        const deepLink = `padeja://join-league?code=${inviteCode}`;
+
+        document.getElementById('content').innerHTML = `
+          <div class="league-name">${tournament.name}</div>
+          <div class="league-badge">Padeja League</div>
+          <p class="desc">You've been invited to join this Padeja League. Open the app to submit your team!</p>
+          <button class="open-btn" onclick="window.location.href='${deepLink}'">
+            🎾 Open in Padeja App
+          </button>
+          <div class="divider"></div>
+          <div class="section-label">Don't have Padeja yet?</div>
+          <div class="store-row">
+            <a href="https://apps.apple.com/app/padeja/id6745164595" class="store-btn">
+              <span class="store-icon">🍎</span> App Store
+            </a>
+            <a href="https://play.google.com/store/apps/details?id=com.padelpals.score" class="store-btn">
+              <span class="store-icon">▶</span> Google Play
+            </a>
+          </div>
+          ${teamsHtml}`;
+
+      } catch(e) {
+        document.getElementById('content').innerHTML = `
+          <div class="not-found"><h2>Connection error</h2><p>Could not load the league. Please try again.</p></div>`;
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>
