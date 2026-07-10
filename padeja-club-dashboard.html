@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Padeja Club Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080f1c;
+      --surface: #0d1b2a;
+      --surface2: #111f35;
+      --border: rgba(255,255,255,0.07);
+      --teal: #00d4aa;
+      --teal2: #00a8ff;
+      --coral: #ff6b6b;
+      --gold: #ffd700;
+      --white: #ffffff;
+      --muted: rgba(255,255,255,0.45);
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--white);
+      min-height: 100vh;
+    }
+
+    /* LOGIN */
+    .login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: radial-gradient(ellipse at 30% 50%, rgba(0,212,170,0.08) 0%, transparent 60%),
+                  radial-gradient(ellipse at 70% 20%, rgba(0,168,255,0.06) 0%, transparent 50%),
+                  var(--bg);
+    }
+
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .login-logo {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: var(--teal);
+      margin-bottom: 6px;
+    }
+
+    .login-title {
+      font-size: 22px;
+      font-weight: 900;
+      margin-bottom: 4px;
+    }
+
+    .login-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+
+    .form-group {
+      text-align: left;
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--muted);
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .form-group input {
+      width: 100%;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 14px;
+      color: var(--white);
+      font-family: 'Outfit', sans-serif;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .form-group input:focus { border-color: var(--teal); }
+
+    .login-btn {
+      width: 100%;
+      background: var(--teal);
+      color: var(--bg);
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 900;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      margin-top: 8px;
+      letter-spacing: 0.5px;
+      transition: background 0.15s;
+    }
+
+    .login-btn:hover { background: #00b892; }
+    .login-error { color: var(--coral); font-size: 13px; margin-top: 10px; }
+
+    /* DASHBOARD */
+    .dashboard { display: none; }
+
+    /* SIDEBAR */
+    .layout { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: var(--teal);
+      margin-bottom: 4px;
+    }
+
+    .sidebar-club {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 28px;
+      line-height: 1.4;
+    }
+
+    .nav-section {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: rgba(255,255,255,0.25);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      margin-top: 20px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      transition: background 0.15s, color 0.15s;
+      margin-bottom: 2px;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--white); }
+    .nav-item.active { background: rgba(0,212,170,0.12); color: var(--teal); }
+    .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .logout-btn {
+      width: 100%;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .logout-btn:hover { border-color: var(--coral); color: var(--coral); }
+
+    /* MAIN */
+    .main { flex: 1; padding: 32px; overflow-x: hidden; }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .page-title { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
+    .page-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    .date-range {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .date-range input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--white);
+      font-family: 'Outfit', sans-serif;
+      outline: none;
+    }
+
+    .date-range input:focus { border-color: var(--teal); }
+
+    .refresh-btn {
+      background: var(--teal);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .refresh-btn:hover { background: #00b892; }
+    .refresh-btn:disabled { background: #1a2e48; color: #3a5a7a; cursor: not-allowed; }
+
+    /* STAT CARDS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+
+    .stat-card.teal::before { background: linear-gradient(90deg, var(--teal), var(--teal2)); }
+    .stat-card.gold::before { background: linear-gradient(90deg, var(--gold), #ff9500); }
+    .stat-card.coral::before { background: var(--coral); }
+    .stat-card.blue::before { background: var(--teal2); }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-value.teal { color: var(--teal); }
+    .stat-value.gold { color: var(--gold); }
+    .stat-value.coral { color: var(--coral); }
+    .stat-value.blue { color: var(--teal2); }
+
+    .stat-sub { font-size: 12px; color: var(--muted); }
+
+    /* CARDS */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: rgba(0,212,170,0.12);
+      color: var(--teal);
+      border-radius: 20px;
+      padding: 2px 8px;
+    }
+
+    /* TABLES */
+    .table-wrap { overflow-x: auto; }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    th {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--muted);
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+    }
+
+    td {
+      font-size: 13px;
+      padding: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      color: rgba(255,255,255,0.85);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .rank-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .rank-1 { background: rgba(255,215,0,0.2); color: var(--gold); }
+    .rank-2 { background: rgba(192,192,192,0.15); color: #c0c0c0; }
+    .rank-3 { background: rgba(205,127,50,0.15); color: #cd7f32; }
+    .rank-other { background: rgba(255,255,255,0.05); color: var(--muted); }
+
+    .amount { font-family: var(--mono); font-size: 13px; color: var(--teal); }
+    .amount.gold { color: var(--gold); }
+
+    .status-badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+
+    .status-active { background: rgba(0,212,170,0.12); color: var(--teal); }
+    .status-inactive { background: rgba(255,255,255,0.06); color: var(--muted); }
+    .status-due { background: rgba(255,215,0,0.12); color: var(--gold); }
+
+    /* GRID */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* CHART CONTAINER */
+    .chart-container { position: relative; height: 240px; }
+
+    /* SEARCH */
+    .search-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 13px;
+      color: var(--white);
+      font-family: 'Outfit', sans-serif;
+      outline: none;
+      width: 100%;
+      max-width: 300px;
+      margin-bottom: 16px;
+      transition: border-color 0.15s;
+    }
+
+    .search-box:focus { border-color: var(--teal); }
+
+    /* LOADING */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(0,212,170,0.2);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* SECTION PAGES */
+    .section-page { display: none; }
+    .section-page.active { display: block; }
+
+    /* MESSAGE COMPOSE */
+    .message-compose textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      color: var(--white);
+      font-family: 'Outfit', sans-serif;
+      resize: vertical;
+      min-height: 120px;
+      outline: none;
+      margin-bottom: 12px;
+    }
+
+    .message-compose textarea:focus { border-color: var(--teal); }
+
+    .send-btn {
+      background: var(--teal);
+      color: var(--bg);
+      border: none;
+      border-radius: 10px;
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+    }
+
+    .send-btn:hover { background: #00b892; }
+
+    .member-checkbox { accent-color: var(--teal); }
+
+    .select-all-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    /* COURT UTILISATION BARS */
+    .court-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .court-name {
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 140px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .court-bar-track {
+      flex: 1;
+      height: 8px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .court-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal), var(--teal2));
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+
+    .court-count {
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--teal);
+      min-width: 40px;
+      text-align: right;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 32px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">PADEJA</div>
+    <h1 class="login-title">Club Dashboard</h1>
+    <p class="login-sub">Sign in to manage your club</p>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Enter username" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Enter password" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <p class="login-error" id="loginError" style="display:none">Incorrect username or password</p>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dashboard" id="dashboard">
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-logo">PADEJA</div>
+      <div class="sidebar-club" id="sidebarClub">Club Dashboard</div>
+
+      <div class="nav-section">Overview</div>
+      <button class="nav-item active" onclick="showSection('overview', this)">
+        <span class="nav-icon">📊</span> Overview
+      </button>
+
+      <div class="nav-section">Bookings</div>
+      <button class="nav-item" onclick="showSection('bookings', this)">
+        <span class="nav-icon">🎾</span> Court Bookings
+      </button>
+      <button class="nav-item" onclick="showSection('utilisation', this)">
+        <span class="nav-icon">📈</span> Utilisation
+      </button>
+
+      <div class="nav-section">Members</div>
+      <button class="nav-item" onclick="showSection('members', this)">
+        <span class="nav-icon">👥</span> All Members
+      </button>
+      <button class="nav-item" onclick="showSection('topbookers', this)">
+        <span class="nav-icon">🏆</span> Top Bookers
+      </button>
+      <button class="nav-item" onclick="showSection('renewals', this)">
+        <span class="nav-icon">📅</span> Renewals
+      </button>
+      <button class="nav-item" onclick="showSection('messaging', this)">
+        <span class="nav-icon">✉️</span> Message Members
+      </button>
+
+      <div class="nav-section">Revenue</div>
+      <button class="nav-item" onclick="showSection('revenue', this)">
+        <span class="nav-icon">💰</span> Sales & Revenue
+      </button>
+      <button class="nav-item" onclick="showSection('topspenders', this)">
+        <span class="nav-icon">⭐</span> Top Spenders
+      </button>
+
+      <div class="sidebar-footer">
+        <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+      <!-- DATE RANGE -->
+      <div class="page-header">
+        <div>
+          <div class="page-title" id="pageTitle">Overview</div>
+          <div class="page-sub" id="pageSub">Club performance at a glance</div>
+        </div>
+        <div class="date-range">
+          <input type="date" id="dateFrom">
+          <span style="color:var(--muted);font-size:12px">to</span>
+          <input type="date" id="dateTo">
+          <button class="refresh-btn" id="refreshBtn" onclick="loadData()">Refresh</button>
+        </div>
+      </div>
+
+      <!-- OVERVIEW -->
+      <div class="section-page active" id="section-overview">
+        <div class="stats-grid">
+          <div class="stat-card teal">
+            <div class="stat-label">Total Bookings</div>
+            <div class="stat-value teal" id="stat-bookings">—</div>
+            <div class="stat-sub">in selected period</div>
+          </div>
+          <div class="stat-card gold">
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-value gold" id="stat-revenue">—</div>
+            <div class="stat-sub">excl. VAT</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-label">Active Members</div>
+            <div class="stat-value blue" id="stat-members">—</div>
+            <div class="stat-sub">registered customers</div>
+          </div>
+          <div class="stat-card coral">
+            <div class="stat-label">Matches Played</div>
+            <div class="stat-value coral" id="stat-matches">—</div>
+            <div class="stat-sub">in selected period</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">Bookings by Court <span class="card-badge">Top 5</span></div>
+            <div id="overview-courts"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Top Bookers <span class="card-badge">This period</span></div>
+            <div id="overview-topbookers"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Revenue Overview</div>
+          <div class="chart-container">
+            <canvas id="revenueChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOOKINGS -->
+      <div class="section-page" id="section-bookings">
+        <input type="text" class="search-box" id="bookingSearch" placeholder="Search bookings..." oninput="filterBookings()">
+        <div class="card">
+          <div class="card-title">Court Bookings</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Court</th>
+                  <th>Participants</th>
+                  <th>Status</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody id="bookings-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- UTILISATION -->
+      <div class="section-page" id="section-utilisation">
+        <div class="card">
+          <div class="card-title">Court Utilisation <span class="card-badge">Bookings per court</span></div>
+          <div id="utilisation-bars"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Bookings by Day of Week</div>
+          <div class="chart-container">
+            <canvas id="dowChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Peak Hours</div>
+          <div class="chart-container">
+            <canvas id="hoursChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- MEMBERS -->
+      <div class="section-page" id="section-members">
+        <input type="text" class="search-box" id="memberSearch" placeholder="Search members..." oninput="filterMembers()">
+        <div class="card">
+          <div class="card-title">All Members</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Mobile</th>
+                  <th>Member Since</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="members-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP BOOKERS -->
+      <div class="section-page" id="section-topbookers">
+        <div class="card">
+          <div class="card-title">Top Bookers <span class="card-badge">by number of bookings</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Bookings</th>
+                  <th>Total Spent</th>
+                </tr>
+              </thead>
+              <tbody id="topbookers-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RENEWALS -->
+      <div class="section-page" id="section-renewals">
+        <div class="card">
+          <div class="card-title">Upcoming Renewals <span class="card-badge">Next 90 days</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Mobile</th>
+                  <th>Member Code</th>
+                  <th>Entry Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="renewals-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- MESSAGING -->
+      <div class="section-page" id="section-messaging">
+        <div class="card">
+          <div class="card-title">Message Members</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Select members to message. This will open your email client with all selected members in the BCC field.</p>
+          <div class="message-compose">
+            <label class="select-all-row">
+              <input type="checkbox" class="member-checkbox" id="selectAll" onchange="toggleSelectAll()">
+              Select all members
+            </label>
+            <input type="text" class="search-box" id="msgSearch" placeholder="Search members..." oninput="filterMsgMembers()" style="margin-bottom:12px">
+            <div id="msg-members-list" style="max-height:300px;overflow-y:auto;margin-bottom:16px;border:1px solid var(--border);border-radius:10px;padding:8px"></div>
+            <input type="text" id="msgSubject" placeholder="Subject" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:14px;color:var(--white);font-family:'Outfit',sans-serif;outline:none;margin-bottom:12px">
+            <textarea id="msgBody" placeholder="Write your message here..."></textarea>
+            <button class="send-btn" onclick="sendMessage()">✉️ Open in Email Client</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- REVENUE -->
+      <div class="section-page" id="section-revenue">
+        <div class="stats-grid">
+          <div class="stat-card gold">
+            <div class="stat-label">Gross Revenue</div>
+            <div class="stat-value gold" id="rev-gross">—</div>
+            <div class="stat-sub">incl. VAT</div>
+          </div>
+          <div class="stat-card teal">
+            <div class="stat-label">Net Revenue</div>
+            <div class="stat-value teal" id="rev-net">—</div>
+            <div class="stat-sub">excl. VAT</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-label">Transactions</div>
+            <div class="stat-value blue" id="rev-txns">—</div>
+            <div class="stat-sub">receipts issued</div>
+          </div>
+          <div class="stat-card coral">
+            <div class="stat-label">Cancelled</div>
+            <div class="stat-value coral" id="rev-cancelled">—</div>
+            <div class="stat-sub">transactions</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Recent Transactions</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Doc #</th>
+                  <th>Customer</th>
+                  <th>Description</th>
+                  <th>Net</th>
+                  <th>VAT</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="revenue-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP SPENDERS -->
+      <div class="section-page" id="section-topspenders">
+        <div class="card">
+          <div class="card-title">Top Spenders <span class="card-badge">by total spend</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Name</th>
+                  <th>Transactions</th>
+                  <th>Total Spent</th>
+                  <th>Avg per Visit</th>
+                </tr>
+              </thead>
+              <tbody id="topspenders-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── CONFIG ──
+  const API_BASE = 'https://padel123.co.uk/api/query';
+  const API_TOKEN = 'at9OJR6NvvYOQ5nc1I-uOvBAS6aWLKPJQ_PwXHtTwZ9EpzaE';
+  const CREDENTIALS = { username: 'padeja', password: 'Padeja2026!' };
+
+  // ── AUTH ──
+  function doLogin() {
+    const u = document.getElementById('loginUser').value;
+    const p = document.getElementById('loginPass').value;
+    if (u === CREDENTIALS.username && p === CREDENTIALS.password) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      initDashboard();
+    } else {
+      document.getElementById('loginError').style.display = 'block';
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') doLogin();
+  });
+
+  function doLogout() {
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+  }
+
+  // ── DATE HELPERS ──
+  function today() { return new Date().toISOString().split('T')[0]; }
+  function daysAgo(n) {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return d.toISOString().split('T')[0];
+  }
+
+  function initDashboard() {
+    document.getElementById('dateFrom').value = daysAgo(90);
+    document.getElementById('dateTo').value = today();
+    loadData();
+  }
+
+  // ── API ──
+  async function fetchAPI(endpoint) {
+    const res = await fetch(`${API_BASE}/${endpoint}`, {
+      headers: { 'X-Api-Token': API_TOKEN }
+    });
+    const json = await res.json();
+    return json.Data || json.data || [];
+  }
+
+  async function fetchWithDateRange(endpoint, from, to, maxDays) {
+    const results = [];
+    let start = new Date(from);
+    const end = new Date(to);
+
+    while (start <= end) {
+      let chunkEnd = new Date(start);
+      chunkEnd.setDate(chunkEnd.getDate() + maxDays - 1);
+      if (chunkEnd > end) chunkEnd = new Date(end);
+
+      const f = start.toISOString().split('T')[0];
+      const t = chunkEnd.toISOString().split('T')[0];
+
+      try {
+        const data = await fetchAPI(`${endpoint}?dateFrom=${f}&dateTo=${t}`);
+        results.push(...data);
+      } catch(e) { console.error(e); }
+
+      start = new Date(chunkEnd);
+      start.setDate(start.getDate() + 1);
+    }
+
+    return results;
+  }
+
+  // ── STORED DATA ──
+  let allBookings = [], allCustomers = [], allSales = [], allMatches = [];
+  let revenueChartInstance = null, dowChartInstance = null, hoursChartInstance = null;
+
+  async function loadData() {
+    const btn = document.getElementById('refreshBtn');
+    btn.disabled = true;
+    btn.textContent = 'Loading...';
+
+    const from = document.getElementById('dateFrom').value;
+    const to = document.getElementById('dateTo').value;
+
+    try {
+      [allBookings, allCustomers, allSales, allMatches] = await Promise.all([
+        fetchWithDateRange('bookings', from, to, 89),
+        fetchAPI('customers'),
+        fetchWithDateRange('sales', from, to, 7),
+        fetchWithDateRange('matches', from, to, 89),
+      ]);
+
+      renderAll(from, to);
+    } catch(e) {
+      console.error(e);
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Refresh';
+  }
+
+  function renderAll(from, to) {
+    renderOverview();
+    renderBookings();
+    renderUtilisation();
+    renderMembers();
+    renderTopBookers();
+    renderRenewals();
+    renderMsgMembers();
+    renderRevenue();
+    renderTopSpenders();
+  }
+
+  // ── OVERVIEW ──
+  function renderOverview() {
+    const activeMembers = allCustomers.filter(c => c.Status === 'alta').length;
+    const totalRev = allSales.filter(s => !s.IsCanceled).reduce((s, r) => s + (r.Amount || 0), 0);
+
+    document.getElementById('stat-bookings').textContent = allBookings.length;
+    document.getElementById('stat-revenue').textContent = '£' + totalRev.toFixed(2);
+    document.getElementById('stat-members').textContent = activeMembers;
+    document.getElementById('stat-matches').textContent = allMatches.length;
+
+    // Courts
+    const courtCounts = {};
+    allBookings.forEach(b => {
+      const name = b.ResourceName || 'Unknown';
+      courtCounts[name] = (courtCounts[name] || 0) + 1;
+    });
+
+    const topCourts = Object.entries(courtCounts).sort((a,b) => b[1]-a[1]).slice(0,5);
+    const max = topCourts[0]?.[1] || 1;
+
+    document.getElementById('overview-courts').innerHTML = topCourts.length === 0
+      ? '<div class="empty-state">No booking data</div>'
+      : topCourts.map(([name, count]) => `
+          <div class="court-bar-row">
+            <div class="court-name">${name.replace(/Court \d+ \| /, 'Court ').split('|')[0].trim()}</div>
+            <div class="court-bar-track"><div class="court-bar-fill" style="width:${(count/max*100).toFixed(0)}%"></div></div>
+            <div class="court-count">${count}</div>
+          </div>`).join('');
+
+    // Top bookers summary
+    const bookerCounts = {};
+    allBookings.forEach(b => {
+      (b.Participants || []).forEach(p => {
+        if (p.Name) bookerCounts[p.Name] = (bookerCounts[p.Name] || 0) + 1;
+      });
+    });
+
+    const topBookers = Object.entries(bookerCounts).sort((a,b) => b[1]-a[1]).slice(0,5);
+    document.getElementById('overview-topbookers').innerHTML = topBookers.length === 0
+      ? '<div class="empty-state">No data</div>'
+      : `<table><tbody>${topBookers.map(([name, count], i) => `
+          <tr>
+            <td><span class="rank-badge ${i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-other'}">${i+1}</span></td>
+            <td>${name}</td>
+            <td class="amount">${count} bookings</td>
+          </tr>`).join('')}</tbody></table>`;
+
+    // Revenue chart
+    const salesByDate = {};
+    allSales.filter(s => !s.IsCanceled).forEach(s => {
+      salesByDate[s.Date] = (salesByDate[s.Date] || 0) + (s.Amount || 0);
+    });
+
+    const dates = Object.keys(salesByDate).sort();
+    if (revenueChartInstance) revenueChartInstance.destroy();
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    revenueChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: 'Revenue (£)',
+          data: dates.map(d => salesByDate[d]),
+          borderColor: '#00d4aa',
+          backgroundColor: 'rgba(0,212,170,0.08)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointBackgroundColor: '#00d4aa',
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: 'rgba(255,255,255,0.4)', maxTicksLimit: 8, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { ticks: { color: 'rgba(255,255,255,0.4)', callback: v => '£'+v.toFixed(0), font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+      }
+    });
+  }
+
+  // ── BOOKINGS ──
+  function renderBookings() {
+    const tbody = document.getElementById('bookings-table');
+    tbody.innerHTML = allBookings.map(b => `
+      <tr>
+        <td>${b.Date}</td>
+        <td style="font-family:var(--mono);font-size:12px">${b.StartTime}–${b.EndTime}</td>
+        <td>${(b.ResourceName||'').split('|')[0].trim()}</td>
+        <td style="font-size:12px;color:var(--muted)">${(b.Participants||[]).map(p=>p.Name).join(', ')}</td>
+        <td><span class="status-badge ${b.Status==='ACTIVE'?'status-active':'status-inactive'}">${b.Status}</span></td>
+        <td class="amount">£${(b.Payments||[]).reduce((s,p)=>s+(p.Amount||0),0).toFixed(2)}</td>
+      </tr>`).join('') || '<tr><td colspan="6" class="empty-state">No bookings found</td></tr>';
+  }
+
+  function filterBookings() {
+    const q = document.getElementById('bookingSearch').value.toLowerCase();
+    document.querySelectorAll('#bookings-table tr').forEach(tr => {
+      tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+
+  // ── UTILISATION ──
+  function renderUtilisation() {
+    const courtCounts = {};
+    const dowCounts = [0,0,0,0,0,0,0];
+    const hourCounts = {};
+
+    allBookings.forEach(b => {
+      const name = (b.ResourceName||'Unknown').split('|')[0].trim();
+      courtCounts[name] = (courtCounts[name] || 0) + 1;
+
+      const d = new Date(b.Date);
+      if (!isNaN(d)) dowCounts[d.getDay()]++;
+
+      const hr = parseInt((b.StartTime||'0').split(':')[0]);
+      if (!isNaN(hr)) hourCounts[hr] = (hourCounts[hr]||0)+1;
+    });
+
+    const sorted = Object.entries(courtCounts).sort((a,b)=>b[1]-a[1]);
+    const max = sorted[0]?.[1] || 1;
+
+    document.getElementById('utilisation-bars').innerHTML = sorted.map(([name, count]) => `
+      <div class="court-bar-row">
+        <div class="court-name">${name}</div>
+        <div class="court-bar-track"><div class="court-bar-fill" style="width:${(count/max*100).toFixed(0)}%"></div></div>
+        <div class="court-count">${count}</div>
+      </div>`).join('') || '<div class="empty-state">No data</div>';
+
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    if (dowChartInstance) dowChartInstance.destroy();
+    dowChartInstance = new Chart(document.getElementById('dowChart').getContext('2d'), {
+      type: 'bar',
+      data: { labels: days, datasets: [{ label: 'Bookings', data: dowCounts, backgroundColor: 'rgba(0,212,170,0.6)', borderColor: '#00d4aa', borderWidth: 1, borderRadius: 6 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: 'rgba(255,255,255,0.4)' }, grid: { display: false } }, y: { ticks: { color: 'rgba(255,255,255,0.4)' }, grid: { color: 'rgba(255,255,255,0.05)' } } } }
+    });
+
+    const hours = Object.keys(hourCounts).sort((a,b)=>a-b);
+    if (hoursChartInstance) hoursChartInstance.destroy();
+    hoursChartInstance = new Chart(document.getElementById('hoursChart').getContext('2d'), {
+      type: 'bar',
+      data: { labels: hours.map(h => h+':00'), datasets: [{ label: 'Bookings', data: hours.map(h=>hourCounts[h]), backgroundColor: 'rgba(0,168,255,0.6)', borderColor: '#00a8ff', borderWidth: 1, borderRadius: 6 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: 'rgba(255,255,255,0.4)' }, grid: { display: false } }, y: { ticks: { color: 'rgba(255,255,255,0.4)' }, grid: { color: 'rgba(255,255,255,0.05)' } } } }
+    });
+  }
+
+  // ── MEMBERS ──
+  function renderMembers() {
+    const tbody = document.getElementById('members-table');
+    tbody.innerHTML = allCustomers.map(c => `
+      <tr>
+        <td style="font-weight:600">${c.Name}</td>
+        <td style="font-size:12px;color:var(--muted)">${c.Email||'—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${c.Mobile||'—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${c.EntryDate||'—'}</td>
+        <td><span class="status-badge ${c.Status==='alta'?'status-active':'status-inactive'}">${c.Status==='alta'?'Active':'Inactive'}</span></td>
+      </tr>`).join('') || '<tr><td colspan="5" class="empty-state">No members found</td></tr>';
+  }
+
+  function filterMembers() {
+    const q = document.getElementById('memberSearch').value.toLowerCase();
+    document.querySelectorAll('#members-table tr').forEach(tr => {
+      tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+
+  // ── TOP BOOKERS ──
+  function renderTopBookers() {
+    const bookerData = {};
+    allBookings.forEach(b => {
+      (b.Participants||[]).forEach(p => {
+        if (!p.Name) return;
+        if (!bookerData[p.Name]) bookerData[p.Name] = { count: 0, spent: 0, email: p.Email||'' };
+        bookerData[p.Name].count++;
+        bookerData[p.Name].spent += p.TotalAmount||0;
+      });
+    });
+
+    const sorted = Object.entries(bookerData).sort((a,b)=>b[1].count-a[1].count).slice(0,20);
+    const tbody = document.getElementById('topbookers-table');
+    tbody.innerHTML = sorted.map(([name, d], i) => `
+      <tr>
+        <td><span class="rank-badge ${i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-other'}">${i+1}</span></td>
+        <td style="font-weight:600">${name}</td>
+        <td style="font-size:12px;color:var(--muted)">${d.email}</td>
+        <td class="amount">${d.count}</td>
+        <td class="amount gold">£${d.spent.toFixed(2)}</td>
+      </tr>`).join('') || '<tr><td colspan="5" class="empty-state">No data</td></tr>';
+  }
+
+  // ── RENEWALS ──
+  function renderRenewals() {
+    const now = new Date();
+    const in90 = new Date(); in90.setDate(in90.getDate()+90);
+
+    const members = allCustomers.filter(c => {
+      if (!c.MemberCode || c.MemberCode === '') return false;
+      if (c.Status !== 'alta') return false;
+      return true;
+    });
+
+    const tbody = document.getElementById('renewals-table');
+    tbody.innerHTML = members.map(c => `
+      <tr>
+        <td style="font-weight:600">${c.Name}</td>
+        <td style="font-size:12px;color:var(--muted)">${c.Email||'—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${c.Mobile||'—'}</td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${c.MemberCode}</td>
+        <td style="font-size:12px">${c.EntryDate||'—'}</td>
+        <td><span class="status-badge status-active">Active</span></td>
+      </tr>`).join('') || '<tr><td colspan="6" class="empty-state">No members with memberships found</td></tr>';
+  }
+
+  // ── MESSAGING ──
+  let msgMembers = [];
+
+  function renderMsgMembers() {
+    msgMembers = allCustomers.filter(c => c.Email && c.Status === 'alta');
+    displayMsgMembers(msgMembers);
+  }
+
+  function displayMsgMembers(members) {
+    document.getElementById('msg-members-list').innerHTML = members.map(c => `
+      <label style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px;cursor:pointer;font-size:13px">
+        <input type="checkbox" class="member-checkbox msg-check" value="${c.Email}" data-name="${c.Name}">
+        <span style="font-weight:600">${c.Name}</span>
+        <span style="color:var(--muted);font-size:12px">${c.Email}</span>
+      </label>`).join('') || '<div class="empty-state">No members with email addresses</div>';
+  }
+
+  function filterMsgMembers() {
+    const q = document.getElementById('msgSearch').value.toLowerCase();
+    const filtered = msgMembers.filter(c => c.Name.toLowerCase().includes(q) || c.Email.toLowerCase().includes(q));
+    displayMsgMembers(filtered);
+  }
+
+  function toggleSelectAll() {
+    const checked = document.getElementById('selectAll').checked;
+    document.querySelectorAll('.msg-check').forEach(cb => cb.checked = checked);
+  }
+
+  function sendMessage() {
+    const selected = [...document.querySelectorAll('.msg-check:checked')].map(cb => cb.value);
+    const subject = document.getElementById('msgSubject').value;
+    const body = document.getElementById('msgBody').value;
+
+    if (selected.length === 0) { alert('Please select at least one member.'); return; }
+    if (!subject) { alert('Please enter a subject.'); return; }
+
+    const bcc = selected.join(',');
+    const mailto = `mailto:?bcc=${encodeURIComponent(bcc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+  }
+
+  // ── REVENUE ──
+  function renderRevenue() {
+    const valid = allSales.filter(s => !s.IsCanceled);
+    const cancelled = allSales.filter(s => s.IsCanceled);
+    const gross = valid.reduce((s,r) => s+(r.Total||0), 0);
+    const net = valid.reduce((s,r) => s+(r.Amount||0), 0);
+
+    document.getElementById('rev-gross').textContent = '£'+gross.toFixed(2);
+    document.getElementById('rev-net').textContent = '£'+net.toFixed(2);
+    document.getElementById('rev-txns').textContent = valid.length;
+    document.getElementById('rev-cancelled').textContent = cancelled.length;
+
+    const tbody = document.getElementById('revenue-table');
+    tbody.innerHTML = allSales.slice(0,50).map(s => `
+      <tr>
+        <td style="font-size:12px">${s.Date}</td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${s.DocNumber}</td>
+        <td style="font-weight:600">${s.CustomerName}</td>
+        <td style="font-size:11px;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(s.Description||'').replace(/Booking \S+,\s*/,'')}</td>
+        <td class="amount">£${(s.Amount||0).toFixed(2)}</td>
+        <td style="font-size:12px;color:var(--muted)">£${(s.Vat||0).toFixed(2)}</td>
+        <td class="amount gold">£${(s.Total||0).toFixed(2)}</td>
+        <td><span class="status-badge ${s.IsCanceled?'status-inactive':'status-active'}">${s.IsCanceled?'Cancelled':'Paid'}</span></td>
+      </tr>`).join('') || '<tr><td colspan="8" class="empty-state">No transactions found</td></tr>';
+  }
+
+  // ── TOP SPENDERS ──
+  function renderTopSpenders() {
+    const spenderData = {};
+    allSales.filter(s => !s.IsCanceled).forEach(s => {
+      if (!s.CustomerName) return;
+      if (!spenderData[s.CustomerName]) spenderData[s.CustomerName] = { total: 0, txns: 0 };
+      spenderData[s.CustomerName].total += s.Total||0;
+      spenderData[s.CustomerName].txns++;
+    });
+
+    const sorted = Object.entries(spenderData).sort((a,b)=>b[1].total-a[1].total).slice(0,20);
+    const tbody = document.getElementById('topspenders-table');
+    tbody.innerHTML = sorted.map(([name, d], i) => `
+      <tr>
+        <td><span class="rank-badge ${i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-other'}">${i+1}</span></td>
+        <td style="font-weight:600">${name}</td>
+        <td style="color:var(--muted)">${d.txns}</td>
+        <td class="amount gold">£${d.total.toFixed(2)}</td>
+        <td class="amount">£${(d.total/d.txns).toFixed(2)}</td>
+      </tr>`).join('') || '<tr><td colspan="5" class="empty-state">No data</td></tr>';
+  }
+
+  // ── NAVIGATION ──
+  const pageTitles = {
+    overview: ['Overview', 'Club performance at a glance'],
+    bookings: ['Court Bookings', 'All bookings in selected period'],
+    utilisation: ['Court Utilisation', 'Busiest courts, days and hours'],
+    members: ['All Members', 'Registered customer list'],
+    topbookers: ['Top Bookers', 'Most frequent court users'],
+    renewals: ['Renewals', 'Members with active memberships'],
+    messaging: ['Message Members', 'Send emails to selected members'],
+    revenue: ['Sales & Revenue', 'Transactions and income'],
+    topspenders: ['Top Spenders', 'Highest revenue customers'],
+  };
+
+  function showSection(id, btn) {
+    document.querySelectorAll('.section-page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('section-'+id).classList.add('active');
+    btn.classList.add('active');
+    const [title, sub] = pageTitles[id] || ['Dashboard', ''];
+    document.getElementById('pageTitle').textContent = title;
+    document.getElementById('pageSub').textContent = sub;
+  }
+</script>
+</body>
+</html>
