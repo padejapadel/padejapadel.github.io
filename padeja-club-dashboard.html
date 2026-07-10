@@ -869,8 +869,8 @@
 
 <script>
   // ── CONFIG ──
-  const API_BASE = 'https://padel123.co.uk/api/query';
-  const API_TOKEN = 'at9OJR6NvvYOQ5nc1I-uOvBAS6aWLKPJQ_PwXHtTwZ9EpzaE';
+  const PROXY_BASE = 'https://odrckirnjavfptlfygbo.supabase.co/functions/v1/tcp-proxy';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo';
   const CREDENTIALS = { username: 'padeja', password: 'Padeja2026!' };
 
   // ── AUTH ──
@@ -912,9 +912,12 @@
   }
 
   // ── API ──
-  async function fetchAPI(endpoint) {
-    const res = await fetch(`${API_BASE}/${endpoint}`, {
-      headers: { 'X-Api-Token': API_TOKEN }
+  async function fetchAPI(endpoint, params = '') {
+    const url = params
+      ? `${PROXY_BASE}?endpoint=${endpoint}&params=${encodeURIComponent(params)}`
+      : `${PROXY_BASE}?endpoint=${endpoint}`;
+    const res = await fetch(url, {
+      headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` }
     });
     const json = await res.json();
     return json.Data || json.data || [];
@@ -934,7 +937,7 @@
       const t = chunkEnd.toISOString().split('T')[0];
 
       try {
-        const data = await fetchAPI(`${endpoint}?dateFrom=${f}&dateTo=${t}`);
+        const data = await fetchAPI(endpoint, `dateFrom=${f}&dateTo=${t}`);
         results.push(...data);
       } catch(e) { console.error(e); }
 
