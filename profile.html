@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Padeja Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      background: #0a1628;
+      color: white;
+      padding: 0 0 40px;
+    }
+
+    /* HEADER */
+    .hero {
+      background: linear-gradient(135deg, #0d1b2a, #1b3a4b);
+      padding: 48px 24px 32px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-court {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 140%; height: 140%;
+      opacity: 0.04; pointer-events: none;
+    }
+
+    .brand {
+      font-size: 11px; font-weight: 700; letter-spacing: 4px;
+      color: #3ecf8e; margin-bottom: 24px; position: relative;
+    }
+
+    .avatar-wrap {
+      position: relative;
+      width: 100px; height: 100px;
+      margin: 0 auto 16px;
+    }
+
+    .avatar {
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      border: 3px solid rgba(62,207,142,0.4);
+      object-fit: cover;
+      background: #1e3050;
+      display: block;
+    }
+
+    .avatar-placeholder {
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      border: 3px solid rgba(62,207,142,0.4);
+      background: #1e3050;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+    }
+
+    .level-badge {
+      position: absolute;
+      bottom: 0; right: 0;
+      background: #3ecf8e;
+      color: #0a1628;
+      font-size: 12px; font-weight: 900;
+      border-radius: 20px;
+      padding: 3px 8px;
+      border: 2px solid #0a1628;
+    }
+
+    .display-name {
+      font-size: 26px; font-weight: 900;
+      letter-spacing: -0.5px; margin-bottom: 4px;
+    }
+
+    .profile-meta {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; flex-wrap: wrap;
+      font-size: 13px; color: rgba(255,255,255,0.5);
+      margin-bottom: 8px;
+    }
+
+    .meta-dot { width: 3px; height: 3px; background: rgba(255,255,255,0.3); border-radius: 50%; }
+
+    .bio {
+      font-size: 14px; color: rgba(255,255,255,0.6);
+      max-width: 320px; margin: 8px auto 0;
+      line-height: 1.5;
+    }
+
+    /* OPEN BUTTON */
+    .open-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #3ecf8e; color: #0a1628;
+      border: none; border-radius: 14px;
+      padding: 14px 28px;
+      font-size: 15px; font-weight: 900;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer; margin-top: 20px;
+      letter-spacing: 0.3px;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.1s;
+      position: relative;
+    }
+    .open-btn:hover { background: #2db87a; }
+    .open-btn:active { transform: scale(0.97); }
+
+    /* CONTAINER */
+    .container { max-width: 480px; margin: 0 auto; padding: 0 16px; }
+
+    /* STATS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 24px 0 20px;
+    }
+
+    .stat-card {
+      background: #0f1f38;
+      border: 1px solid #1e3050;
+      border-radius: 14px;
+      padding: 16px 12px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 24px; font-weight: 900;
+      color: #3ecf8e; line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-value.gold { color: #ffd700; }
+    .stat-value.coral { color: #ff6b6b; }
+
+    .stat-label {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 1px; color: rgba(255,255,255,0.35);
+      text-transform: uppercase;
+    }
+
+    /* SECTION */
+    .section-title {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 3px; color: rgba(255,255,255,0.35);
+      text-transform: uppercase;
+      margin: 20px 0 10px;
+    }
+
+    /* MATCH HISTORY */
+    .match-card {
+      background: #0f1f38;
+      border: 1px solid #1e3050;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .match-result {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 900;
+      flex-shrink: 0;
+    }
+    .result-w { background: rgba(62,207,142,0.15); color: #3ecf8e; }
+    .result-l { background: rgba(255,107,107,0.15); color: #ff6b6b; }
+    .result-d { background: rgba(255,215,0,0.15); color: #ffd700; }
+
+    .match-info { flex: 1; min-width: 0; }
+    .match-teams {
+      font-size: 13px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .match-date { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+    .match-score {
+      font-size: 13px; font-weight: 700;
+      color: rgba(255,255,255,0.5);
+      font-family: 'JetBrains Mono', monospace;
+      flex-shrink: 0;
+    }
+
+    /* SOCIAL */
+    .social-links {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .social-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #0f1f38;
+      border: 1px solid #1e3050;
+      border-radius: 20px;
+      padding: 7px 14px;
+      font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,0.6);
+      text-decoration: none;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .social-link:hover { border-color: #3ecf8e; color: #3ecf8e; }
+
+    /* COURT SIDE */
+    .detail-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .chip {
+      background: #0f1f38;
+      border: 1px solid #1e3050;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,0.5);
+    }
+    .chip.teal { border-color: rgba(62,207,142,0.3); color: #3ecf8e; }
+
+    /* NOT FOUND */
+    .not-found {
+      text-align: center; padding: 60px 20px;
+      color: rgba(255,255,255,0.4);
+    }
+    .not-found h2 { font-size: 20px; color: white; margin-bottom: 8px; }
+
+    .loading { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.3); }
+
+    .footer {
+      text-align: center; margin-top: 32px;
+      font-size: 11px; color: rgba(255,255,255,0.15);
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <svg class="hero-court" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <rect x="80" y="50" width="640" height="400" stroke="white" stroke-width="3" fill="none"/>
+    <line x1="400" y1="50" x2="400" y2="450" stroke="white" stroke-width="3"/>
+    <line x1="80" y1="250" x2="720" y2="250" stroke="white" stroke-width="3"/>
+    <line x1="200" y1="130" x2="600" y2="130" stroke="white" stroke-width="2"/>
+    <line x1="200" y1="370" x2="600" y2="370" stroke="white" stroke-width="2"/>
+    <line x1="200" y1="130" x2="200" y2="370" stroke="white" stroke-width="2"/>
+    <line x1="600" y1="130" x2="600" y2="370" stroke="white" stroke-width="2"/>
+  </svg>
+
+  <div class="brand">PADEJA</div>
+  <div id="heroContent" class="loading">Loading profile...</div>
+</div>
+
+<div class="container">
+  <div id="mainContent"></div>
+  <div class="footer">Padeja · Your Padel Companion</div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://odrckirnjavfptlfygbo.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo";
+
+  const params = new URLSearchParams(window.location.search);
+  const userId = params.get("user");
+
+  async function fetchJSON(url) {
+    const res = await fetch(url, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+    });
+    return res.json();
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function scoreString(scoreJson) {
+    try {
+      const sets = JSON.parse(scoreJson || '[]');
+      return sets.filter(s => s.completed || s.a > 0 || s.b > 0)
+        .map(s => `${s.a}-${s.b}${!s.completed ? '*' : ''}`)
+        .join(', ');
+    } catch(e) { return ''; }
+  }
+
+  function matchResult(match, userId) {
+    const winner = match.winner_team;
+    if (winner === 'draw') return 'D';
+    const onTeamA = match.team_a_player1_id === userId || match.team_a_player2_id === userId;
+    if (winner === 'A') return onTeamA ? 'W' : 'L';
+    if (winner === 'B') return onTeamA ? 'L' : 'W';
+    return '?';
+  }
+
+  async function load() {
+    if (!userId) {
+      document.getElementById('heroContent').innerHTML = '<div class="not-found"><h2>No profile found</h2><p>Invalid profile link.</p></div>';
+      return;
+    }
+
+    try {
+      // Fetch profile and match history in parallel
+      const [profiles, matches] = await Promise.all([
+        fetchJSON(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=*`),
+        fetchJSON(`${SUPABASE_URL}/rest/v1/match_results?or=(team_a_player1_id.eq.${userId},team_a_player2_id.eq.${userId},team_b_player1_id.eq.${userId},team_b_player2_id.eq.${userId})&select=*&order=played_at.desc&limit=10`)
+      ]);
+
+      const profile = profiles && profiles.length > 0 ? profiles[0] : null;
+
+      if (!profile) {
+        document.getElementById('heroContent').innerHTML = '<div class="not-found"><h2>Profile not found</h2><p>This player profile does not exist.</p></div>';
+        return;
+      }
+
+      // Update page title
+      document.title = `${profile.display_name} — Padeja`;
+
+      // Calculate stats
+      const totalMatches = matches.length;
+      const wins = matches.filter(m => matchResult(m, userId) === 'W').length;
+      const losses = matches.filter(m => matchResult(m, userId) === 'L').length;
+      const draws = matches.filter(m => matchResult(m, userId) === 'D').length;
+      const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
+
+      // Hero
+      const avatarHtml = profile.avatar_url
+        ? `<img class="avatar" src="${profile.avatar_url}" alt="${profile.display_name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : '';
+      const placeholderHtml = `<div class="avatar-placeholder" style="${profile.avatar_url ? 'display:none' : ''}">🎾</div>`;
+      const levelHtml = profile.level ? `<div class="level-badge">${parseFloat(profile.level).toFixed(1)}</div>` : '';
+
+      const metaParts = [];
+      if (profile.club_name) metaParts.push(profile.club_name);
+      if (profile.location) metaParts.push(profile.location);
+      if (profile.court_side) metaParts.push(profile.court_side);
+
+      const metaHtml = metaParts.map((p, i) => `
+        ${i > 0 ? '<div class="meta-dot"></div>' : ''}
+        <span>${p}</span>`).join('');
+
+      const deepLink = `padeja://profile?user=${userId}`;
+
+      document.getElementById('heroContent').innerHTML = `
+        <div class="avatar-wrap">
+          ${avatarHtml}
+          ${placeholderHtml}
+          ${levelHtml}
+        </div>
+        <div class="display-name">${profile.display_name || 'Padeja Player'}</div>
+        ${metaParts.length > 0 ? `<div class="profile-meta">${metaHtml}</div>` : ''}
+        ${profile.bio ? `<div class="bio">${profile.bio}</div>` : ''}
+        <a class="open-btn" href="${deepLink}">🎾 Open in Padeja</a>`;
+
+      // Main content
+      let mainHtml = '';
+
+      // Stats
+      mainHtml += `
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">${totalMatches}</div>
+            <div class="stat-label">Matches</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value gold">${wins}</div>
+            <div class="stat-label">Wins</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${winRate}%</div>
+            <div class="stat-label">Win Rate</div>
+          </div>
+        </div>`;
+
+      // Detail chips
+      const chips = [];
+      if (profile.court_side) chips.push(`<div class="chip teal">🎾 ${profile.court_side}</div>`);
+      if (profile.level) chips.push(`<div class="chip teal">Level ${parseFloat(profile.level).toFixed(1)}</div>`);
+      if (profile.club_name) chips.push(`<div class="chip">🏟 ${profile.club_name}</div>`);
+      if (profile.location) chips.push(`<div class="chip">📍 ${profile.location}</div>`);
+
+      if (chips.length > 0) {
+        mainHtml += `<div class="detail-chips">${chips.join('')}</div>`;
+      }
+
+      // Social links
+      const socials = [];
+      if (profile.instagram_url) socials.push(`<a class="social-link" href="${profile.instagram_url}" target="_blank">📸 Instagram</a>`);
+      if (profile.facebook_url) socials.push(`<a class="social-link" href="${profile.facebook_url}" target="_blank">👤 Facebook</a>`);
+      if (profile.tiktok_url) socials.push(`<a class="social-link" href="${profile.tiktok_url}" target="_blank">🎵 TikTok</a>`);
+      if (profile.website_url) socials.push(`<a class="social-link" href="${profile.website_url}" target="_blank">🌐 Website</a>`);
+
+      if (socials.length > 0) {
+        mainHtml += `<div class="social-links">${socials.join('')}</div>`;
+      }
+
+      // Match history
+      if (matches.length > 0) {
+        mainHtml += `<div class="section-title">Recent Matches</div>`;
+        mainHtml += matches.map(m => {
+          const result = matchResult(m, userId);
+          const resultClass = result === 'W' ? 'result-w' : result === 'L' ? 'result-l' : 'result-d';
+          const onTeamA = m.team_a_player1_id === userId || m.team_a_player2_id === userId;
+          const myTeam = onTeamA ? m.team_a_name : m.team_b_name;
+          const oppTeam = onTeamA ? m.team_b_name : m.team_a_name;
+          const score = scoreString(m.score_json);
+
+          return `
+            <div class="match-card">
+              <div class="match-result ${resultClass}">${result}</div>
+              <div class="match-info">
+                <div class="match-teams">vs ${oppTeam || 'Unknown'}</div>
+                <div class="match-date">${formatDate(m.played_at)}</div>
+              </div>
+              <div class="match-score">${score}</div>
+            </div>`;
+        }).join('');
+      } else {
+        mainHtml += `<div class="section-title">Recent Matches</div>
+          <div style="text-align:center;padding:20px;color:rgba(255,255,255,0.3);font-size:13px">No matches yet</div>`;
+      }
+
+      document.getElementById('mainContent').innerHTML = mainHtml;
+
+    } catch(e) {
+      console.error(e);
+      document.getElementById('heroContent').innerHTML = '<div class="not-found"><h2>Connection error</h2><p>Could not load profile. Please try again.</p></div>';
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>
