@@ -8,8 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Outfit', sans-serif;
+    body { font-family: 'Outfit', sans-serif;
       min-height: 100vh;
       background: #0a1628;
       display: flex; flex-direction: column;
@@ -21,8 +20,7 @@
       position: fixed; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       width: 120vw; height: 120vh;
-      opacity: 0.04; pointer-events: none;
-    }
+      opacity: 0.04; pointer-events: none; }
     .card {
       background: #0f1f38;
       border: 1px solid #1e3050;
@@ -36,8 +34,7 @@
       width: 60px; height: 60px;
       background: #3ecf8e; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 1rem; font-size: 28px;
-    }
+      margin: 0 auto 1rem; font-size: 28px; }
     .brand { font-size: 13px; font-weight: 700; letter-spacing: 4px; color: #3ecf8e; margin-bottom: 1.5rem; }
     .league-loading { color: rgba(255,255,255,0.4); font-size: 14px; margin-bottom: 1rem; }
     .league-name { font-size: 26px; font-weight: 900; color: #fff; margin-bottom: 6px; letter-spacing: -0.3px; }
@@ -46,8 +43,7 @@
       letter-spacing: 2px; text-transform: uppercase;
       background: rgba(0,212,170,0.12); color: #3ecf8e;
       border: 1px solid rgba(0,212,170,0.25);
-      border-radius: 20px; padding: 3px 12px; margin-bottom: 1.5rem;
-    }
+      border-radius: 20px; padding: 3px 12px; margin-bottom: 1.5rem; }
     .divider { height: 1px; background: rgba(255,255,255,0.07); margin: 1.5rem 0; }
     .section-label {
       font-size: 11px; font-weight: 700; letter-spacing: 2px;
@@ -70,8 +66,7 @@
       border-radius: 12px; padding: 12px;
       text-decoration: none; color: white;
       font-size: 13px; font-weight: 600;
-      transition: background 0.15s;
-    }
+      transition: background 0.15s;}
     .store-btn:hover { background: rgba(255,255,255,0.1); }
     .store-icon { font-size: 18px; }
     .not-found { color: rgba(255,255,255,0.4); }
@@ -89,8 +84,7 @@
       background: rgba(0,212,170,0.2); display: flex;
       align-items: center; justify-content: center; font-size: 16px;
       flex-shrink: 0; overflow: hidden;
-    }
-    .team-logo img { width: 100%; height: 100%; object-fit: cover; }
+    }.team-logo img { width: 100%; height: 100%; object-fit: cover; }
     .team-name { font-size: 14px; font-weight: 600; color: white; }
     .team-count { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 2px; }
   </style>
@@ -105,7 +99,6 @@
     <line x1="200" y1="130" x2="200" y2="370" stroke="white" stroke-width="2"/>
     <line x1="600" y1="130" x2="600" y2="370" stroke="white" stroke-width="2"/>
   </svg>
-
   <div class="card">
     <div class="logo-mark">🎾</div>
     <div class="brand">PADEJA</div>
@@ -115,7 +108,6 @@
   <script>
     const SUPABASE_URL = "https://odrckirnjavfptlfygbo.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo";
-
     const params = new URLSearchParams(window.location.search);
     const inviteCode = params.get("code");
 
@@ -126,15 +118,28 @@
       return res.json();
     }
 
+    async function fetchRPC(fnName, body) {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+      return res.json();
+    }
+
     async function load() {
       if (!inviteCode) {
         document.getElementById('content').innerHTML = `
           <div class="not-found"><h2>Invalid link</h2><p>This invite link is not valid.</p></div>`;
         return;
       }
-
       try {
-        const data = await fetchJSON(`${SUPABASE_URL}/rest/v1/tournaments?invite_code=eq.${inviteCode}&select=*`);
+        // Use get_tournament_by_code RPC — works for both public AND private competitions
+        const data = await fetchRPC("get_tournament_by_code", { p_code: inviteCode });
         const tournament = data && data.length > 0 ? data[0] : null;
 
         if (!tournament) {
@@ -169,7 +174,6 @@
         } catch(e) {}
 
         const deepLink = `padejafeed://join-league?code=${inviteCode}`;
-
         document.getElementById('content').innerHTML = `
           <div class="league-name">${tournament.name}</div>
           <div class="league-badge">Padeja League</div>
@@ -188,13 +192,11 @@
             </a>
           </div>
           ${teamsHtml}`;
-
       } catch(e) {
         document.getElementById('content').innerHTML = `
           <div class="not-found"><h2>Connection error</h2><p>Could not load the league. Please try again.</p></div>`;
       }
     }
-
     load();
   </script>
 </body>
