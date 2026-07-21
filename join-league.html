@@ -8,7 +8,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
       font-family: 'Outfit', sans-serif;
       min-height: 100vh;
       background: #0a1628;
@@ -216,7 +215,7 @@
           <div class="league-name">${tournament.name}</div>
           <div class="league-badge">Padeja League</div>
           <p class="desc">You've been invited to join this league. Open the Padeja app to register your team!</p>
-          <button class="open-btn" onclick="window.location.href='${deepLink}'">
+<button class="open-btn" onclick="openInApp('${deepLink}')">
             🎾 Open in Padeja App
           </button>
           <div class="divider"></div>
@@ -235,6 +234,17 @@
           <div class="not-found"><h2>Connection error</h2><p>Could not load the league. Please try again.</p></div>`;
       }
     }
+
+    function openInApp(deepLink) {
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  if (isAndroid) {
+    const intentUrl = 'intent://join-league?code=' + inviteCode + '#Intent;scheme=padejafeed;package=com.jackwoodford.padejafeedapp;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.jackwoodford.padejafeedapp;end';
+    window.location.href = intentUrl;
+  } else {
+    window.location.href = deepLink;
+  }
+}
+
     load();
   </script>
 </body>
