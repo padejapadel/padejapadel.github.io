@@ -4,6 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Padeja - Live Score</title>
+  <script>
+    // Password-reset catcher. Supabase sends recovery links back to this page's
+    // root with the reset token in the URL. If this load carries a recovery
+    // token, hand off to the dedicated reset page (preserving the token) before
+    // anything else on this page runs.
+    (function () {
+      var h = window.location.hash || '';
+      var q = window.location.search || '';
+      var isRecovery = /type=recovery/.test(h) || /type=recovery/.test(q) ||
+                       /access_token=/.test(h) || /[?&]code=/.test(q);
+      if (isRecovery && window.location.pathname.indexOf('reset-password') === -1) {
+        window.location.replace('/reset-password.html' + q + h);
+      }
+    })();
+  </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
