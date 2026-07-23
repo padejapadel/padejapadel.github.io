@@ -12,8 +12,16 @@
     (function () {
       var h = window.location.hash || '';
       var q = window.location.search || '';
+      // Only a genuine Supabase password-recovery link should hand off to the
+      // reset page. Recovery arrives with type=recovery, an access_token in the
+      // hash, or a PKCE auth code (prefixed "pkce_" or a long token). A short
+      // ?code= is a live-match SHARE code (e.g. ?code=XTFUC3) and must NOT be
+      // treated as a reset — otherwise "Watch live" links get hijacked here.
+      var authCode = '';
+      try { authCode = new URLSearchParams(q).get('code') || ''; } catch (e) {}
+      var looksLikeAuthCode = authCode.indexOf('pkce_') === 0 || authCode.length > 20;
       var isRecovery = /type=recovery/.test(h) || /type=recovery/.test(q) ||
-                       /access_token=/.test(h) || /[?&]code=/.test(q);
+                       /access_token=/.test(h) || looksLikeAuthCode;
       if (isRecovery && window.location.pathname.indexOf('reset-password') === -1) {
         window.location.replace('/reset-password.html' + q + h);
       }
