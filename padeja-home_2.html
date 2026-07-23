@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Padeja — The Home of Padel</title>
+  <meta name="description" content="Padeja is the padel platform for players and clubs — live scoring, a social feed, public leagues, and stats. Join a league or register your club.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0D1B2A; --bg2:#0A1523; --card:rgba(255,255,255,0.05);
+      --card-brd:rgba(255,255,255,0.10); --teal:#00D4AA; --teal-d:#00a884;
+      --red:#FF6B6B; --gold:#FFD166;
+      --txt:#FFFFFF; --muted:rgba(255,255,255,0.58); --muted2:rgba(255,255,255,0.40);
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      font-family:'Outfit',-apple-system,BlinkMacSystemFont,sans-serif;
+      background:var(--bg); color:var(--txt); line-height:1.6;
+      -webkit-font-smoothing:antialiased; overflow-x:hidden;
+    }
+    a{color:inherit;text-decoration:none}
+    .wrap{width:100%;max-width:1120px;margin:0 auto;padding:0 24px}
+    .teal{color:var(--teal)}
+    section{position:relative}
+
+    /* ---------- NAV ---------- */
+    nav{
+      position:sticky;top:0;z-index:50;
+      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+      background:rgba(13,27,42,0.72);border-bottom:1px solid var(--card-brd);
+    }
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:.5px}
+    .brand .dot{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--teal),#00a884);
+      display:flex;align-items:center;justify-content:center;color:#06231a;font-weight:900;font-size:17px}
+    .nav-links{display:flex;align-items:center;gap:28px}
+    .nav-links a{font-size:14.5px;font-weight:500;color:var(--muted);transition:color .15s}
+    .nav-links a:hover{color:var(--txt)}
+    .nav-cta{background:var(--teal);color:#06231a !important;font-weight:700;
+      padding:9px 18px;border-radius:11px;font-size:14px}
+    .nav-cta:hover{background:#00e6b8}
+    .burger{display:none;font-size:24px;background:none;border:none;color:#fff;cursor:pointer}
+    @media(max-width:820px){.nav-links{display:none}.burger{display:block}}
+
+    /* ---------- HERO ---------- */
+    .hero{padding:88px 0 72px;text-align:center;overflow:hidden}
+    .hero::before{content:"";position:absolute;top:-30%;left:50%;transform:translateX(-50%);
+      width:900px;height:900px;border-radius:50%;
+      background:radial-gradient(circle,rgba(0,212,170,0.16),transparent 60%);pointer-events:none;z-index:0}
+    .hero .wrap{position:relative;z-index:1}
+    .pill{display:inline-flex;align-items:center;gap:8px;background:var(--card);
+      border:1px solid var(--card-brd);border-radius:30px;padding:7px 16px;font-size:13px;
+      font-weight:600;color:var(--muted);margin-bottom:26px}
+    .pill .live{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1.3s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    h1{font-size:clamp(38px,6.5vw,68px);font-weight:900;line-height:1.05;letter-spacing:-1.5px;margin-bottom:22px}
+    .hero p.lead{font-size:clamp(16px,2.2vw,21px);color:var(--muted);max-width:640px;margin:0 auto 36px}
+    .hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;gap:9px;font-weight:700;font-size:15.5px;
+      padding:15px 26px;border-radius:14px;border:1px solid transparent;cursor:pointer;transition:transform .12s,background .15s}
+    .btn:active{transform:scale(.97)}
+    .btn-primary{background:var(--teal);color:#06231a}
+    .btn-primary:hover{background:#00e6b8}
+    .btn-ghost{background:var(--card);border-color:var(--card-brd);color:#fff}
+    .btn-ghost:hover{background:rgba(255,255,255,0.10)}
+    .hero-note{margin-top:20px;font-size:13px;color:var(--muted2)}
+
+    /* ---------- SECTION HEADINGS ---------- */
+    .sec{padding:70px 0}
+    .sec-head{text-align:center;max-width:640px;margin:0 auto 48px}
+    .eyebrow{font-size:12.5px;font-weight:800;letter-spacing:3px;color:var(--teal);text-transform:uppercase;margin-bottom:14px}
+    .sec-head h2{font-size:clamp(28px,4vw,42px);font-weight:800;letter-spacing:-.8px;line-height:1.12;margin-bottom:14px}
+    .sec-head p{color:var(--muted);font-size:16.5px}
+
+    /* ---------- APPS ---------- */
+    .apps{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+    @media(max-width:780px){.apps{grid-template-columns:1fr}}
+    .app-card{background:var(--card);border:1px solid var(--card-brd);border-radius:22px;padding:34px 30px;
+      display:flex;flex-direction:column}
+    .app-card .icon{width:58px;height:58px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+      font-size:28px;margin-bottom:20px}
+    .app-social .icon{background:rgba(0,212,170,0.14);border:1px solid rgba(0,212,170,0.3)}
+    .app-live .icon{background:rgba(255,107,107,0.14);border:1px solid rgba(255,107,107,0.3)}
+    .app-card h3{font-size:24px;font-weight:800;margin-bottom:4px}
+    .app-card .tag{font-size:13px;font-weight:600;color:var(--muted2);margin-bottom:18px}
+    .app-card>p{color:var(--muted);font-size:15.5px;margin-bottom:20px}
+    .feat{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:26px}
+    .feat li{display:flex;gap:11px;font-size:15px;color:rgba(255,255,255,0.82)}
+    .feat li .ck{flex:0 0 auto;width:20px;height:20px;border-radius:6px;background:rgba(0,212,170,0.15);
+      color:var(--teal);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;margin-top:2px}
+    .app-live .feat li .ck{background:rgba(255,107,107,0.15);color:var(--red)}
+    .store-row{display:flex;gap:10px;margin-top:auto;flex-wrap:wrap}
+    .store-btn{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);
+      border:1px solid var(--card-brd);border-radius:12px;padding:11px 15px;font-size:13.5px;font-weight:600;transition:background .15s}
+    .store-btn:hover{background:rgba(255,255,255,0.12)}
+
+    /* ---------- LEAGUES ---------- */
+    .league-panel{background:var(--card);border:1px solid var(--card-brd);border-radius:22px;padding:30px}
+    .club-picker{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px}
+    .club-picker .field{flex:1;min-width:240px}
+    label.lbl{display:block;font-size:12.5px;font-weight:700;letter-spacing:.4px;color:var(--muted);margin-bottom:8px;text-transform:uppercase}
+    select,input,textarea{width:100%;background:var(--bg2);border:1px solid var(--card-brd);border-radius:12px;
+      padding:14px 15px;color:#fff;font-family:inherit;font-size:15px;transition:border-color .15s}
+    select:focus,input:focus,textarea:focus{outline:none;border-color:var(--teal)}
+    select{appearance:none;-webkit-appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%2300D4AA' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;background-position:right 15px center;padding-right:40px}
+    .leagues-out{margin-top:26px}
+    .state{text-align:center;color:var(--muted);padding:34px 10px;font-size:15px}
+    .league-card{background:var(--bg2);border:1px solid var(--card-brd);border-radius:16px;overflow:hidden;margin-bottom:16px}
+    .lc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;cursor:pointer}
+    .lc-head:hover{background:rgba(255,255,255,0.03)}
+    .lc-title{font-size:17px;font-weight:700}
+    .lc-meta{font-size:13px;color:var(--muted);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
+    .badge{font-size:11px;font-weight:800;letter-spacing:.4px;padding:4px 10px;border-radius:20px;text-transform:uppercase;white-space:nowrap}
+    .badge.open{background:rgba(0,212,170,0.15);color:var(--teal)}
+    .badge.closed{background:rgba(255,255,255,0.08);color:var(--muted)}
+    .badge.type{background:rgba(255,209,102,0.14);color:var(--gold)}
+    .chev{color:var(--muted);font-size:13px;transition:transform .2s}
+    .league-card.open .chev{transform:rotate(180deg)}
+    .lc-body{display:none;padding:0 20px 20px}
+    .league-card.open .lc-body{display:block}
+    .lc-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+    .mini-btn{font-size:13.5px;font-weight:700;padding:9px 15px;border-radius:10px;background:var(--teal);color:#06231a}
+    .table-scroll{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;font-size:14px;min-width:460px}
+    thead th{text-align:left;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted2);
+      font-weight:700;padding:10px 10px;border-bottom:1px solid var(--card-brd)}
+    thead th.num,tbody td.num{text-align:center}
+    tbody td{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,0.05)}
+    tbody tr:last-child td{border-bottom:none}
+    .pos{color:var(--muted2);font-weight:700;width:26px}
+    .tm{font-weight:600}
+    .pts{font-weight:800;color:var(--teal)}
+    .div-title{font-size:13px;font-weight:700;color:var(--muted);margin:18px 0 8px}
+
+    /* ---------- CLUB FORM ---------- */
+    .club{background:linear-gradient(180deg,rgba(0,212,170,0.06),transparent 40%)}
+    .form-card{background:var(--card);border:1px solid var(--card-brd);border-radius:22px;padding:34px 30px;max-width:720px;margin:0 auto}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:620px){.grid2{grid-template-columns:1fr}}
+    .fg{margin-bottom:16px}
+    textarea{resize:vertical;min-height:96px}
+    .form-msg{margin-top:16px;font-size:14.5px;min-height:1em;text-align:center}
+    .form-msg.ok{color:var(--teal)}
+    .form-msg.err{color:var(--red)}
+    .submitted{text-align:center;padding:20px 0}
+    .submitted .big{font-size:40px;margin-bottom:10px}
+    .submitted h3{font-size:22px;font-weight:800;margin-bottom:8px}
+    .submitted p{color:var(--muted)}
+    .req{color:var(--red)}
+
+    /* ---------- FOOTER ---------- */
+    footer{border-top:1px solid var(--card-brd);padding:40px 0;margin-top:40px}
+    .foot{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+    .foot a{color:var(--muted);font-size:14px;margin-left:22px;transition:color .15s}
+    .foot a:hover{color:#fff}
+    .foot .copy{font-size:13.5px;color:var(--muted2)}
+    .draft-tag{position:fixed;bottom:14px;left:14px;z-index:60;background:rgba(255,209,102,0.15);
+      border:1px solid rgba(255,209,102,0.4);color:var(--gold);font-size:11px;font-weight:800;
+      letter-spacing:1px;padding:6px 12px;border-radius:20px;text-transform:uppercase}
+  </style>
+</head>
+<body>
+  <div class="draft-tag">Draft preview</div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="wrap nav-inner">
+      <a href="#top" class="brand"><span class="dot">P</span> Padeja</a>
+      <div class="nav-links">
+        <a href="#apps">The Apps</a>
+        <a href="#leagues">Public Leagues</a>
+        <a href="#clubs">For Clubs</a>
+        <a href="#clubs" class="nav-cta">Register your club</a>
+      </div>
+      <button class="burger" onclick="document.getElementById('leagues').scrollIntoView()">☰</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero" id="top">
+    <div class="wrap">
+      <span class="pill"><span class="live"></span> Live padel scoring, leagues &amp; community</span>
+      <h1>The home of <span class="teal">padel</span>.<br>Play, score, compete.</h1>
+      <p class="lead">Padeja brings your padel life together — score matches live, follow friends and leagues, track your stats, and join public competitions at clubs near you.</p>
+      <div class="hero-btns">
+        <a href="#apps" class="btn btn-primary">📱 Get the apps</a>
+        <a href="#leagues" class="btn btn-ghost">🏆 Browse public leagues</a>
+      </div>
+      <div class="hero-note">Free to download on iPhone &amp; Android · Run a club? <a href="#clubs" class="teal">Register your interest ↓</a></div>
+    </div>
+  </section>
+
+  <!-- APPS -->
+  <section class="sec" id="apps">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">Two apps, one padel platform</div>
+        <h2>Everything you need, on and off the court</h2>
+        <p>Padeja is built from two connected apps that share your profile and match data.</p>
+      </div>
+      <div class="apps">
+        <!-- SOCIAL -->
+        <div class="app-card app-social">
+          <div class="icon">🎾</div>
+          <h3>Padeja Social</h3>
+          <div class="tag">Your padel network &amp; stats</div>
+          <p>The social side of padel. Follow friends, watch their live matches, keep every result, and see where you rank.</p>
+          <ul class="feat">
+            <li><span class="ck">✓</span> A live feed of your friends' matches as they happen</li>
+            <li><span class="ck">✓</span> Detailed stats — win rate, streaks, partnerships &amp; form</li>
+            <li><span class="ck">✓</span> Browse &amp; join public leagues and competitions near you</li>
+            <li><span class="ck">✓</span> Monthly leaderboards for your club and friends</li>
+            <li><span class="ck">✓</span> A marketplace to buy and sell rackets in your network</li>
+          </ul>
+          <div class="store-row">
+            <a class="store-btn" target="_blank" rel="noopener" href="https://apps.apple.com/app/padeja/id6780805905">🍎 App Store</a>
+            <a class="store-btn" target="_blank" rel="noopener" href="https://play.google.com/store/apps/details?id=com.jackwoodford.padejafeedapp">▶ Google Play</a>
+          </div>
+        </div>
+        <!-- LIVE -->
+        <div class="app-card app-live">
+          <div class="icon">⚡</div>
+          <h3>Padeja Live</h3>
+          <div class="tag">Real-time match scoring</div>
+          <p>The scoring engine. Track every point live, share the score to your friends' feeds, and host your own leagues and competitions.</p>
+          <ul class="feat">
+            <li><span class="ck">✓</span> Point-by-point live scoring, built for padel</li>
+            <li><span class="ck">✓</span> Score from your Apple Watch with a paired phone</li>
+            <li><span class="ck">✓</span> Live-share scores straight to the Social feed</li>
+            <li><span class="ck">✓</span> Host leagues, Americano &amp; Mexicano competitions</li>
+            <li><span class="ck">✓</span> Rich game-by-game data powers your Social stats</li>
+          </ul>
+          <div class="store-row">
+            <a class="store-btn" target="_blank" rel="noopener" href="https://apps.apple.com/gb/app/padeja-padel-score-tracker/id6773087938">🍎 App Store</a>
+            <a class="store-btn" target="_blank" rel="noopener" href="https://play.google.com/store/apps/details?id=com.padelpals.score">▶ Google Play</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEAGUES -->
+  <section class="sec" id="leagues">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">Public leagues</div>
+        <h2>Find a league near you</h2>
+        <p>Pick a club to see its open and running public competitions — and check the live standings.</p>
+      </div>
+      <div class="league-panel">
+        <div class="club-picker">
+          <div class="field">
+            <label class="lbl" for="clubSelect">Choose a club</label>
+            <select id="clubSelect">
+              <option value="">Loading clubs…</option>
+            </select>
+          </div>
+        </div>
+        <div class="leagues-out" id="leaguesOut">
+          <div class="state">Select a club above to see its public leagues.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLUBS -->
+  <section class="sec club" id="clubs">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">For clubs</div>
+        <h2>Bring Padeja to your club</h2>
+        <p>Run leagues, tournaments and live scoring for your members. Tell us about your club and our team will be in touch.</p>
+      </div>
+      <div class="form-card">
+        <form id="clubForm">
+          <div class="grid2">
+            <div class="fg">
+              <label class="lbl" for="clubName">Club name <span class="req">*</span></label>
+              <input id="clubName" type="text" placeholder="e.g. Brentwood Padel Club" required>
+            </div>
+            <div class="fg">
+              <label class="lbl" for="location">Town / city</label>
+              <input id="location" type="text" placeholder="e.g. Essex">
+            </div>
+            <div class="fg">
+              <label class="lbl" for="contactName">Your name</label>
+              <input id="contactName" type="text" placeholder="Contact name">
+            </div>
+            <div class="fg">
+              <label class="lbl" for="email">Email <span class="req">*</span></label>
+              <input id="email" type="email" placeholder="you@club.com" required>
+            </div>
+            <div class="fg">
+              <label class="lbl" for="phone">Phone</label>
+              <input id="phone" type="tel" placeholder="Optional">
+            </div>
+            <div class="fg">
+              <label class="lbl" for="courts">Number of courts</label>
+              <input id="courts" type="number" min="1" max="50" placeholder="e.g. 4">
+            </div>
+          </div>
+          <div class="fg">
+            <label class="lbl" for="message">Anything else?</label>
+            <textarea id="message" placeholder="Tell us what you'd like to run — leagues, tournaments, live scoring…"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" id="submitBtn" style="width:100%;justify-content:center">Register interest</button>
+          <div class="form-msg" id="formMsg"></div>
+        </form>
+        <div class="submitted" id="submitted" style="display:none">
+          <div class="big">✅</div>
+          <h3>Thanks — we've got it!</h3>
+          <p>Our team will be in touch at the email you gave us. Talk soon.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="wrap foot">
+      <div class="copy">© <span id="yr"></span> Padeja Ltd · The home of padel</div>
+      <div>
+        <a href="#apps">Apps</a>
+        <a href="#leagues">Leagues</a>
+        <a href="#clubs">For clubs</a>
+        <a href="/privacy-policy.html">Privacy</a>
+        <a href="mailto:support@padeja.com">support@padeja.com</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ---- Supabase (public anon key — same one the app's public pages use) ----
+    const SUPABASE_URL = 'https://odrckirnjavfptlfygbo.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo';
+    const HEADERS = { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY };
+
+    document.getElementById('yr').textContent = '2026';
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    async function api(path) {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, { headers: HEADERS });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }
+
+    function fmtDate(d) {
+      if (!d) return null;
+      const dt = new Date(d + 'T00:00:00');
+      if (isNaN(dt)) return null;
+      return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    function cap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+    // ---- Clubs dropdown ----
+    async function loadClubs() {
+      const sel = $('clubSelect');
+      // Live data only works when the page is served from a real web address.
+      // Opening the file directly (file://) blocks the data connection.
+      if (location.protocol === 'file:') {
+        sel.innerHTML = '<option value="">Preview mode — clubs load once the page is hosted</option>';
+        $('leaguesOut').innerHTML = '<div class="state">You\'re opening this file directly, so your browser blocks the live data connection. Once the page is published to your website, the club list and league tables will load here automatically.</div>';
+        return;
+      }
+      try {
+        const clubs = await api('clubs?select=*&order=name.asc');
+        if (!clubs.length) { sel.innerHTML = '<option value="">No clubs found</option>'; return; }
+        sel.innerHTML = '<option value="">Select a club…</option>' +
+          clubs.map(c => `<option value="${esc(c.id)}">${esc(c.name)}${c.city ? ' — ' + esc(c.city) : ''}</option>`).join('');
+      } catch (e) {
+        sel.innerHTML = '<option value="">Couldn\'t load clubs</option>';
+        $('leaguesOut').innerHTML = '<div class="state">Couldn\'t load the club list (' + esc(e.message) + '). If this is your live site, run Step 2 of the setup SQL to allow public read access to clubs.</div>';
+      }
+    }
+
+    // ---- Leagues for a club ----
+    async function loadLeagues(clubId) {
+      const out = $('leaguesOut');
+      out.innerHTML = '<div class="state">Loading leagues…</div>';
+      try {
+        const leagues = await api('public_leagues_by_club?main_club_id=eq.' + encodeURIComponent(clubId) + '&select=*');
+        if (!leagues.length) {
+          out.innerHTML = '<div class="state">No public competitions listed for this club yet. Check back soon!</div>';
+          return;
+        }
+        leagues.sort((a, b) => (a.start_date || '9999').localeCompare(b.start_date || '9999'));
+        out.innerHTML = leagues.map((lg, i) => {
+          const open = (lg.registration_status || 'open') === 'open';
+          const meta = [];
+          if (lg.competition_type) meta.push(`<span class="badge type">${esc(cap(lg.competition_type))}</span>`);
+          const dates = [fmtDate(lg.start_date), fmtDate(lg.end_date)].filter(Boolean).join(' – ');
+          if (dates) meta.push(`<span>📅 ${esc(dates)}</span>`);
+          if (lg.venue_name) meta.push(`<span>📍 ${esc(lg.venue_name)}</span>`);
+          if (lg.min_level || lg.max_level) meta.push(`<span>Level ${esc(lg.min_level ?? '?')}–${esc(lg.max_level ?? '?')}</span>`);
+          const reg = (open && lg.registration_code)
+            ? `<a class="mini-btn" href="/join-league.html?code=${encodeURIComponent(lg.registration_code)}">Register a team →</a>`
+            : '';
+          return `
+            <div class="league-card" data-id="${esc(lg.id)}">
+              <div class="lc-head" onclick="toggleLeague(this)">
+                <div>
+                  <div class="lc-title">${esc(lg.name)}</div>
+                  <div class="lc-meta">${meta.join('')}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <span class="badge ${open ? 'open' : 'closed'}">${open ? 'Registration open' : 'Closed'}</span>
+                  <span class="chev">▼</span>
+                </div>
+              </div>
+              <div class="lc-body">
+                <div class="lc-actions">${reg}</div>
+                <div class="standings"><div class="state">Loading standings…</div></div>
+              </div>
+            </div>`;
+        }).join('');
+      } catch (e) {
+        out.innerHTML = '<div class="state">Couldn\'t load leagues (' + esc(e.message) + '). If this is your live site, run Step 2 of the setup SQL to allow public read access.</div>';
+      }
+    }
+
+    // ---- Standings (lazy-loaded when a league is expanded) ----
+    async function toggleLeague(headEl) {
+      const card = headEl.closest('.league-card');
+      const wasOpen = card.classList.contains('open');
+      card.classList.toggle('open');
+      if (wasOpen || card.dataset.loaded) return;
+      card.dataset.loaded = '1';
+      const box = card.querySelector('.standings');
+      const tournamentId = card.dataset.id;
+      try {
+        const groups = await api('leagues?tournament_id=eq.' + encodeURIComponent(tournamentId) + '&select=*&order=name.asc');
+        if (!groups.length) { box.innerHTML = '<div class="state">Standings will appear once the league is under way.</div>'; return; }
+        let html = '';
+        for (const g of groups) {
+          let teams = await api('league_teams?league_id=eq.' + encodeURIComponent(g.id) + '&select=*');
+          teams = (teams || []).sort((a, b) =>
+            (b.league_points - a.league_points) ||
+            ((b.points_for - b.points_against) - (a.points_for - a.points_against)) ||
+            (b.won - a.won));
+          if (groups.length > 1) html += `<div class="div-title">${esc(g.name || 'Division')}</div>`;
+          if (!teams.length) { html += '<div class="state">No teams registered yet.</div>'; continue; }
+          html += `<div class="table-scroll"><table>
+            <thead><tr>
+              <th>#</th><th>Team</th>
+              <th class="num">P</th><th class="num">W</th><th class="num">L</th>
+              <th class="num">+/–</th><th class="num">Pts</th>
+            </tr></thead><tbody>` +
+            teams.map((t, i) => {
+              const diff = (t.points_for || 0) - (t.points_against || 0);
+              return `<tr>
+                <td class="pos">${i + 1}</td>
+                <td class="tm">${esc(t.team_name || 'Team')}</td>
+                <td class="num">${t.played || 0}</td>
+                <td class="num">${t.won || 0}</td>
+                <td class="num">${t.lost || 0}</td>
+                <td class="num">${diff > 0 ? '+' + diff : diff}</td>
+                <td class="num pts">${t.league_points || 0}</td>
+              </tr>`;
+            }).join('') + '</tbody></table></div>';
+        }
+        box.innerHTML = html;
+      } catch (e) {
+        box.innerHTML = '<div class="state">Couldn\'t load standings for this league.</div>';
+      }
+    }
+
+    $('clubSelect').addEventListener('change', (e) => {
+      const id = e.target.value;
+      if (!id) { $('leaguesOut').innerHTML = '<div class="state">Select a club above to see its public leagues.</div>'; return; }
+      loadLeagues(id);
+    });
+
+    // ---- Club interest form ----
+    $('clubForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = $('formMsg'); msg.className = 'form-msg'; msg.textContent = '';
+      const btn = $('submitBtn');
+      const payload = {
+        club_name: $('clubName').value.trim(),
+        contact_name: $('contactName').value.trim() || null,
+        email: $('email').value.trim(),
+        phone: $('phone').value.trim() || null,
+        location: $('location').value.trim() || null,
+        num_courts: $('courts').value ? parseInt($('courts').value, 10) : null,
+        message: $('message').value.trim() || null
+      };
+      if (!payload.club_name || !payload.email) {
+        msg.className = 'form-msg err'; msg.textContent = 'Please add your club name and email.'; return;
+      }
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try {
+        const res = await fetch(SUPABASE_URL + '/rest/v1/club_interest', {
+          method: 'POST',
+          headers: Object.assign({}, HEADERS, { 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        $('clubForm').style.display = 'none';
+        $('submitted').style.display = 'block';
+      } catch (err) {
+        btn.disabled = false; btn.textContent = 'Register interest';
+        msg.className = 'form-msg err';
+        msg.textContent = 'Something went wrong sending that. Please email support@padeja.com and we\'ll sort it.';
+      }
+    });
+
+    // Init
+    loadClubs();
+  </script>
+</body>
+</html>
