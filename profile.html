@@ -263,6 +263,34 @@
   const params = new URLSearchParams(window.location.search);
   const userId = params.get("user");
 
+  // Open the app via its custom scheme, but fall back to the store if the app
+  // isn't installed. A raw custom scheme otherwise dead-ends in Safari with
+  // "address is invalid" on iOS when the app is missing.
+  function openInApp(deepLink) {
+    const ua = navigator.userAgent || '';
+    const isAndroid = /Android/i.test(ua);
+    if (isAndroid) {
+      // intent:// carries a Play Store browser_fallback_url, so Android handles
+      // the "app not installed" case automatically.
+      const intentUrl = 'intent://profile?user=' + userId + '#Intent;scheme=padejafeed;package=com.jackwoodford.padejafeedapp;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.jackwoodford.padejafeedapp;end';
+      window.location.href = intentUrl;
+      return;
+    }
+    // iOS / other: try to open the app, and fall back to the App Store if it
+    // doesn't take over within ~1.2s. If the app does open, the page is
+    // backgrounded and the fallback is cancelled.
+    const appStore = 'https://apps.apple.com/app/padeja/id6780805905';
+    const fallbackTimer = setTimeout(function () {
+      if (!document.hidden) window.location.href = appStore;
+    }, 1200);
+    const cancel = function () { clearTimeout(fallbackTimer); };
+    window.addEventListener('pagehide', cancel);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) cancel();
+    });
+    window.location.href = deepLink;
+  }
+
   async function fetchJSON(url) {
     const res = await fetch(url, {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
@@ -351,7 +379,7 @@
         <div class="display-name">${profile.display_name || 'Padeja Player'}</div>
         ${metaParts.length > 0 ? `<div class="profile-meta">${metaHtml}</div>` : ''}
         ${profile.bio ? `<div class="bio">${profile.bio}</div>` : ''}
-        <a class="open-btn" href="${deepLink}">🎾 Open in Padeja</a>`;
+        <button class="open-btn" onclick="openInApp('${deepLink}')">🎾 Open in Padeja</button>`;
 
       // Main content
       let mainHtml = '';
