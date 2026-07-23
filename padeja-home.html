@@ -364,21 +364,14 @@
     // ---- Clubs dropdown ----
     async function loadClubs() {
       const sel = $('clubSelect');
-      // Live data only works when the page is served from a real web address.
-      // Opening the file directly (file://) blocks the data connection.
-      if (location.protocol === 'file:') {
-        sel.innerHTML = '<option value="">Preview mode — clubs load once the page is hosted</option>';
-        $('leaguesOut').innerHTML = '<div class="state">You\'re opening this file directly, so your browser blocks the live data connection. Once the page is published to your website, the club list and league tables will load here automatically.</div>';
-        return;
-      }
       try {
-        const clubs = await api('clubs?select=*&order=name.asc');
+        const clubs = await api('clubs?select=id,name,city&order=name.asc');
         if (!clubs.length) { sel.innerHTML = '<option value="">No clubs found</option>'; return; }
         sel.innerHTML = '<option value="">Select a club…</option>' +
           clubs.map(c => `<option value="${esc(c.id)}">${esc(c.name)}${c.city ? ' — ' + esc(c.city) : ''}</option>`).join('');
       } catch (e) {
         sel.innerHTML = '<option value="">Couldn\'t load clubs</option>';
-        $('leaguesOut').innerHTML = '<div class="state">Couldn\'t load the club list (' + esc(e.message) + '). If this is your live site, run Step 2 of the setup SQL to allow public read access to clubs.</div>';
+        $('leaguesOut').innerHTML = '<div class="state">We couldn\'t load clubs right now. Please try again shortly.</div>';
       }
     }
 
@@ -387,7 +380,8 @@
       const out = $('leaguesOut');
       out.innerHTML = '<div class="state">Loading leagues…</div>';
       try {
-        const leagues = await api('public_leagues_by_club?main_club_id=eq.' + encodeURIComponent(clubId) + '&select=*');
+        const leagues = await api('public_leagues_by_club?main_club_id=eq.' + encodeURIComponent(clubId) +
+          '&select=id,name,status,registration_status,registration_code,competition_type,venue_name,start_date,end_date,min_level,max_level');
         if (!leagues.length) {
           out.innerHTML = '<div class="state">No public competitions listed for this club yet. Check back soon!</div>';
           return;
@@ -423,7 +417,7 @@
             </div>`;
         }).join('');
       } catch (e) {
-        out.innerHTML = '<div class="state">Couldn\'t load leagues (' + esc(e.message) + '). If this is your live site, run Step 2 of the setup SQL to allow public read access.</div>';
+        out.innerHTML = '<div class="state">We couldn\'t load leagues for this club right now.</div>';
       }
     }
 
@@ -437,11 +431,12 @@
       const box = card.querySelector('.standings');
       const tournamentId = card.dataset.id;
       try {
-        const groups = await api('leagues?tournament_id=eq.' + encodeURIComponent(tournamentId) + '&select=*&order=name.asc');
+        const groups = await api('leagues?tournament_id=eq.' + encodeURIComponent(tournamentId) + '&select=id,name&order=name.asc');
         if (!groups.length) { box.innerHTML = '<div class="state">Standings will appear once the league is under way.</div>'; return; }
         let html = '';
         for (const g of groups) {
-          let teams = await api('league_teams?league_id=eq.' + encodeURIComponent(g.id) + '&select=*');
+          let teams = await api('league_teams?league_id=eq.' + encodeURIComponent(g.id) +
+            '&select=team_name,league_points,played,won,lost,points_for,points_against');
           teams = (teams || []).sort((a, b) =>
             (b.league_points - a.league_points) ||
             ((b.points_for - b.points_against) - (a.points_for - a.points_against)) ||
