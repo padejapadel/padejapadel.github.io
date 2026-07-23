@@ -237,14 +237,30 @@
     }
 
     function openInApp(deepLink) {
-  const isAndroid = /Android/i.test(navigator.userAgent);
-  if (isAndroid) {
-    const intentUrl = 'intent://join-league?code=' + inviteCode + '#Intent;scheme=padejafeed;package=com.jackwoodford.padejafeedapp;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.jackwoodford.padejafeedapp;end';
-    window.location.href = intentUrl;
-  } else {
-    window.location.href = deepLink;
-  }
-}
+      const ua = navigator.userAgent || '';
+      const isAndroid = /Android/i.test(ua);
+      if (isAndroid) {
+        // intent:// carries a Play Store browser_fallback_url, so Android handles
+        // the "app not installed" case automatically.
+        const intentUrl = 'intent://join-league?code=' + inviteCode + '#Intent;scheme=padejafeed;package=com.jackwoodford.padejafeedapp;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.jackwoodford.padejafeedapp;end';
+        window.location.href = intentUrl;
+        return;
+      }
+      // iOS / other: a raw custom scheme dead-ends in Safari ("address is
+      // invalid") when the app isn't installed. Try to open the app, and fall
+      // back to the App Store if it doesn't take over within ~1.2s. If the app
+      // does open, the page is backgrounded and the fallback is cancelled.
+      const appStore = 'https://apps.apple.com/app/padeja/id6780805905';
+      const fallbackTimer = setTimeout(function () {
+        if (!document.hidden) window.location.href = appStore;
+      }, 1200);
+      const cancel = function () { clearTimeout(fallbackTimer); };
+      window.addEventListener('pagehide', cancel);
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) cancel();
+      });
+      window.location.href = deepLink;
+    }
 
     load();
   </script>
