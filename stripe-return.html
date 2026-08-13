@@ -1,11 +1,52 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta http-equiv="refresh" content="0; url=padeja://stripe-return">
-  <title>Redirecting...</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Returning to Padeja…</title>
+<style>
+  :root{ --bg:#0D1B2E; --card:#122238; --line:#1E3050; --teal:#3BC8F5; --gold:#F0A93B; --mut:#8AA4C0; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:var(--bg); color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .wrap{ min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .card{ width:100%; max-width:380px; background:var(--card); border:1px solid var(--line);
+    border-radius:16px; padding:28px 24px; text-align:center; }
+  .mark{ font-weight:800; letter-spacing:3px; color:var(--teal); font-size:15px; text-transform:uppercase; }
+  h1{ font-size:22px; margin:14px 0 6px; }
+  p{ color:var(--mut); font-size:15px; line-height:1.5; margin:6px 0; }
+  .btn{ display:inline-block; margin-top:18px; padding:13px 22px; border-radius:12px;
+    background:var(--teal); color:var(--bg); font-weight:700; text-decoration:none; font-size:16px; }
+  .tiny{ font-size:13px; color:var(--mut); margin-top:14px; }
+  #fallback{ display:none; }
+</style>
 </head>
 <body>
-  <script>location.replace("padeja://stripe-return");</script>
-  <p>Redirecting back to Padeja...</p>
+  <div class="wrap">
+    <div class="card">
+      <div class="mark">Padeja</div>
+      <h1>All set!</h1>
+      <p>Taking you back to the app…</p>
+      <div id="fallback">
+        <a id="btn" class="btn" href="#">Return to Padeja</a>
+        <p class="tiny">If nothing happens, tap the button above — or just reopen the Padeja app. Your payment account is saved.</p>
+      </div>
+    </div>
+  </div>
+<script>
+  // Which app started onboarding decides which URL scheme to hand back to.
+  // ?app=feed  -> Padeja (Feed)     padejafeed://stripe-return
+  // ?app=scorer / absent -> Padeja Live (Scorer)  padeja://stripe-return
+  (function () {
+    var app = (new URLSearchParams(location.search).get("app") || "scorer").toLowerCase();
+    var scheme = app === "feed" ? "padejafeed" : "padeja";
+    var target = scheme + "://stripe-return";
+    document.getElementById("btn").setAttribute("href", target);
+    // Try to hand back automatically.
+    try { window.location.href = target; } catch (e) {}
+    // Reveal a manual button if the auto-return is blocked or dismissed.
+    setTimeout(function () { document.getElementById("fallback").style.display = "block"; }, 1200);
+  })();
+</script>
 </body>
 </html>
