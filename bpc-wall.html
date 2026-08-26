@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brentwood Padel — Live Courts</title>
+<style>
+  :root{
+    --bg:#0A1523; --card:#0F1E30; --brd:rgba(255,255,255,.08);
+    --teal:#00D4AA; --gold:#FFD166; --red:#FF6B6B;
+    --txt:#FFFFFF; --muted:rgba(255,255,255,.55); --muted2:rgba(255,255,255,.32);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;background:var(--bg);color:var(--txt);overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  #app{display:flex;flex-direction:column;height:100vh;width:100vw;}
+
+  /* Slim brand bar */
+  header{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+    padding:1.1vh 2vw;border-bottom:1px solid var(--brd);}
+  header .title{display:flex;align-items:baseline;gap:.7vw;}
+  header .club{font-size:2.5vh;font-weight:800;letter-spacing:.02em;}
+  header .sub{font-size:1.6vh;font-weight:700;color:var(--teal);letter-spacing:.14em;text-transform:uppercase;}
+  header .clock{font-size:2.2vh;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;}
+
+  /* Court grid */
+  #grid{flex:1 1 auto;display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:1fr;
+    gap:1vh 1vw;padding:1vh 1vw;min-height:0;}
+
+  .card{position:relative;background:var(--card);border:1px solid var(--brd);border-radius:1.2vh;
+    padding:1.6vh 1.6vw 1.6vh 1.8vw;display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:.5vw;background:var(--teal);opacity:.85;}
+
+  .chead{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2vh;}
+  .cname{font-size:2.2vh;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#dfe8f2;}
+
+  .badge{font-size:1.5vh;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    padding:.5vh 1vw;border-radius:2vh;display:inline-flex;align-items:center;gap:.5vw;}
+  .badge.live{color:#fff;background:rgba(255,107,107,.16);}
+  .badge.live .dot{width:1.1vh;height:1.1vh;border-radius:50%;background:var(--red);animation:pulse 1.4s infinite;}
+  .badge.final{color:var(--gold);background:rgba(255,209,102,.14);}
+  .badge.idle{color:var(--muted2);background:rgba(255,255,255,.05);}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.7);}}
+
+  /* Score block: name | SET | GM | PTS */
+  .score{flex:1 1 auto;display:grid;
+    grid-template-columns:1fr auto auto auto;
+    grid-template-rows:auto 1fr 1fr;
+    align-items:center;column-gap:1.4vw;min-height:0;}
+  .lbl{font-size:1.4vh;font-weight:800;letter-spacing:.06em;color:var(--muted2);text-align:center;text-transform:uppercase;}
+  .lbl.name{text-align:left;}
+  .team{display:flex;align-items:center;gap:.7vw;font-size:2.6vh;font-weight:700;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .team.win{color:var(--teal);}
+  .serve{width:1.2vh;height:1.2vh;border-radius:50%;background:var(--gold);flex:0 0 auto;visibility:hidden;}
+  .serve.on{visibility:visible;}
+  .cell{font-size:4.4vh;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;min-width:2.4ch;}
+  .cell.pts{color:var(--gold);}
+  .cell.win{color:var(--teal);}
+  .cell.dim{color:var(--muted2);}
+
+  .empty{flex:1 1 auto;display:flex;align-items:center;justify-content:center;
+    font-size:2.2vh;font-weight:600;color:var(--muted2);}
+
+  #offline{position:fixed;bottom:1vh;right:1.4vw;font-size:1.5vh;color:var(--red);opacity:.85;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="title"><span class="club" id="club">Brentwood Padel</span><span class="sub">Live Courts</span></div>
+    <div class="clock" id="clock">--:--</div>
+  </header>
+  <div id="grid"></div>
+</div>
+<div id="offline"></div>
+
+<script>
+(function(){
+  "use strict";
+  var SUPA = "https://odrckirnjavfptlfygbo.supabase.co";
+  var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo";
+  var COLS = "court_number,team_a,team_b,point_display_a,point_display_b,sets_a,sets_b,game_a,game_b,serving_team,match_state,match_winner,players_json,updated_at";
+
+  var qs = new URLSearchParams(location.search);
+  var COURTS = parseInt(qs.get("courts") || "6", 10) || 6;
+  var COLS_N = parseInt(qs.get("cols") || "2", 10) || 2;
+  var STALE_MIN = 180;
+
+  var grid = document.getElementById("grid");
+  grid.style.gridTemplateColumns = "repeat(" + COLS_N + ",1fr)";
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
+  function num(v,d){ return (v==null||v==="")?d:v; }
+  function parseArr(j){ if(!j) return []; try{ var a=(typeof j==="string")?JSON.parse(j):j; return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function byTeam(arr,t){ return arr.filter(function(p){return String(p.team||"").toLowerCase()===t;}).sort(function(x,y){return (x.pos||0)-(y.pos||0);}); }
+  function names(ps,fb){ return ps.length ? ps.map(function(p){return p.name||"";}).join("  /  ") : (fb||""); }
+  function ageMin(m){ if(!m||!m.updated_at) return 1e9; var t=Date.parse(m.updated_at); return isNaN(t)?1e9:(Date.now()-t)/60000; }
+  function isFin(m){ return m && ((m.match_winner||"").toString().trim()!=="" || /finish|complete|ended/.test((m.match_state||"").toLowerCase())); }
+
+  // Build the six cards once; poll fills them in.
+  var cards = {};
+  for (var n=1; n<=COURTS; n++){
+    var c = document.createElement("div"); c.className="card";
+    c.innerHTML =
+      '<div class="chead"><div class="cname">Court '+n+'</div><div class="badge idle" data-badge>—</div></div>'
+      + '<div class="body" data-body></div>';
+    grid.appendChild(c);
+    cards[n] = { badge:c.querySelector("[data-badge]"), body:c.querySelector("[data-body]") };
+  }
+
+  function scoreCell(val, cls){ return '<div class="cell '+(cls||'')+'">'+esc(val)+'</div>'; }
+
+  function renderCard(n, m){
+    var slot = cards[n];
+    if(!slot) return;
+    var live = m && !isFin(m);
+    var fin  = isFin(m);
+
+    // Badge
+    if(!m){ slot.badge.className="badge idle"; slot.badge.innerHTML="—"; }
+    else if(fin){ slot.badge.className="badge final"; slot.badge.innerHTML="Final"; }
+    else { slot.badge.className="badge live"; slot.badge.innerHTML='<span class="dot"></span>Live'; }
+
+    if(!m){ slot.body.className="empty"; slot.body.innerHTML="No live match"; return; }
+    slot.body.className="score";
+
+    var players = parseArr(m.players_json);
+    var aP = byTeam(players,"a"), bP = byTeam(players,"b");
+    var t1 = names(aP, m.team_a) || "Team 1";
+    var t2 = names(bP, m.team_b) || "Team 2";
+
+    var srv = String(m.serving_team||"").toUpperCase();
+    var s1 = (!fin && srv==="A"), s2 = (!fin && srv==="B");
+
+    // Winner highlight when finished
+    var mw = String(m.match_winner||"").toLowerCase();
+    var w1 = fin && mw.indexOf("team a")>-1;
+    var w2 = fin && mw.indexOf("team b")>-1;
+    // Fallback: compare sets if match_winner isn't "Team A/B"
+    if(fin && !w1 && !w2){ var sa=+num(m.sets_a,0), sb=+num(m.sets_b,0); w1=sa>sb; w2=sb>sa; }
+
+    // Always emit 4 header cells so the grid columns stay aligned.
+    var ptsHdr = '<div class="lbl">'+(fin?"":"Pts")+'</div>';
+    var p1 = fin ? scoreCell("", "dim") : scoreCell(num(m.point_display_a,"0"), "pts");
+    var p2 = fin ? scoreCell("", "dim") : scoreCell(num(m.point_display_b,"0"), "pts");
+
+    slot.body.innerHTML =
+        '<div class="lbl name"></div><div class="lbl">Set</div><div class="lbl">Gm</div>'+ptsHdr
+      + '<div class="team'+(w1?' win':'')+'"><span class="serve'+(s1?' on':'')+'"></span><span>'+esc(t1)+'</span></div>'
+        + scoreCell(num(m.sets_a,0), w1?'win':'') + scoreCell(num(m.game_a,0), w1?'win':'') + p1
+      + '<div class="team'+(w2?' win':'')+'"><span class="serve'+(s2?' on':'')+'"></span><span>'+esc(t2)+'</span></div>'
+        + scoreCell(num(m.sets_b,0), w2?'win':'') + scoreCell(num(m.game_b,0), w2?'win':'') + p2;
+  }
+
+  function pollOne(n){
+    var url = SUPA + "/rest/v1/live_matches?select=" + encodeURIComponent(COLS)
+      + "&court_number=eq." + n + "&order=updated_at.desc&limit=1";
+    return fetch(url, { headers:{ apikey:ANON, Authorization:"Bearer "+ANON } })
+      .then(function(r){ return r.json(); })
+      .then(function(rows){
+        var m = (rows && rows[0] && ageMin(rows[0]) <= STALE_MIN) ? rows[0] : null;
+        renderCard(n, m);
+        return true;
+      })
+      .catch(function(){ return false; });
+  }
+
+  function poll(){
+    var jobs=[]; for(var n=1;n<=COURTS;n++) jobs.push(pollOne(n));
+    Promise.all(jobs).then(function(res){
+      var ok = res.some(Boolean);
+      document.getElementById("offline").textContent = ok ? "" : "reconnecting…";
+    });
+  }
+
+  function tick(){
+    var d=new Date();
+    document.getElementById("clock").textContent =
+      String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  }
+  tick(); setInterval(tick, 10000);
+
+  // Keep the TV awake without reloading.
+  (function keepAwake(){
+    var lock=null;
+    function acquire(){ if(!("wakeLock" in navigator)||document.visibilityState!=="visible")return;
+      navigator.wakeLock.request("screen").then(function(l){lock=l;l.addEventListener("release",function(){lock=null;});}).catch(function(){}); }
+    document.addEventListener("visibilitychange",function(){ if(document.visibilityState==="visible"&&!lock)acquire(); });
+    setInterval(function(){ if(!lock)acquire(); },30000); acquire();
+  })();
+
+  poll();
+  setInterval(poll, 3000);
+})();
+</script>
+</body>
+</html>
