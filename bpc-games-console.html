@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Padeja · BPC Games Control</title>
+<style>
+  :root{
+    --bg:#070d13; --card:#0e1620; --card2:#111c28; --line:#1e2c3a;
+    --ink:#eaf2f8; --mut:#8aa0b2; --mut2:#5f7486;
+    --teal:#00d4aa; --sky:#37b7ff; --gold:#ffd23e; --red:#ff6b6b; --green:#37e6a4;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Hanken Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  a{color:var(--sky)}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px 14px 80px}
+  .brand{display:flex;align-items:center;gap:10px;margin:6px 0 14px}
+  .brand .p{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--teal),var(--sky));color:#04121d;font-weight:800}
+  .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
+  .brand .sub{font-size:12px;color:var(--mut);margin-top:1px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  label{display:block;font-size:12px;color:var(--mut);margin:0 0 5px}
+  input,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);
+    background:rgba(255,255,255,.04);color:#fff;font-family:inherit;font-size:15px;outline:none}
+  input:focus,select:focus{border-color:var(--teal)}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:11px;font-weight:700;font-size:14px;
+    padding:11px 16px;color:#04121d;background:linear-gradient(120deg,var(--teal),var(--sky))}
+  button.ghost{background:transparent;color:#fff;border:1px solid var(--line);font-weight:600}
+  button.sm{padding:8px 12px;font-size:13px;border-radius:9px}
+  button:disabled{opacity:.4;cursor:default}
+  .msg{margin-top:12px;padding:10px 13px;border-radius:9px;font-size:13.5px;display:none}
+  .msg.err{display:block;background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.4);color:#ffd0d0}
+  .msg.ok{display:block;background:rgba(0,212,170,.12);border:1px solid rgba(0,212,170,.4);color:#bff5ea}
+  .hidden{display:none!important}
+
+  /* toolbar */
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0}
+  .bar .grow{flex:1;min-width:140px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{background:transparent;color:var(--mut);border-radius:0;padding:8px 12px;font-size:13px;font-weight:600}
+  .seg button.on{background:linear-gradient(120deg,var(--teal),var(--sky));color:#04121d}
+  .rightinfo{margin-left:auto;font-size:12px;color:var(--mut2);text-align:right}
+
+  /* rounds / heats */
+  .round-h{font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--gold);
+    margin:22px 0 6px;padding-top:8px;border-top:1px solid var(--line)}
+  .heat-h{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 8px}
+  .heat-h .t{font-size:14px;font-weight:700}
+  .heat-h .s{font-size:12px;color:var(--mut)}
+
+  .fx{display:grid;grid-template-columns:64px 92px 1fr auto;gap:10px;align-items:center;
+    background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+  .fx.done{border-color:rgba(55,230,164,.35);background:linear-gradient(90deg,rgba(55,230,164,.06),var(--card) 40%)}
+  .fx .court label{margin:0 0 2px;font-size:10px}
+  .fx .court input{padding:7px 6px;text-align:center;font-weight:700}
+  .cat{font-size:11px;font-weight:700;color:var(--sky);text-transform:uppercase;letter-spacing:.5px}
+  .teams{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .team{display:flex;align-items:center;gap:7px;font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dot{width:11px;height:11px;border-radius:3px;flex:none}
+  .team.win{color:var(--green)}
+  .team.win::after{content:"✓";color:var(--green);font-weight:800;margin-left:2px}
+  .score{display:flex;align-items:center;gap:6px}
+  .score input{width:46px;text-align:center;padding:8px 4px;font-weight:800;font-size:16px}
+  .score .x{color:var(--mut2);font-size:13px}
+  .savebtn{min-width:64px}
+  .savebtn.dirty{background:linear-gradient(120deg,var(--gold),#f6b73b)}
+  .rowmsg{grid-column:1/-1;font-size:12px;color:var(--red);margin-top:-2px;display:none}
+  .rowmsg.show{display:block}
+
+  /* standings */
+  .stand{position:sticky;top:0;z-index:5}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line)}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--mut2);font-weight:700}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .rk{color:var(--mut2);width:26px}
+  .clubcell{display:flex;align-items:center;gap:8px;font-weight:700}
+  .pts{font-weight:800;color:var(--gold)}
+  .catgrid{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .catpill{font-size:11px;border:1px solid var(--line);border-radius:8px;padding:4px 8px;color:var(--mut)}
+  .catpill b{color:var(--ink)}
+  .catpill.done{border-color:rgba(55,230,164,.4);color:var(--green)}
+  details{margin-top:12px}
+  summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--ink);padding:6px 0}
+  @media (max-width:640px){
+    .fx{grid-template-columns:54px 1fr auto;grid-template-areas:"court teams score" "cat cat cat"}
+    .fx .court{grid-area:court}.teams{grid-area:teams}.score{grid-area:score}
+    .cat{grid-area:cat}.savebtn{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="brand">
+    <div class="p">P</div>
+    <div>
+      <h1>BPC Padel Games · Control</h1>
+      <div class="sub">Scoring &amp; order of play · super-admin only</div>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <section id="login" class="card hidden" style="max-width:420px">
+    <label>Email</label>
+    <input id="email" type="email" autocomplete="username" placeholder="you@example.com">
+    <label style="margin-top:12px">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" placeholder="••••••••">
+    <div style="margin-top:14px"><button id="loginBtn">Log in</button></div>
+    <div id="loginMsg" class="msg"></div>
+  </section>
+
+  <!-- APP -->
+  <section id="app" class="hidden">
+
+    <div class="card stand">
+      <details open>
+        <summary>Overall Standings <span id="standNote" style="color:var(--mut2);font-weight:500;font-size:12px"></span></summary>
+        <table style="margin-top:8px">
+          <thead><tr><th class="rk"></th><th>Club</th><th class="num">Match pts</th><th class="num">+ Bonus</th><th class="num">Total</th></tr></thead>
+          <tbody id="standBody"></tbody>
+        </table>
+        <div class="catgrid" id="catGrid"></div>
+        <div style="font-size:11px;color:var(--mut2);margin-top:8px">1 pt per set won · league winner +5 (or +3 each if tied). Bonus is applied once a category's 15 matches are all in.</div>
+      </details>
+    </div>
+
+    <div class="bar">
+      <div class="seg" id="roundSeg">
+        <button data-r="all" class="on">All</button>
+        <button data-r="1">R1</button><button data-r="2">R2</button>
+        <button data-r="3">R3</button><button data-r="4">R4</button><button data-r="5">R5</button>
+      </div>
+      <div class="seg" id="statusSeg">
+        <button data-s="all" class="on">All</button>
+        <button data-s="todo">To play</button>
+        <button data-s="done">Done</button>
+      </div>
+      <input class="grow" id="search" placeholder="Search club / category / court…" style="max-width:260px">
+      <div class="rightinfo">
+        <div id="prog">–</div>
+        <a href="#" id="signout" style="font-size:12px">Sign out</a>
+      </div>
+    </div>
+
+    <div id="msg" class="msg"></div>
+    <div id="list"></div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://odrckirnjavfptlfygbo.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const $ = id => document.getElementById(id);
+const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// Club colours (match the games wall palette).
+const CLUB = {
+  "Team Padeja":       "#00d4aa",
+  "Crispy Winners":    "#ffb43e",
+  "Lob Mob":           "#37b7ff",
+  "No Strings Attached":"#c88bff",
+  "Anti-Social":       "#ff6b6b",
+  "The Misfits":       "#8ad55a",
+};
+const CATS = ["Men's 1","Men's 2","Men's 3","Mixed","Ladies 1","Ladies 2"];
+
+let MATCHES = [];
+let FILTER = { round:"all", status:"all", q:"" };
+
+function show(el){ ["login","app"].forEach(x=>$(x).classList.add("hidden")); $(el).classList.remove("hidden"); }
+function flash(id,type,text){ const m=$(id); m.className="msg "+type; m.textContent=text; if(type==="ok") setTimeout(()=>{m.className="msg";},2500); }
+
+// ---------- auth ----------
+async function boot(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(!session){ show("login"); return; }
+  const { data:isSA } = await sb.rpc("is_super_admin");
+  if(!isSA){ await sb.auth.signOut(); show("login"); flash("loginMsg","err","That account isn't a super-admin."); return; }
+  show("app"); await load();
+}
+$("loginBtn").onclick = async ()=>{
+  const email=$("email").value.trim(), password=$("pw").value;
+  if(!email||!password){ flash("loginMsg","err","Enter your email and password."); return; }
+  $("loginBtn").disabled=true;
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  $("loginBtn").disabled=false;
+  if(error){ flash("loginMsg","err",error.message); return; }
+  boot();
+};
+$("signout").onclick = async e=>{ e.preventDefault(); await sb.auth.signOut(); location.reload(); };
+
+// ---------- load ----------
+async function load(){
+  const { data, error } = await sb.from("bpc_games_matches").select("*").order("seq");
+  if(error){ flash("msg","err","Couldn't load fixtures: "+error.message); return; }
+  MATCHES = data||[];
+  render(); renderStandings();
+}
+
+// ---------- filters ----------
+document.querySelectorAll("#roundSeg button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#roundSeg button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+  FILTER.round=b.dataset.r; render();
+});
+document.querySelectorAll("#statusSeg button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#statusSeg button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+  FILTER.status=b.dataset.s; render();
+});
+$("search").oninput = e=>{ FILTER.q=e.target.value.trim().toLowerCase(); render(); };
+
+function matchVisible(m){
+  if(FILTER.round!=="all" && String(m.round)!==FILTER.round) return false;
+  if(FILTER.status==="done" && m.status!=="completed") return false;
+  if(FILTER.status==="todo" && m.status==="completed") return false;
+  if(FILTER.q){
+    const hay=(m.club_a+" "+m.club_b+" "+m.category+" court "+m.court).toLowerCase();
+    if(!hay.includes(FILTER.q)) return false;
+  }
+  return true;
+}
+
+// ---------- render fixtures ----------
+function render(){
+  const vis = MATCHES.filter(matchVisible);
+  const done = MATCHES.filter(m=>m.status==="completed").length;
+  $("prog").textContent = `${done} / ${MATCHES.length} played`;
+  const list=$("list"); list.innerHTML="";
+  let curRound=null, curHeat=null;
+  vis.forEach(m=>{
+    if(m.round!==curRound){ curRound=m.round; curHeat=null;
+      const h=document.createElement("div"); h.className="round-h"; h.textContent="Round "+m.round; list.appendChild(h); }
+    if(m.heat!==curHeat){ curHeat=m.heat;
+      const h=document.createElement("div"); h.className="heat-h";
+      h.innerHTML=`<div class="t">Heat ${m.heat}</div><div class="s">${esc(m.slot_time||"")}</div>`; list.appendChild(h); }
+    list.appendChild(fxRow(m));
+  });
+  if(!vis.length) list.innerHTML=`<div class="card" style="text-align:center;color:var(--mut)">No fixtures match this filter.</div>`;
+}
+
+function fxRow(m){
+  const el=document.createElement("div");
+  el.className="fx"+(m.status==="completed"?" done":"");
+  const aWin = m.status==="completed" && m.score_a>m.score_b;
+  const bWin = m.status==="completed" && m.score_b>m.score_a;
+  const dotA=CLUB[m.club_a]||"#888", dotB=CLUB[m.club_b]||"#888";
+  el.innerHTML=`
+    <div class="court">
+      <label>Court</label>
+      <input type="number" min="1" max="20" value="${m.court??''}" id="court_${m.id}">
+    </div>
+    <div class="cat">${esc(m.category)}</div>
+    <div class="teams">
+      <div class="team ${aWin?'win':''}"><span class="dot" style="background:${dotA}"></span>${esc(m.club_a)}</div>
+      <div class="team ${bWin?'win':''}"><span class="dot" style="background:${dotB}"></span>${esc(m.club_b)}</div>
+    </div>
+    <div class="score">
+      <input type="number" min="0" max="20" value="${m.score_a??''}" id="sa_${m.id}" placeholder="–">
+      <span class="x">–</span>
+      <input type="number" min="0" max="20" value="${m.score_b??''}" id="sb_${m.id}" placeholder="–">
+      <button class="sm savebtn" id="save_${m.id}">Save</button>
+    </div>
+    <div class="rowmsg" id="rm_${m.id}"></div>`;
+
+  // court auto-save on blur
+  el.querySelector("#court_"+m.id).addEventListener("change", async e=>{
+    const v = e.target.value===''? null : parseInt(e.target.value);
+    const { error } = await sb.from("bpc_games_matches").update({ court:v }).eq("id", m.id);
+    if(error){ flash("msg","err","Court not saved: "+error.message); return; }
+    m.court=v; flash("msg","ok","Court updated.");
+  });
+
+  // mark save button dirty when a score changes
+  const sa=el.querySelector("#sa_"+m.id), sbx=el.querySelector("#sb_"+m.id), btn=el.querySelector("#save_"+m.id);
+  const markDirty=()=>btn.classList.add("dirty");
+  sa.addEventListener("input",markDirty); sbx.addEventListener("input",markDirty);
+
+  btn.onclick = ()=>saveResult(m, sa.value, sbx.value);
+  return el;
+}
+
+async function saveResult(m, va, vb){
+  const rm=$("rm_"+m.id); rm.classList.remove("show");
+  const a = va===''? null : parseInt(va);
+  const b = vb===''? null : parseInt(vb);
+  if(a===null || b===null){ rm.textContent="Enter both scores."; rm.classList.add("show"); return; }
+  if(a===b){ rm.textContent="A set can't be a draw — one pair must win."; rm.classList.add("show"); return; }
+  const { error } = await sb.from("bpc_games_matches")
+    .update({ score_a:a, score_b:b, status:"completed" }).eq("id", m.id);
+  if(error){ flash("msg","err","Not saved: "+error.message); return; }
+  m.score_a=a; m.score_b=b; m.status="completed";
+  flash("msg","ok",`Saved: ${m.club_a} ${a}–${b} ${m.club_b}`);
+  render(); renderStandings();
+}
+
+// ---------- standings (custom scoring) ----------
+function computeStandings(){
+  const clubs = Object.keys(CLUB);
+  const pts = {}, bonus = {}; clubs.forEach(c=>{ pts[c]=0; bonus[c]=0; });
+  const catStatus = {};
+  CATS.forEach(cat=>{
+    const ms = MATCHES.filter(m=>m.category===cat);
+    const wins = {}; clubs.forEach(c=>wins[c]=0);
+    let playedCount=0;
+    ms.forEach(m=>{
+      if(m.status!=="completed") return;
+      playedCount++;
+      if(m.score_a>m.score_b) wins[m.club_a]++; else wins[m.club_b]++;
+    });
+    clubs.forEach(c=>pts[c]+=wins[c]);
+    const complete = ms.length>0 && playedCount===ms.length;
+    catStatus[cat] = { complete, total:ms.length, played:playedCount, wins };
+    if(complete){
+      const max = Math.max(...clubs.map(c=>wins[c]));
+      const leaders = clubs.filter(c=>wins[c]===max && max>0);
+      const award = leaders.length>=2 ? 3 : 5;
+      leaders.forEach(c=>bonus[c]+=award);
+      catStatus[cat].leaders=leaders; catStatus[cat].award=award;
+    }
+  });
+  const table = clubs.map(c=>({ club:c, pts:pts[c], bonus:bonus[c], total:pts[c]+bonus[c] }))
+    .sort((x,y)=> y.total-x.total || y.pts-x.pts || x.club.localeCompare(y.club));
+  return { table, catStatus };
+}
+
+function renderStandings(){
+  const { table, catStatus } = computeStandings();
+  const doneCats = CATS.filter(c=>catStatus[c].complete).length;
+  $("standNote").textContent = `· ${doneCats}/6 categories complete`;
+  $("standBody").innerHTML = table.map((r,i)=>`
+    <tr>
+      <td class="rk">${i+1}</td>
+      <td><div class="clubcell"><span class="dot" style="background:${CLUB[r.club]}"></span>${esc(r.club)}</div></td>
+      <td class="num pts">${r.pts}</td>
+      <td class="num">${r.bonus?('+'+r.bonus):'–'}</td>
+      <td class="num" style="font-weight:800">${r.total}</td>
+    </tr>`).join("");
+  $("catGrid").innerHTML = CATS.map(c=>{
+    const s=catStatus[c];
+    const lead = s.complete && s.leaders && s.leaders.length
+      ? ` · ${s.leaders.join(' & ')} +${s.award}` : '';
+    return `<span class="catpill ${s.complete?'done':''}"><b>${esc(c)}</b> ${s.played}/${s.total}${esc(lead)}</span>`;
+  }).join("");
+}
+
+boot();
+</script>
+</body>
+</html>
