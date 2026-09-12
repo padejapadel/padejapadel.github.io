@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GKR Autumn 2026 — Standings</title>
+<style>
+  :root{
+    --gkr1:#E9760F; --gkr2:#FF9C2E; --ink:#12100e; --panel:#ffffff;
+    --bg:#f4f1ec; --line:#eadfce; --muted:#7c7368; --head:#2a2118;
+    --pos:#0e0e0e; --good:#1f9d55;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 env(safe-area-inset-bottom);
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:16px}
+  header{
+    background:linear-gradient(120deg,var(--gkr1) 0%, var(--gkr2) 55%, var(--gkr1) 100%);
+    color:#1a1000; border-radius:18px; padding:18px 18px 16px;
+    box-shadow:0 6px 24px rgba(233,118,15,.28);
+    position:relative; overflow:hidden;
+  }
+  .kicker{font-size:12px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:rgba(26,16,0,.72)}
+  h1{margin:2px 0 2px; font-size:23px; font-weight:900; line-height:1.08}
+  .sub{font-size:13px; font-weight:600; color:rgba(26,16,0,.72)}
+  .bolt{position:absolute; right:-10px; top:-10px; width:120px; height:120px; opacity:.16}
+
+  .tools{display:flex; align-items:center; gap:10px; margin:14px 2px 6px; flex-wrap:wrap}
+  .updated{font-size:12px; color:var(--muted); font-weight:600; flex:1 1 auto}
+  .refresh{
+    appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--ink);
+    font-weight:700; font-size:13px; border-radius:999px; padding:7px 14px; cursor:pointer;
+  }
+  .refresh:active{transform:scale(.97)}
+
+  .pills{display:flex; gap:8px; overflow-x:auto; padding:10px 2px 4px; -webkit-overflow-scrolling:touch}
+  .pill{
+    flex:0 0 auto; border:1px solid var(--line); background:var(--panel);
+    border-radius:999px; padding:9px 15px; cursor:pointer; text-align:center; line-height:1.15;
+  }
+  .pill b{display:block; font-size:14px; font-weight:800}
+  .pill span{display:block; font-size:11px; color:var(--muted); font-weight:600}
+  .pill.active{background:var(--ink); border-color:var(--ink)}
+  .pill.active b{color:#fff}
+  .pill.active span{color:rgba(255,255,255,.72)}
+  .pill .live{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--good); margin-left:5px; vertical-align:middle}
+
+  .divi{margin-top:16px}
+  .divi-head{display:flex; align-items:baseline; gap:8px; margin:0 2px 8px}
+  .divi-head h2{margin:0; font-size:16px; font-weight:900}
+  .divi-head .cnt{font-size:12px; color:var(--muted); font-weight:700}
+
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden}
+  table{width:100%; border-collapse:collapse; font-size:14px}
+  thead th{
+    background:var(--head); color:#f3ede3; font-weight:800; font-size:11px; letter-spacing:.4px;
+    text-transform:uppercase; padding:9px 6px; text-align:center; white-space:nowrap;
+  }
+  thead th.team{text-align:left; padding-left:12px}
+  tbody td{padding:10px 6px; text-align:center; border-top:1px solid var(--line); white-space:nowrap}
+  tbody td.team{text-align:left; padding-left:12px; white-space:normal}
+  .pos{display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px;
+       border-radius:7px; background:#f0e9dd; font-weight:800; font-size:12px}
+  tr.top .pos{background:var(--gkr1); color:#fff}
+  .tname{font-weight:700; line-height:1.2}
+  .tsub{font-size:11px; color:var(--muted); font-weight:600}
+  td.pts{font-weight:900; font-size:15px}
+  .diff.pos-v{color:var(--good); font-weight:700}
+  .diff.neg-v{color:#c0392b; font-weight:700}
+  .empty{padding:22px 14px; text-align:center; color:var(--muted); font-weight:600; font-size:13px}
+  .setup-note{margin:2px 2px 0; font-size:12px; color:var(--muted); font-weight:600}
+
+  footer{margin:22px 2px 26px; text-align:center; color:var(--muted); font-size:12px; line-height:1.5}
+  footer b{color:var(--ink)}
+  .msg{padding:40px 16px; text-align:center; color:var(--muted); font-weight:600}
+  .hide{display:none}
+  @media (max-width:420px){
+    thead th.hcol, tbody td.hcol{display:none}
+    h1{font-size:20px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg class="bolt" viewBox="0 0 24 24" fill="#1a1000" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+    <div class="kicker">Essex Padel Association · Powered by Padeja</div>
+    <h1>GKR Autumn 2026</h1>
+    <div class="sub">Live league standings — all divisions</div>
+  </header>
+
+  <div class="tools">
+    <div class="updated" id="updated">Loading live standings…</div>
+    <button class="refresh" id="refresh">↻ Refresh</button>
+  </div>
+
+  <div class="pills" id="pills"></div>
+
+  <div id="content">
+    <div class="msg" id="msg">Fetching the latest results…</div>
+  </div>
+
+  <footer>
+    Standings update automatically as hosts confirm results in the <b>Padeja</b> app.<br>
+    <span id="footNote">Positions: league points, then score difference, then score for.</span>
+  </footer>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://odrckirnjavfptlfygbo.supabase.co';
+
+// Filled in at publish time with the same public anon key used by every
+// app.padeja.com board. If left blank, the page falls back to reading it from a
+// sibling board on the same origin.
+const INJECTED_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo';
+let API_KEY = INJECTED_KEY || null;
+async function getKey(){
+  if (API_KEY) return API_KEY;
+  const sibs = ['broadcast.html','get.html','index.html'];
+  for (const s of sibs){
+    try{
+      const t = await (await fetch(s,{cache:'no-store'})).text();
+      const m = t.match(/eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/);
+      if (m){ API_KEY = m[0]; return API_KEY; }
+    }catch(e){}
+  }
+  throw new Error('key');
+}
+async function api(path){
+  const key = await getKey();
+  const r = await fetch(SUPABASE_URL+'/rest/v1/'+path, {cache:'no-store',
+    headers:{apikey:key, Authorization:'Bearer '+key}});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// Turn "Essex Padel Association - GKR Autumn 2026 League 3 (3.50-3.99)" into
+// {num:3, label:'League 3', band:'3.50–3.99'}
+function parseComp(name){
+  const m = (name||'').match(/League\s*(\d+)\s*\(([^)]*)\)/i);
+  if(m) return {num:parseInt(m[1],10), label:'League '+m[1], band:m[2].replace(/-/g,'–').trim()};
+  const m2 = (name||'').match(/League\s*(\d+)/i);
+  if(m2) return {num:parseInt(m2[1],10), label:'League '+m2[1], band:''};
+  return {num:99, label:name||'League', band:''};
+}
+function teamLabel(t){
+  if(t.team_name && t.team_name.trim()) return t.team_name.trim();
+  return '—';
+}
+const diff = t => (t.points_for||0)-(t.points_against||0);
+function sortTeams(a,b){
+  return (b.league_points||0)-(a.league_points||0)
+      || diff(b)-diff(a)
+      || (b.points_for||0)-(a.points_for||0)
+      || teamLabel(a).localeCompare(teamLabel(b));
+}
+
+let MODEL = [];      // [{id,name,status,parsed,divisions:[{id,name,teams:[]}]}]
+let selected = null; // comp id
+
+async function load(){
+  const comps = await api('tournaments?name=ilike.*GKR*&select=id,name,status,standings_metric&order=name.asc');
+  const model = [];
+  for(const c of comps){
+    const parsed = parseComp(c.name);
+    let divs = [];
+    try{ divs = await api('leagues?tournament_id=eq.'+c.id+'&select=id,name,league_letter&order=name.asc'); }catch(e){}
+    const divisions = [];
+    for(const d of divs){
+      let teams = [];
+      try{ teams = await api('league_teams?league_id=eq.'+d.id+'&select=team_name,player2_name,league_points,points_for,points_against,won,drawn,lost,played'); }catch(e){}
+      teams.sort(sortTeams);
+      divisions.push({id:d.id, name:d.name||d.league_letter||'Division', teams});
+    }
+    model.push({id:c.id, name:c.name, status:c.status, metric:c.standings_metric, parsed, divisions});
+  }
+  model.sort((a,b)=>a.parsed.num-b.parsed.num);
+  MODEL = model;
+
+  // default selection: keep current if still present, else first ACTIVE with teams, else first
+  if(!selected || !MODEL.some(m=>m.id===selected)){
+    const hash = decodeURIComponent((location.hash||'').replace('#',''));
+    const byHash = MODEL.find(m=>m.parsed.label.toLowerCase()===hash.toLowerCase());
+    const active = MODEL.find(m=>m.status==='active' && m.divisions.some(d=>d.teams.length));
+    selected = (byHash||active||MODEL[0]||{}).id || null;
+  }
+  render();
+  const now = new Date();
+  document.getElementById('updated').textContent =
+    'Updated ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+
+function render(){
+  const pills = document.getElementById('pills');
+  pills.innerHTML = MODEL.map(m=>{
+    const live = m.status==='active' ? '<span class="live"></span>' : '';
+    return '<div class="pill '+(m.id===selected?'active':'')+'" data-id="'+m.id+'">'
+      + '<b>'+esc(m.parsed.label)+live+'</b>'
+      + '<span>'+esc(m.parsed.band||'&nbsp;')+'</span></div>';
+  }).join('');
+  [...pills.querySelectorAll('.pill')].forEach(p=>p.onclick=()=>{
+    selected=p.dataset.id;
+    const m=MODEL.find(x=>x.id===selected);
+    if(m) location.hash = encodeURIComponent(m.parsed.label);
+    render();
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+
+  const comp = MODEL.find(m=>m.id===selected);
+  const content = document.getElementById('content');
+  if(!comp){ content.innerHTML='<div class="msg">No GKR leagues found.</div>'; return; }
+
+  const unit = comp.metric==='games' ? 'game' : 'set';
+  const fn = document.getElementById('footNote');
+  if(fn) fn.textContent = 'Positions: league points, then '+unit+' difference, then '+unit+'s for. +/– is '+unit+'s won minus lost.';
+
+  const anyTeams = comp.divisions.some(d=>d.teams.length);
+  let html = '';
+  if(comp.status!=='active'){
+    html += '<div class="setup-note">'+(anyTeams
+      ? '⏳ Fixtures not started yet — showing registered teams.'
+      : '⏳ Registration open — teams appear here as they sign up.')+'</div>';
+  }
+  if(!comp.divisions.length){
+    html += '<div class="card"><div class="empty">No divisions set up yet.</div></div>';
+  }
+  comp.divisions.forEach(d=>{
+    html += '<div class="divi"><div class="divi-head"><h2>'+esc(d.name)+'</h2>'
+         +  '<span class="cnt">'+d.teams.length+' team'+(d.teams.length===1?'':'s')+'</span></div>';
+    if(!d.teams.length){
+      html += '<div class="card"><div class="empty">No teams registered yet.</div></div></div>';
+      return;
+    }
+    html += '<div class="card"><table><thead><tr>'
+      + '<th>#</th><th class="team">Team</th>'
+      + '<th>P</th><th class="hcol">W</th><th class="hcol">D</th><th class="hcol">L</th>'
+      + '<th>+/–</th><th>Pts</th></tr></thead><tbody>';
+    d.teams.forEach((t,i)=>{
+      const gd = diff(t);
+      const gdCls = gd>0?'pos-v':(gd<0?'neg-v':'');
+      const gdTxt = (gd>0?'+':'')+gd;
+      html += '<tr class="'+(i<3?'top':'')+'">'
+        + '<td><span class="pos">'+(i+1)+'</span></td>'
+        + '<td class="team"><div class="tname">'+esc(teamLabel(t))+'</div></td>'
+        + '<td>'+(t.played||0)+'</td>'
+        + '<td class="hcol">'+(t.won||0)+'</td>'
+        + '<td class="hcol">'+(t.drawn||0)+'</td>'
+        + '<td class="hcol">'+(t.lost||0)+'</td>'
+        + '<td class="diff '+gdCls+'">'+gdTxt+'</td>'
+        + '<td class="pts">'+(t.league_points||0)+'</td></tr>';
+    });
+    html += '</tbody></table></div></div>';
+  });
+  content.innerHTML = html;
+}
+
+async function refresh(){
+  try{ await load(); }
+  catch(e){
+    document.getElementById('msg') &&
+      (document.getElementById('content').innerHTML =
+        '<div class="msg">Couldn\'t load standings right now. Pull to refresh or try again shortly.</div>');
+    document.getElementById('updated').textContent = 'Couldn\'t update';
+  }
+}
+document.getElementById('refresh').onclick = refresh;
+window.addEventListener('hashchange',()=>{ /* selection handled on click */ });
+refresh();
+setInterval(refresh, 60000); // auto-refresh every minute
+</script>
+</body>
+</html>
