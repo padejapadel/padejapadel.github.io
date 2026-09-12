@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GKR Autumn 2026 — Standings</title>
+<style>
+  :root{
+    --gkr1:#E9760F; --gkr2:#FF9C2E; --ink:#12100e; --panel:#ffffff;
+    --bg:#f4f1ec; --line:#eadfce; --muted:#7c7368; --head:#2a2118;
+    --pos:#0e0e0e; --good:#1f9d55;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 env(safe-area-inset-bottom);
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:16px}
+  header{
+    background:linear-gradient(120deg,var(--gkr1) 0%, var(--gkr2) 55%, var(--gkr1) 100%);
+    color:#1a1000; border-radius:18px; padding:18px 18px 16px;
+    box-shadow:0 6px 24px rgba(233,118,15,.28);
+    position:relative; overflow:hidden;
+  }
+  .kicker{font-size:12px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:rgba(26,16,0,.72)}
+  h1{margin:2px 0 2px; font-size:23px; font-weight:900; line-height:1.08}
+  .sub{font-size:13px; font-weight:600; color:rgba(26,16,0,.72)}
+  .bolt{position:absolute; right:-10px; top:-10px; width:120px; height:120px; opacity:.16}
+
+  .tools{display:flex; align-items:center; gap:10px; margin:14px 2px 6px; flex-wrap:wrap}
+  .updated{font-size:12px; color:var(--muted); font-weight:600; flex:1 1 auto}
+  .refresh{
+    appearance:none; border:1px solid var(--line); background:var(--panel); color:var(--ink);
+    font-weight:700; font-size:13px; border-radius:999px; padding:7px 14px; cursor:pointer;
+  }
+  .refresh:active{transform:scale(.97)}
+
+  .pills{display:flex; gap:8px; overflow-x:auto; padding:10px 2px 4px; -webkit-overflow-scrolling:touch}
+  .pill{
+    flex:0 0 auto; border:1px solid var(--line); background:var(--panel);
+    border-radius:999px; padding:9px 15px; cursor:pointer; text-align:center; line-height:1.15;
+  }
+  .pill b{display:block; font-size:14px; font-weight:800}
+  .pill span{display:block; font-size:11px; color:var(--muted); font-weight:600}
+  .pill.active{background:var(--ink); border-color:var(--ink)}
+  .pill.active b{color:#fff}
+  .pill.active span{color:rgba(255,255,255,.72)}
+  .pill .live{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--good); margin-left:5px; vertical-align:middle}
+
+  .divi{margin-top:16px}
+  .divi-head{display:flex; align-items:baseline; gap:8px; margin:0 2px 8px}
+  .divi-head h2{margin:0; font-size:16px; font-weight:900}
+  .divi-head .cnt{font-size:12px; color:var(--muted); font-weight:700}
+
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden}
+  table{width:100%; border-collapse:collapse; font-size:14px}
+  thead th{
+    background:var(--head); color:#f3ede3; font-weight:800; font-size:11px; letter-spacing:.4px;
+    text-transform:uppercase; padding:9px 6px; text-align:center; white-space:nowrap;
+  }
+  thead th.team{text-align:left; padding-left:12px}
+  tbody td{padding:10px 6px; text-align:center; border-top:1px solid var(--line); white-space:nowrap}
+  tbody td.team{text-align:left; padding-left:12px; white-space:normal}
+  .pos{display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px;
+       border-radius:7px; background:#f0e9dd; font-weight:800; font-size:12px}
+  tr.top .pos{background:var(--gkr1); color:#fff}
+  .tname{font-weight:700; line-height:1.2}
+  .tsub{font-size:11px; color:var(--muted); font-weight:600}
+  td.pts{font-weight:900; font-size:15px}
+  .diff.pos-v{color:var(--good); font-weight:700}
+  .diff.neg-v{color:#c0392b; font-weight:700}
+  .empty{padding:22px 14px; text-align:center; color:var(--muted); font-weight:600; font-size:13px}
+  .setup-note{margin:2px 2px 0; font-size:12px; color:var(--muted); font-weight:600}
+
+  /* segmented Standings / Fixtures / Results switch */
+  .seg{display:flex; gap:4px; background:#e9e1d4; border-radius:12px; padding:4px; margin:14px 2px 2px}
+  .seg button{
+    flex:1 1 0; appearance:none; border:0; background:transparent; cursor:pointer;
+    font-weight:800; font-size:13px; color:var(--muted); padding:9px 6px; border-radius:9px;
+    display:flex; align-items:center; justify-content:center; gap:6px; line-height:1;
+  }
+  .seg button .n{font-size:11px; font-weight:800; color:var(--muted); background:#fff;
+    border-radius:999px; padding:1px 7px; min-width:18px}
+  .seg button.on{background:var(--panel); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.10)}
+  .seg button.on .n{background:var(--gkr1); color:#fff}
+
+  /* fixtures + results rows */
+  .mrow{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px;
+    padding:11px 12px; border-top:1px solid var(--line)}
+  .mrow:first-child{border-top:0}
+  .mteam{font-weight:700; font-size:13.5px; line-height:1.25}
+  .mteam.h{text-align:right}
+  .mteam.a{text-align:left}
+  .mteam.win{color:var(--ink)}
+  .mteam.lose{color:var(--muted); font-weight:600}
+  .mmid{min-width:52px; text-align:center}
+  .vs{color:var(--muted); font-weight:800; font-size:12px}
+  .score{font-weight:900; font-size:16px; white-space:nowrap}
+  .score .w{color:var(--good)}
+  .mmeta{grid-column:1 / -1; text-align:center; font-size:11px; color:var(--muted); font-weight:600; margin-top:5px}
+  .mmeta .sets{color:var(--head); font-weight:700}
+  .mdate-tbc{font-style:italic}
+
+  footer{margin:22px 2px 26px; text-align:center; color:var(--muted); font-size:12px; line-height:1.5}
+  footer b{color:var(--ink)}
+  .msg{padding:40px 16px; text-align:center; color:var(--muted); font-weight:600}
+  .hide{display:none}
+  @media (max-width:420px){
+    thead th.hcol, tbody td.hcol{display:none}
+    h1{font-size:20px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg class="bolt" viewBox="0 0 24 24" fill="#1a1000" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+    <div class="kicker">Essex Padel Association · Powered by Padeja</div>
+    <h1>GKR Autumn 2026</h1>
+    <div class="sub">Live tables, fixtures &amp; results — every division</div>
+  </header>
+
+  <div class="tools">
+    <div class="updated" id="updated">Loading live standings…</div>
+    <button class="refresh" id="refresh">↻ Refresh</button>
+  </div>
+
+  <div class="pills" id="pills"></div>
+
+  <div class="seg" id="seg" hidden>
+    <button data-view="table" class="on">Standings</button>
+    <button data-view="fixtures">Fixtures <span class="n" id="nFix">0</span></button>
+    <button data-view="results">Results <span class="n" id="nRes">0</span></button>
+  </div>
+
+  <div id="content">
+    <div class="msg" id="msg">Fetching the latest results…</div>
+  </div>
+
+  <footer>
+    Standings update automatically as hosts confirm results in the <b>Padeja</b> app.<br>
+    <span id="footNote">Positions: league points, then score difference, then score for.</span>
+  </footer>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://odrckirnjavfptlfygbo.supabase.co';
+
+// Filled in at publish time with the same public anon key used by every
+// app.padeja.com board. If left blank, the page falls back to reading it from a
+// sibling board on the same origin.
+const INJECTED_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo';
+let API_KEY = INJECTED_KEY || null;
+async function getKey(){
+  if (API_KEY) return API_KEY;
+  const sibs = ['broadcast.html','get.html','index.html'];
+  for (const s of sibs){
+    try{
+      const t = await (await fetch(s,{cache:'no-store'})).text();
+      const m = t.match(/eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/);
+      if (m){ API_KEY = m[0]; return API_KEY; }
+    }catch(e){}
+  }
+  throw new Error('key');
+}
+async function api(path){
+  const key = await getKey();
+  const r = await fetch(SUPABASE_URL+'/rest/v1/'+path, {cache:'no-store',
+    headers:{apikey:key, Authorization:'Bearer '+key}});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// Turn "Essex Padel Association - GKR Autumn 2026 League 3 (3.50-3.99)" into
+// {num:3, label:'League 3', band:'3.50–3.99'}
+function parseComp(name){
+  const m = (name||'').match(/League\s*(\d+)\s*\(([^)]*)\)/i);
+  if(m) return {num:parseInt(m[1],10), label:'League '+m[1], band:m[2].replace(/-/g,'–').trim()};
+  const m2 = (name||'').match(/League\s*(\d+)/i);
+  if(m2) return {num:parseInt(m2[1],10), label:'League '+m2[1], band:''};
+  return {num:99, label:name||'League', band:''};
+}
+function teamLabel(t){
+  if(t.team_name && t.team_name.trim()) return t.team_name.trim();
+  return '—';
+}
+const diff = t => (t.points_for||0)-(t.points_against||0);
+function sortTeams(a,b){
+  return (b.league_points||0)-(a.league_points||0)
+      || diff(b)-diff(a)
+      || (b.points_for||0)-(a.points_for||0)
+      || teamLabel(a).localeCompare(teamLabel(b));
+}
+
+let MODEL = [];        // [{id,name,status,parsed,metric,teamMap,divisions:[{id,name,teams,matches}]}]
+let selected = null;   // comp id
+let view = 'table';    // 'table' | 'fixtures' | 'results'
+
+// ---- match helpers ----------------------------------------------------------
+function parseSets(raw){
+  if(!raw) return [];
+  if(Array.isArray(raw)) return raw;
+  try{ const a = JSON.parse(raw); return Array.isArray(a) ? a : []; }catch(e){ return []; }
+}
+// A match is a "result" once it has a score / is no longer pending; otherwise it's a fixture.
+function isResult(m){
+  return (m.status && m.status !== 'pending') || (m.home_sets||0) > 0 || (m.away_sets||0) > 0;
+}
+function fmtWhen(iso, withTime){
+  if(!iso) return '';
+  const d = new Date(iso); if(isNaN(d)) return '';
+  let s = d.toLocaleDateString('en-GB',{weekday:'short', day:'numeric', month:'short'});
+  if(withTime) s += ' · ' + d.toLocaleTimeString('en-GB',{hour:'2-digit', minute:'2-digit'});
+  return s;
+}
+
+async function load(){
+  const comps = await api('tournaments?name=ilike.*GKR*&select=id,name,status,standings_metric&order=name.asc');
+  const model = [];
+  for(const c of comps){
+    const parsed = parseComp(c.name);
+    let divs = [], allTeams = [], allMatches = [];
+    try{ divs = await api('leagues?tournament_id=eq.'+c.id+'&select=id,name,league_letter&order=name.asc'); }catch(e){}
+    try{ allTeams = await api('league_teams?tournament_id=eq.'+c.id+'&select=id,league_id,team_name,player2_name,league_points,points_for,points_against,won,drawn,lost,played'); }catch(e){}
+    try{ allMatches = await api('league_matches?tournament_id=eq.'+c.id+'&select=id,league_id,home_team_id,away_team_id,home_sets,away_sets,home_sets_json,status,scheduled_at,played_at'); }catch(e){}
+
+    const teamMap = {};
+    allTeams.forEach(t => { teamMap[t.id] = teamLabel(t); });
+
+    const divisions = divs.map(d => {
+      const teams = allTeams.filter(t => t.league_id === d.id).slice().sort(sortTeams);
+      const matches = allMatches.filter(m => m.league_id === d.id);
+      return {id:d.id, name:d.name||d.league_letter||'Division', teams, matches};
+    });
+    model.push({id:c.id, name:c.name, status:c.status, metric:c.standings_metric, parsed, teamMap, divisions});
+  }
+  model.sort((a,b)=>a.parsed.num-b.parsed.num);
+  MODEL = model;
+
+  // default selection: keep current if still present, else first ACTIVE with teams, else first
+  if(!selected || !MODEL.some(m=>m.id===selected)){
+    const hash = decodeURIComponent((location.hash||'').replace('#','').split('/')[0]);
+    const byHash = MODEL.find(m=>m.parsed.label.toLowerCase()===hash.toLowerCase());
+    const active = MODEL.find(m=>m.status==='active' && m.divisions.some(d=>d.teams.length));
+    selected = (byHash||active||MODEL[0]||{}).id || null;
+  }
+  render();
+  const now = new Date();
+  document.getElementById('updated').textContent =
+    'Updated ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+
+function render(){
+  // League pills
+  const pills = document.getElementById('pills');
+  pills.innerHTML = MODEL.map(m=>{
+    const live = m.status==='active' ? '<span class="live"></span>' : '';
+    return '<div class="pill '+(m.id===selected?'active':'')+'" data-id="'+m.id+'">'
+      + '<b>'+esc(m.parsed.label)+live+'</b>'
+      + '<span>'+esc(m.parsed.band||'&nbsp;')+'</span></div>';
+  }).join('');
+  [...pills.querySelectorAll('.pill')].forEach(p=>p.onclick=()=>{
+    selected=p.dataset.id;
+    render();
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+
+  const comp = MODEL.find(m=>m.id===selected);
+  const content = document.getElementById('content');
+  const seg = document.getElementById('seg');
+  if(!comp){ seg.hidden=true; content.innerHTML='<div class="msg">No GKR leagues found.</div>'; return; }
+
+  // Segmented Standings / Fixtures / Results control + counts
+  let totFix=0, totRes=0;
+  comp.divisions.forEach(d=>(d.matches||[]).forEach(m=> isResult(m)?totRes++:totFix++));
+  document.getElementById('nFix').textContent = totFix;
+  document.getElementById('nRes').textContent = totRes;
+  seg.hidden = false;
+  [...seg.querySelectorAll('button')].forEach(b=>{
+    b.classList.toggle('on', b.dataset.view===view);
+    b.onclick = ()=>{ view=b.dataset.view; if(comp) location.hash=encodeURIComponent(comp.parsed.label)+'/'+view; render(); };
+  });
+
+  const fn = document.getElementById('footNote');
+  if(fn){
+    const unit = comp.metric==='games' ? 'game' : 'set';
+    fn.textContent = 'Standings order: league points, then '+unit+' difference, then '+unit+'s for.';
+  }
+
+  if(view==='table')      content.innerHTML = renderTable(comp);
+  else if(view==='fixtures') content.innerHTML = renderMatches(comp,'fixtures');
+  else                    content.innerHTML = renderMatches(comp,'results');
+}
+
+function renderTable(comp){
+  let html = '';
+  const anyTeams = comp.divisions.some(d=>d.teams.length);
+  if(comp.status!=='active'){
+    html += '<div class="setup-note">'+(anyTeams
+      ? '⏳ Season not started yet — showing registered teams.'
+      : '⏳ Registration open — teams appear here as they sign up.')+'</div>';
+  }
+  if(!comp.divisions.length) html += '<div class="card"><div class="empty">No divisions set up yet.</div></div>';
+  comp.divisions.forEach(d=>{
+    html += '<div class="divi"><div class="divi-head"><h2>'+esc(d.name)+'</h2>'
+         +  '<span class="cnt">'+d.teams.length+' team'+(d.teams.length===1?'':'s')+'</span></div>';
+    if(!d.teams.length){ html += '<div class="card"><div class="empty">No teams registered yet.</div></div></div>'; return; }
+    html += '<div class="card"><table><thead><tr>'
+      + '<th>#</th><th class="team">Team</th>'
+      + '<th>P</th><th class="hcol">W</th><th class="hcol">D</th><th class="hcol">L</th>'
+      + '<th>+/–</th><th>Pts</th></tr></thead><tbody>';
+    d.teams.forEach((t,i)=>{
+      const gd = diff(t);
+      const gdCls = gd>0?'pos-v':(gd<0?'neg-v':'');
+      const gdTxt = (gd>0?'+':'')+gd;
+      html += '<tr class="'+(i<3?'top':'')+'">'
+        + '<td><span class="pos">'+(i+1)+'</span></td>'
+        + '<td class="team"><div class="tname">'+esc(teamLabel(t))+'</div></td>'
+        + '<td>'+(t.played||0)+'</td>'
+        + '<td class="hcol">'+(t.won||0)+'</td>'
+        + '<td class="hcol">'+(t.drawn||0)+'</td>'
+        + '<td class="hcol">'+(t.lost||0)+'</td>'
+        + '<td class="diff '+gdCls+'">'+gdTxt+'</td>'
+        + '<td class="pts">'+(t.league_points||0)+'</td></tr>';
+    });
+    html += '</tbody></table></div></div>';
+  });
+  return html;
+}
+
+function fixtureRow(m, tm){
+  const h = tm[m.home_team_id]||'TBC', a = tm[m.away_team_id]||'TBC';
+  const when = m.scheduled_at ? fmtWhen(m.scheduled_at,true) : 'Date TBC';
+  return '<div class="mrow">'
+    + '<div class="mteam h">'+esc(h)+'</div>'
+    + '<div class="mmid"><span class="vs">v</span></div>'
+    + '<div class="mteam a">'+esc(a)+'</div>'
+    + '<div class="mmeta '+(m.scheduled_at?'':'mdate-tbc')+'">'+esc(when)+'</div>'
+    + '</div>';
+}
+function resultRow(m, tm){
+  const h = tm[m.home_team_id]||'TBC', a = tm[m.away_team_id]||'TBC';
+  const hs = m.home_sets||0, as = m.away_sets||0;
+  const homeWon = hs>as, awayWon = as>hs;
+  const sets = parseSets(m.home_sets_json).map(s=>(s.home)+'–'+(s.away)).join(', ');
+  const meta = [];
+  if(sets) meta.push('<span class="sets">'+esc(sets)+'</span>');
+  if(m.played_at) meta.push(esc(fmtWhen(m.played_at,false)));
+  return '<div class="mrow">'
+    + '<div class="mteam h '+(homeWon?'win':'lose')+'">'+esc(h)+'</div>'
+    + '<div class="mmid"><span class="score"><span class="'+(homeWon?'w':'')+'">'+hs+'</span>–<span class="'+(awayWon?'w':'')+'">'+as+'</span></span></div>'
+    + '<div class="mteam a '+(awayWon?'win':'lose')+'">'+esc(a)+'</div>'
+    + (meta.length?'<div class="mmeta">'+meta.join(' · ')+'</div>':'')
+    + '</div>';
+}
+
+function renderMatches(comp, kind){
+  let html = '';
+  const anyMatches = comp.divisions.some(d=>(d.matches||[]).length);
+  if(!anyMatches){
+    return '<div class="card"><div class="empty">'
+      + (comp.status==='active' ? 'Fixtures haven’t been generated yet.' : 'The schedule appears once the season starts.')
+      + '</div></div>';
+  }
+  comp.divisions.forEach(d=>{
+    const tm = comp.teamMap;
+    let list = (d.matches||[]).filter(m => kind==='results' ? isResult(m) : !isResult(m));
+    if(kind==='fixtures'){
+      list.sort((a,b)=>{
+        const ax=a.scheduled_at?Date.parse(a.scheduled_at):Infinity, bx=b.scheduled_at?Date.parse(b.scheduled_at):Infinity;
+        return ax-bx;
+      });
+    } else {
+      list.sort((a,b)=>{
+        const ax=a.played_at?Date.parse(a.played_at):0, bx=b.played_at?Date.parse(b.played_at):0;
+        return bx-ax;
+      });
+    }
+    html += '<div class="divi"><div class="divi-head"><h2>'+esc(d.name)+'</h2>'
+         +  '<span class="cnt">'+list.length+' '+(kind==='results'?'result':'fixture')+(list.length===1?'':'s')+'</span></div>';
+    if(!list.length){
+      html += '<div class="card"><div class="empty">'
+        + (kind==='results' ? 'No results in yet.' : 'No fixtures outstanding.')
+        + '</div></div></div>';
+      return;
+    }
+    html += '<div class="card">' + list.map(m => kind==='results' ? resultRow(m,tm) : fixtureRow(m,tm)).join('') + '</div></div>';
+  });
+  return html;
+}
+
+async function refresh(){
+  try{ await load(); }
+  catch(e){
+    const content = document.getElementById('content');
+    if(content) content.innerHTML = '<div class="msg">Couldn\'t load right now. Tap Refresh or try again shortly.</div>';
+    document.getElementById('updated').textContent = 'Couldn\'t update';
+  }
+}
+document.getElementById('refresh').onclick = refresh;
+// honour a #League 4/results style deep link on first load
+(function(){
+  const parts = decodeURIComponent((location.hash||'').replace('#','')).split('/');
+  if(parts[1] && ['table','fixtures','results'].includes(parts[1])) view = parts[1];
+})();
+refresh();
+setInterval(refresh, 60000); // auto-refresh every minute
+</script>
+</body>
+</html>
