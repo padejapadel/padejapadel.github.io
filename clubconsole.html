@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Padeja Club Console</title>
+<style>
+  :root{--bg:#0A1624;--card:#162035;--line:#22344d;--brand:#3BC8F5;--green:#35D6A4;--gold:#F5B83D;--sec:#8AA4C0;--white:#fff;--loss:#F56040}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--white);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;-webkit-text-size-adjust:100%}
+  .wrap{max-width:720px;margin:0 auto;padding:16px;padding-bottom:70px}
+  h1{font-size:21px;margin:2px 0}
+  h2.sec{font-size:12px;color:var(--sec);text-transform:uppercase;letter-spacing:.5px;margin:16px 2px 8px;font-weight:700}
+  .muted{color:var(--sec);font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+  .btn{display:block;width:100%;border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;background:var(--green);color:#06231a}
+  .btn:disabled{opacity:.5}
+  .btn.sec{background:var(--card);color:var(--white);border:1px solid var(--line)}
+  .btn.gold{background:var(--gold);color:#2a1e00}
+  .btn.small{width:auto;padding:9px 14px;font-size:13px;display:inline-block}
+  input.f,select.f{width:100%;background:#0e1a2b;border:1px solid var(--line);border-radius:10px;padding:12px;color:var(--white);font-size:15px;margin-bottom:10px}
+  .lbl{font-size:11px;color:var(--sec);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin:2px 2px 5px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .back{background:var(--card);border:1px solid var(--line);color:var(--sec);border-radius:10px;width:38px;height:38px;font-size:18px;cursor:pointer;flex:0 0 auto}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#22344d;color:#cdd9e6;text-transform:capitalize}
+  .code{font-size:30px;font-weight:800;letter-spacing:4px;color:var(--gold);text-align:center;margin:2px 0}
+  .tabs{display:flex;gap:8px;margin:8px 0 14px}
+  .tab{flex:1;text-align:center;padding:10px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--sec);font-weight:700;font-size:13px;cursor:pointer}
+  .tab.on{background:var(--green);color:#06231a;border-color:var(--green)}
+  .plrow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #1b2942}
+  .plrow:last-child{border-bottom:0}
+  .plrow .n{flex:1;font-size:14px}
+  .plrow .rm{background:#22344d;color:var(--loss);border:0;border-radius:8px;width:30px;height:30px;font-size:16px;cursor:pointer}
+  .addrow{display:flex;gap:8px;margin-top:10px}
+  .addrow input{flex:1;margin-bottom:0}
+  .addrow button{flex:0 0 auto}
+  .meta{font-size:11px;color:var(--sec);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+  .rgrp{margin-bottom:6px}
+  .mt{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #1b2942}
+  .mt:last-child{border-bottom:0}
+  .team{flex:1;font-size:14px;font-weight:600;line-height:1.25}
+  .team.b{text-align:right}
+  .sc{width:50px;text-align:center;background:#0e1a2b;border:1px solid var(--line);border-radius:9px;padding:9px 4px;color:var(--white);font-size:17px;font-weight:700}
+  .dash{color:var(--sec);font-weight:700}
+  .save{background:var(--green);color:#06231a;border:0;border-radius:9px;padding:8px 12px;font-weight:800;font-size:13px;cursor:pointer}
+  .save.ok{background:rgba(53,214,164,.18);color:var(--green)}
+  table.stand{width:100%;border-collapse:collapse;font-size:13px}
+  table.stand th{color:var(--sec);text-transform:uppercase;font-size:10px;text-align:left;padding:6px;border-bottom:1px solid var(--line)}
+  table.stand td{padding:8px 6px;border-bottom:1px solid #1b2942}
+  table.stand td.n{text-align:center;width:34px}
+  table.stand td.pts{text-align:center;font-weight:800;color:var(--green);width:44px}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#0e1a2b;border:1px solid var(--line);color:#fff;padding:11px 16px;border-radius:12px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;z-index:50}
+  .toast.show{opacity:1}
+  .toast.err{border-color:var(--loss);color:#ffd7cd}
+  .err{color:var(--loss);font-size:13px;margin:6px 2px}
+  .center{text-align:center}
+  .hint{font-size:11px;color:#7f92a8;margin:-4px 2px 10px}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap"><div class="muted center" style="margin-top:40px">Loading…</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://odrckirnjavfptlfygbo.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const $ = id => document.getElementById(id);
+const wrap = $("wrap");
+const esc = s => (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(m,e){const t=$("toast");t.textContent=m;t.className="toast show"+(e?" err":"");setTimeout(()=>t.className="toast",2400);}
+
+let CLUBS=[];         // clubs I organise for
+let CUR=null;         // current competition {tournament_id,name,variant,status,share_code,main_club_id}
+let PLAYERS=[];       // editable player-name list (builder)
+let AFX=null;         // last loaded get_afx_display .afx
+let TAB="build";
+
+// ---------- boot ----------
+(async function(){ const {data:{session}}=await sb.auth.getSession(); session?home():login(); })();
+
+// ---------- auth ----------
+function login(){
+  wrap.innerHTML=`<div class="center" style="margin:26px 0 18px"><h1>Padeja Club Console</h1>
+    <div class="muted">Sign in with your Padeja account to set up and run your club's competitions.</div></div>
+    <div class="card">
+      <input class="f" id="email" type="email" placeholder="Email" autocomplete="username">
+      <input class="f" id="pw" type="password" placeholder="Password" autocomplete="current-password">
+      <div class="err" id="le" style="display:none"></div>
+      <button class="btn" id="lb">Log in</button></div>`;
+  $("lb").onclick=doLogin; $("pw").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+}
+async function doLogin(){
+  const email=$("email").value.trim(), password=$("pw").value; if(!email||!password)return;
+  $("lb").textContent="Signing in…"; $("lb").disabled=true;
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  if(error){$("le").style.display="block";$("le").textContent=error.message;$("lb").textContent="Log in";$("lb").disabled=false;return;}
+  home();
+}
+async function logout(){ await sb.auth.signOut(); login(); }
+
+// ---------- home ----------
+async function home(){
+  wrap.innerHTML=`<div class="top"><h1 style="flex:1">Club Console</h1><button class="btn sec small" id="out">Log out</button></div><div id="h"><div class="muted">Loading…</div></div>`;
+  $("out").onclick=logout;
+  const {data:clubs}=await sb.rpc("get_my_organiser_clubs"); CLUBS=clubs||[];
+  const h=$("h");
+  if(!CLUBS.length){ h.innerHTML=`<div class="card"><div class="muted">You're not set up as a club organiser yet. Ask Padeja to enable the Club Console for your club.</div></div>`; return; }
+  const {data:comps}=await sb.rpc("get_my_organiser_competitions");
+  h.innerHTML=`<button class="btn" id="newBtn">＋ New competition</button>
+    <h2 class="sec">Your competitions</h2><div id="list"></div>`;
+  $("newBtn").onclick=newComp;
+  const list=$("list");
+  if(!comps||!comps.length){ list.innerHTML=`<div class="muted" style="padding:4px 2px">Nothing yet — create your first competition.</div>`; }
+  else{
+    list.innerHTML=comps.map((c,i)=>`<div class="card" style="cursor:pointer" data-i="${i}">
+      <div style="font-weight:700;font-size:16px">${esc(c.name||"Competition")}</div>
+      <div class="muted" style="margin-top:3px">Americano · code <b style="color:var(--gold)">${esc(c.share_code||"------")}</b> · <span class="pill">${esc(c.status||"active")}</span></div></div>`).join("");
+    [...list.querySelectorAll("[data-i]")].forEach(el=>el.onclick=()=>openComp(comps[+el.dataset.i]));
+  }
+}
+
+// ---------- new competition ----------
+function newComp(){
+  const clubOpts=CLUBS.map(c=>`<option value="${esc(c.club_id)}">${esc(c.club_name)}</option>`).join("");
+  wrap.innerHTML=`<div class="top"><button class="back" id="bk">‹</button><h1 style="margin:0">New competition</h1></div>
+    <div class="card">
+      <div class="lbl">Competition name</div><input class="f" id="cName" placeholder="e.g. Tuesday Club Americano">
+      <div class="lbl">Format</div><select class="f" id="cFmt"><option value="americano_fixed">Americano (fixed draw)</option></select>
+      <div class="hint">More formats coming. Americano: everyone plays with a different partner each round; individual scoring.</div>
+      ${CLUBS.length>1?`<div class="lbl">Club</div><select class="f" id="cClub">${clubOpts}</select>`:``}
+      <div class="lbl">Venue (optional)</div><input class="f" id="cVenue" placeholder="e.g. Brentwood Padel Club">
+      <div class="err" id="ce" style="display:none"></div>
+      <button class="btn" id="createBtn">Create competition</button>
+    </div>`;
+  $("bk").onclick=home;
+  $("createBtn").onclick=async()=>{
+    const name=$("cName").value.trim(); if(!name){toast("Enter a name",true);return;}
+    const club=CLUBS.length>1?$("cClub").value:CLUBS[0].club_id;
+    const venue=$("cVenue").value.trim();
+    $("createBtn").disabled=true; $("createBtn").textContent="Creating…";
+    const {data,error}=await sb.rpc("org_create_afx",{p_name:name,p_venue:venue||null,p_club_id:club});
+    if(error){$("ce").style.display="block";$("ce").textContent=error.message;$("createBtn").disabled=false;$("createBtn").textContent="Create competition";return;}
+    openComp({tournament_id:data.id,name:data.name,variant:"americano_fixed",status:data.status,share_code:data.share_code,main_club_id:data.main_club_id});
+  };
+}
+
+// ---------- open / manage a competition ----------
+async function openComp(c){ CUR=c; TAB="build"; await reload(); }
+async function reload(){
+  const {data,error}=await sb.rpc("get_afx_display",{p_code:CUR.share_code});
+  AFX=(data&&data.afx)?data.afx:{players:[],matches:[],standings:[]};
+  PLAYERS=(AFX.players||[]).map(p=>p.name);
+  renderManage();
+}
+function renderManage(){
+  const hasDraw=(AFX.matches||[]).some(m=>!m.is_final);
+  wrap.innerHTML=`<div class="top"><button class="back" id="bk">‹</button><div style="flex:1"><h1 style="margin:0">${esc(CUR.name||"Competition")}</h1><div class="muted">Americano</div></div></div>
+    <div class="card center"><div class="lbl" style="text-align:center">Display code — enter on the clubhouse TV (host-display)</div><div class="code">${esc(CUR.share_code||"------")}</div></div>
+    <div class="tabs"><div class="tab ${TAB==='build'?'on':''}" id="tB">Players &amp; draw</div><div class="tab ${TAB==='score'?'on':''}" id="tS">Enter scores</div><div class="tab ${TAB==='table'?'on':''}" id="tT">Standings</div></div>
+    <div id="body"></div>`;
+  $("bk").onclick=home; $("tB").onclick=()=>{TAB="build";renderManage();}; $("tS").onclick=()=>{TAB="score";renderManage();}; $("tT").onclick=()=>{TAB="table";renderManage();};
+  if(TAB==="build") renderBuild(); else if(TAB==="score") renderScores(); else renderTable();
+}
+
+// ----- build tab: players + settings + generate -----
+function renderBuild(){
+  const body=$("body");
+  body.innerHTML=`
+    <h2 class="sec">Players (${PLAYERS.length})</h2>
+    <div class="card"><div id="plist"></div>
+      <div class="addrow"><input class="f" id="pAdd" placeholder="Add a player's name"><button class="btn small" id="pAddBtn">Add</button></div>
+      <div class="hint">Tip: paste a whole list — one name per line — into the box and press Add.</div>
+    </div>
+    <h2 class="sec">Draw settings</h2>
+    <div class="card">
+      <div class="grid2">
+        <div><div class="lbl">Courts (comma-separated)</div><input class="f" id="sCourts" value="1,2,3,4,5"></div>
+        <div><div class="lbl">Rounds</div><input class="f" id="sRounds" type="number" min="1" max="20" value="12"></div>
+        <div><div class="lbl">Start time</div><input class="f" id="sStart" value="1:00pm"></div>
+        <div><div class="lbl">Match / changeover (mins)</div><input class="f" id="sLen" value="10/5"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin:2px 2px 12px;font-size:14px"><input type="checkbox" id="sFinal"> Add a knockout final at the end</label>
+      <button class="btn" id="genBtn">${(AFX.matches||[]).length?"Regenerate draw":"Generate draw"}</button>
+      <div class="hint">Regenerating rebuilds the whole draw for the current players — use it after adding or removing anyone. Any scores already entered are cleared.</div>
+    </div>
+    ${(AFX.matches||[]).some(m=>m.is_final)?`<button class="btn gold" id="seedBtn">Seed the final from standings</button>`:``}`;
+  drawPlist();
+  $("pAddBtn").onclick=addPlayer;
+  $("pAdd").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addPlayer();}});
+  $("genBtn").onclick=generate;
+  if($("seedBtn")) $("seedBtn").onclick=seedFinal;
+}
+function drawPlist(){
+  const el=$("plist");
+  if(!PLAYERS.length){ el.innerHTML=`<div class="muted">No players yet — add them below.</div>`; return; }
+  el.innerHTML=PLAYERS.map((n,i)=>`<div class="plrow"><div class="n">${i+1}. ${esc(n)}</div><button class="rm" data-i="${i}">×</button></div>`).join("");
+  [...el.querySelectorAll(".rm")].forEach(b=>b.onclick=()=>{PLAYERS.splice(+b.dataset.i,1);renderBuild();});
+}
+function addPlayer(){
+  const raw=$("pAdd").value;
+  const parts=raw.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
+  for(const p of parts){ if(!PLAYERS.some(x=>x.toLowerCase()===p.toLowerCase())) PLAYERS.push(p); }
+  $("pAdd").value=""; renderBuild(); $("pAdd") && $("pAdd").focus();
+}
+
+async function generate(){
+  if(PLAYERS.length<4){ toast("Add at least 4 players",true); return; }
+  // dedupe names (fixtures join by name, so names must be unique)
+  const seen=new Set(); for(const n of PLAYERS){ const k=n.toLowerCase(); if(seen.has(k)){toast("Two players have the same name: "+n+". Make names unique.",true);return;} seen.add(k); }
+  const courts=$("sCourts").value.split(",").map(s=>s.trim()).filter(Boolean);
+  if(!courts.length){ toast("Enter at least one court",true); return; }
+  const rounds=Math.max(1,Math.min(20,parseInt($("sRounds").value)||12));
+  const [mMin,cMin]=($("sLen").value.split("/").map(x=>parseInt(x.trim())||0)); const matchMin=mMin||10, changeMin=(isNaN(cMin)?5:cMin);
+  const start=parseTime($("sStart").value)|| (13*60);
+  const wantFinal=$("sFinal").checked;
+
+  $("genBtn").disabled=true; $("genBtn").textContent="Building draw…";
+  await new Promise(r=>setTimeout(r,20));
+  const draw=generateDraw(PLAYERS.length, courts, rounds);
+  if(!draw){ $("genBtn").disabled=false; $("genBtn").textContent="Generate draw"; toast("Couldn't build a draw with those settings — try more rounds or fewer courts.",true); return; }
+
+  // build payloads (names)
+  const players=PLAYERS.map((n,i)=>({name:n,seed:i+1}));
+  const matches=[];
+  draw.forEach((rd,ri)=>{
+    const slot=fmtRange(start+ri*(matchMin+changeMin),matchMin);
+    // rotate which courts are used so all get used when there are spares
+    const need=rd.matches.length;
+    const used=[]; for(let k=0;k<need;k++) used.push(courts[(ri+k)%courts.length]);
+    used.sort((a,b)=>(""+a).localeCompare(""+b,undefined,{numeric:true}));
+    rd.matches.forEach((mt,mi)=>{ const [a1,a2,b1,b2]=mt;
+      matches.push({round:ri+1,court:used[mi],slot_time:slot,a1:PLAYERS[a1],a2:PLAYERS[a2],b1:PLAYERS[b1],b2:PLAYERS[b2]}); });
+  });
+  let final=null;
+  if(wantFinal){ final={round:rounds+1,court:courts[0],slot_time:fmtRange(start+rounds*(matchMin+changeMin),matchMin)}; }
+
+  const {error}=await sb.rpc("org_afx_generate",{p_tournament_id:CUR.tournament_id,p_players:players,p_matches:matches,p_final:final});
+  if(error){ $("genBtn").disabled=false; $("genBtn").textContent="Generate draw"; toast(error.message,true); return; }
+  toast("Draw generated — it's live on the display code");
+  await reload();
+}
+async function seedFinal(){
+  const {error}=await sb.rpc("org_afx_seed_final",{p_tournament_id:CUR.tournament_id});
+  if(error){ toast(error.message,true); return; }
+  toast("Final seeded from standings"); await reload();
+}
+
+// ----- score tab -----
+function renderScores(){
+  const body=$("body");
+  const players={}; (AFX.players||[]).forEach(p=>players[p.id]=p.name); const nm=id=>esc(players[id]||"—");
+  const ms=(AFX.matches||[]).filter(m=>!m.is_final);
+  if(!ms.length){ body.innerHTML=`<div class="muted">No draw yet — generate one in the Players &amp; draw tab.</div>`; return; }
+  const byR={}; ms.forEach(m=>{(byR[m.round]=byR[m.round]||[]).push(m);});
+  let html="";
+  Object.keys(byR).sort((a,b)=>a-b).forEach(r=>{
+    const list=byR[r].sort((a,b)=>(""+a.court).localeCompare(""+b.court,undefined,{numeric:true}));
+    html+=`<div class="card"><div class="meta">Round ${esc(r)}${list[0].slot_time?" · "+esc(list[0].slot_time):""}</div>`;
+    list.forEach(m=>{const done=m.status==="completed";
+      html+=`<div class="rgrp"><div class="meta">Court ${esc(m.court)}</div><div class="mt">
+        <div class="team">${nm(m.a1_id)} &amp; ${nm(m.a2_id)}</div>
+        <input class="sc" type="number" inputmode="numeric" min="0" id="a_${esc(m.id)}" value="${m.score_a!=null?esc(m.score_a):""}">
+        <span class="dash">–</span>
+        <input class="sc" type="number" inputmode="numeric" min="0" id="b_${esc(m.id)}" value="${m.score_b!=null?esc(m.score_b):""}">
+        <div class="team b">${nm(m.b1_id)} &amp; ${nm(m.b2_id)}</div></div>
+        <div style="text-align:right;margin-top:4px"><button class="save ${done?'ok':''}" data-s="${esc(m.id)}">${done?'✓ Saved':'Save'}</button></div></div>`;});
+    html+=`</div>`;
+  });
+  body.innerHTML=html;
+  [...body.querySelectorAll("[data-s]")].forEach(b=>b.onclick=()=>saveScore(b.getAttribute("data-s")));
+}
+async function saveScore(mid){
+  const a=parseInt($("a_"+mid).value,10), b=parseInt($("b_"+mid).value,10);
+  if(Number.isNaN(a)||Number.isNaN(b)){ toast("Enter both scores",true); return; }
+  const {error}=await sb.rpc("scorer_afx_set_result",{p_match_id:mid,p_score_a:a,p_score_b:b});
+  if(error){ toast(error.message,true); return; }
+  toast("Score saved"); await reload();
+}
+
+// ----- standings tab -----
+function renderTable(){
+  const body=$("body");
+  const st=(AFX.standings||[]).slice().sort((a,b)=>(a.rk||99)-(b.rk||99));
+  if(!st.length){ body.innerHTML=`<div class="muted">No standings yet — enter some scores.</div>`; return; }
+  body.innerHTML=`<div class="card"><table class="stand"><thead><tr><th>#</th><th>Player</th><th class="n">P</th><th class="n">W</th><th class="n">+/−</th><th class="pts">Pts</th></tr></thead><tbody>${
+    st.map((s,i)=>`<tr><td class="n">${s.rk||i+1}</td><td>${esc(s.name)}</td><td class="n">${esc(s.played||0)}</td><td class="n">${esc(s.won||0)}</td><td class="n">${(s.diff>0?"+":"")+esc(s.diff||0)}</td><td class="pts">${esc(s.points_for||0)}</td></tr>`).join("")
+  }</tbody></table></div>`;
+}
+
+// ================= balanced Americano draw generator =================
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function generateDraw(N,courts,rounds){
+  const mpr=Math.min(Math.floor(N/4),courts.length); if(mpr<1)return null;
+  const pk=(a,b)=>a<b?a+"-"+b:b+"-"+a;
+  function match(players,used,rnd){
+    for(let t=0;t<500;t++){ const pool=players.slice(); for(let i=pool.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+      const pairs=[]; let ok=true;
+      while(pool.length){ const a=pool.shift(); const cands=pool.filter(b=>!used.has(pk(a,b)));
+        if(!cands.length){ok=false;break;} const b=cands[Math.floor(rnd()*cands.length)]; pool.splice(pool.indexOf(b),1); pairs.push([a,b]); }
+      if(ok)return pairs; }
+    return null;
+  }
+  function group(pairs,opp,rnd){
+    let best=null,bp=Infinity;
+    for(let t=0;t<250;t++){ const idx=pairs.map((_,i)=>i); for(let i=idx.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
+      const ms=[]; let pen=0;
+      for(let i=0;i<idx.length;i+=2){ const [p,q]=pairs[idx[i]],[s,tt]=pairs[idx[i+1]];
+        for(const x of [p,q]) for(const y of [s,tt]) pen+=Math.pow(opp[x][y]+1,2); ms.push([p,q,s,tt]); }
+      if(pen<bp){bp=pen;best=ms;} }
+    return best;
+  }
+  function attempt(seed){
+    const rnd=mulberry32(seed); const used=new Set(); const rest=new Array(N).fill(0);
+    const opp=Array.from({length:N},()=>new Array(N).fill(0)); const sched=[];
+    const playersPer=mpr*4, numRest=N-playersPer;
+    for(let r=0;r<rounds;r++){
+      let restSet=null,pairing=null;
+      const cands=[];
+      if(numRest===0) cands.push(new Set());
+      else{ const order=[...Array(N).keys()].sort((a,b)=>rest[a]-rest[b]||rnd()-0.5);
+        for(let t=0;t<60;t++){ const pick=order.slice(0,numRest+3).slice(); for(let i=pick.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[pick[i],pick[j]]=[pick[j],pick[i]];}
+          cands.push(new Set(pick.slice(0,numRest))); } }
+      for(const rs of cands){ const playing=[...Array(N).keys()].filter(p=>!rs.has(p)); const pm=match(playing,used,rnd); if(pm){restSet=rs;pairing=pm;break;} }
+      if(!pairing)return null;
+      restSet.forEach(p=>rest[p]++); pairing.forEach(([a,b])=>used.add(pk(a,b)));
+      const ms=group(pairing,opp,rnd);
+      ms.forEach(([p,q,s,tt])=>{ for(const x of [p,q]) for(const y of [s,tt]){opp[x][y]++;opp[y][x]++;} });
+      sched.push({matches:ms,rest:[...restSet]});
+    }
+    const ov=[]; for(let i=0;i<N;i++)for(let j=i+1;j<N;j++)ov.push(opp[i][j]);
+    const score=(Math.max(...ov)-Math.min(...ov))*100+Math.max(...ov)+(Math.max(...rest)-Math.min(...rest))*10;
+    return {sched,score};
+  }
+  let best=null; for(let s=1;s<=250;s++){ const a=attempt(s); if(a&&(!best||a.score<best.score))best=a; }
+  return best?best.sched:null;
+}
+// ---- time helpers ----
+function parseTime(s){ if(!s)return null; const m=String(s).trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/); if(!m)return null;
+  let h=parseInt(m[1]); const mn=m[2]?parseInt(m[2]):0; const ap=m[3];
+  if(ap==="pm"&&h<12)h+=12; if(ap==="am"&&h===12)h=0; return h*60+mn; }
+function fmtRange(startMin,len){ return fmt12(startMin)+"–"+fmt12(startMin+len); }
+function fmt12(t){ t=((t%1440)+1440)%1440; let h=Math.floor(t/60),mn=t%60; const ap=h>=12?"pm":"am"; let hh=h%12; if(hh===0)hh=12; return hh+":"+String(mn).padStart(2,"0")+ap; }
+</script>
+</body>
+</html>
