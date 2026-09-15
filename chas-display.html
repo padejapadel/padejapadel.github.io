@@ -67,24 +67,25 @@
   .rot{margin-left:auto;display:flex;gap:.5vh}
   .rot span{width:.9vh;height:.9vh;border-radius:50%;background:var(--line);transition:background .3s}
   .rot span.on{background:var(--brand)}
-  .fx{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1vh 1vw;min-height:0}
-  .fxg{background:#0e1a2b;border:1px solid var(--line);border-radius:1vh;padding:.6vh .7vw;display:flex;flex-direction:column;min-height:0;overflow:hidden}
-  .fxg h3{font-size:1.35vh;color:var(--gold);letter-spacing:.5px;margin-bottom:.35vh;flex:0 0 auto;display:flex;align-items:baseline;gap:.5vw}
-  .fxg h3 small{color:var(--sec);font-size:.95vh;font-weight:600;letter-spacing:.3px}
-  .fxt{width:100%;border-collapse:collapse;font-size:1.22vh;table-layout:fixed}
-  .fxt th{color:var(--sec);text-transform:uppercase;font-size:.82vh;font-weight:800;padding:.2vh .25vh;text-align:left;letter-spacing:.4px}
-  .fxt th.cc,.fxt th.sc{text-align:center}
-  .fxt th.p2{text-align:right}
-  .fxt td{padding:.3vh .18vh;border-top:1px solid #17263c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .fxt td.ft{color:var(--sec);width:2.9vh;font-variant-numeric:tabular-nums;font-weight:600}
-  .fxt td.cc{color:var(--brand);width:1.6vh;text-align:center;font-weight:800}
-  .fxt td.fp{font-weight:600;line-height:1.05}
-  .fxt td.fp .cd{color:var(--gold);font-weight:800;font-size:1vh;font-variant-numeric:tabular-nums;margin-right:.35vw}
-  .fxt td.fp.r{text-align:right}
-  .fxt td.sc{width:2.9vh;text-align:center;font-weight:900;color:#4a5f7d;font-variant-numeric:tabular-nums}
-  .fxt tr.done td.sc{color:var(--white)}
-  .fxt td.fp.win{color:var(--win)}
-  .fxt tr.live td{background:rgba(59,200,245,.10)}
+  .fx{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .sub2{font-size:1.2vh;color:var(--sec);font-weight:700;letter-spacing:.3px;margin-left:.6vw}
+  .fxone{width:100%;border-collapse:collapse;font-size:1.62vh;table-layout:fixed}
+  .fxone th{color:var(--sec);text-transform:uppercase;font-size:1.05vh;font-weight:800;letter-spacing:.6px;text-align:left;padding:.5vh .5vw;border-bottom:1px solid var(--line)}
+  .fxone th.cc,.fxone th.sc{text-align:center}
+  .fxone th.p2{text-align:right}
+  .fxone td{padding:.66vh .35vw;border-top:1px solid #17263c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fxone td.ft{color:var(--sec);width:9%;font-variant-numeric:tabular-nums;font-weight:700}
+  .fxone td.cc{color:var(--brand);width:6%;text-align:center;font-weight:800}
+  .fxone td.fp{font-weight:700}
+  .fxone td.fp.l{width:36%}
+  .fxone td.fp.r{width:36%;text-align:right}
+  .fxone td.fp .cd{color:var(--gold);font-weight:800;font-size:1.25vh;font-variant-numeric:tabular-nums;margin-right:.5vw}
+  .fxone td.fp small{color:var(--sec);font-weight:500}
+  .fxone td.sc{width:13%;text-align:center;font-weight:900;color:#5a7093;font-variant-numeric:tabular-nums}
+  .fxone tr.done td.sc{color:#fff}
+  .fxone td.fp.win{color:var(--win)}
+  .fxone td.fp.win small{color:rgba(53,214,164,.75)}
+  .fxone tr.done td{background:rgba(255,255,255,.02)}
 </style>
 </head>
 <body>
@@ -100,7 +101,7 @@
     <section class="ko">
       <div class="kohead">
         <h2 id="koTitle">KNOCKOUT</h2>
-        <div class="rot"><span id="rot0" class="on"></span><span id="rot1"></span></div>
+        <div class="rot"><span id="rot0" class="on"></span><span id="rot1"></span><span id="rot2"></span><span id="rot3"></span><span id="rot4"></span></div>
       </div>
       <div id="koPanel" class="panel">
         <div class="bracket" id="bracket"></div>
@@ -113,7 +114,7 @@
   </main>
   <footer id="foot">Loading…</footer>
 </div>
-
+ 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL="https://odrckirnjavfptlfygbo.supabase.co";
@@ -122,7 +123,7 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
 const CODE=(new URLSearchParams(location.search).get("code")||"CHASBG").toUpperCase();
 const $=id=>document.getElementById(id);
 const esc=s=>(s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-
+ 
 // --- Fixed timetable from the printed Order of Play (time + court per match) ---
 // team_name (player 1) -> pair code, so a live match can find its court & time.
 const CODE_P1={
@@ -148,7 +149,9 @@ const OOP=[
 ];
 const SCHED={}; OOP.forEach(([t,c,x,y])=>{ SCHED[[x,y].sort().join("-")]={t,c}; });
 function tmin(t){ if(!t) return 99999; const p=String(t).split(":"); let h=+p[0]; const m=+p[1]||0; if(h<=2) h+=12; return h*60+m; }
-
+let FXH={}, FXM={};   // per-group fixtures HTML + played counts (built each load)
+const GVIEW=["A","B","C","D"];  // rotation slides 1..4 map to these groups
+ 
 function pairName(t){ if(!t) return ""; return t.player2_name? `${t.team_name} & ${t.player2_name}` : t.team_name; }
 function rankTeams(list){
   return list.slice().sort((a,b)=>
@@ -181,7 +184,7 @@ function qualProbs(teamsG, matchesG){
   }
   const out={}; ids.forEach(id=>out[id]=N?q[id]/N:0); return out;
 }
-
+ 
 async function load(){
   const {data,error}=await sb.rpc("get_host_display",{p_code:CODE});
   if(error||!data){ $("foot").textContent="Waiting for data… ("+CODE+")"; return; }
@@ -195,9 +198,9 @@ async function load(){
   const groupsT={A:[],B:[],C:[],D:[]}; let koLeagueId=null;
   leagues.forEach(l=>{ if(l.league_letter==='K'||String(l.name||'').toLowerCase()==='knockout') koLeagueId=l.id; });
   teams.forEach(t=>{ const L=letterOf[t.league_id]; if(groupsT[L]) groupsT[L].push(t); });
-
+ 
   const gLeagueId={}; leagues.forEach(l=>{ if(['A','B','C','D'].includes(l.league_letter)) gLeagueId[l.league_letter]=l.id; });
-
+ 
   // group tables (with a live "chance of reaching the knockout" projection)
   let gh="";
   for(const g of ["A","B","C","D"]){
@@ -216,11 +219,11 @@ async function load(){
       <tbody>${rows}</tbody></table></div>`;
   }
   $("groups").innerHTML=gh;
-
+ 
   // qualifiers
   const Q={};
   for(const g of ["A","B","C","D"]){ const r=rankTeams(groupsT[g]||[]); Q[g+"1"]=r[0]||null; Q[g+"2"]=r[1]||null; }
-
+ 
   // knockout (own table, via get_knockout by code)
   let ko=[]; try{ const kr=await sb.rpc("get_knockout",{p_code:CODE}); ko=(kr&&kr.data)||[]; }catch(e){ ko=[]; }
   const byOrd={}; ko.forEach(m=>byOrd[m.ord]=m);
@@ -228,7 +231,7 @@ async function load(){
   const koWin=m=>{ if(!isDone(m))return null; return num(m.home_score)>num(m.away_score)?m.home_name:(num(m.away_score)>num(m.home_score)?m.away_name:null); };
   const qName=k=>{ const t=Q[k]; if(!t) return null; const nm=nameById[t.id]; return nm?(nm.n1+(nm.n2?" & "+nm.n2:"")):pairName(t); };
   const seedPh=k=>"Group "+k[0]+" "+(k[1]==="1"?"winner":"runner-up");
-
+ 
   // slot: prefer the seeded knockout row; else show predicted names (provisional)
   const slot=(ord, predH, predA)=>{
     const m=byOrd[ord];
@@ -245,7 +248,7 @@ async function load(){
   const sfWinN=[5,6].map(o=>koWin(byOrd[o]));
   const finalSlot=slot(7, sfWinN[0]||"Winner SF1", sfWinN[1]||"Winner SF2");
   const champN=koWin(byOrd[7]);
-
+ 
   const sideS=(name,score,win,prov)=>`<div class="side ${prov?'pending':''} ${win?'w':''}"><span class="nm">${esc(name||'TBC')}</span><span class="sc">${score!=null?score:''}</span></div>`;
   const tieS=(o,cls)=>`<div class="tie ${cls||''}">${sideS(o.hN,o.hS,o.hW,!o.live)}${sideS(o.aN,o.aS,o.aW,!o.live)}</div>`;
   const qfCol=`<div class="col"><div class="lbl">Quarter-finals · 2:50</div>`+qfSlots.map(o=>tieS(o,"")).join("")+`</div>`;
@@ -253,14 +256,14 @@ async function load(){
   const fCol=`<div class="col"><div class="lbl">Final · 3:30</div>${tieS(finalSlot,"final")}</div>`;
   $("bracket").innerHTML=qfCol+sfCol+fCol;
   $("champ").textContent=champN||"—";
-
-  // group fixtures & results (rotates in opposite the knockout) ----------------
+ 
+  // group fixtures & results — one group per rotating slide (full column) ------
   const codeOf=id=>{ const nm=nameById[id]; const t=byId[id]||{}; return CODE_P1[(nm?nm.n1:t.team_name)||""]||null; };
-  const fpCell=(id,right)=>{ const nm=nameById[id]||{}; const t=byId[id]||{}; const n1=(nm.n1||t.team_name||"");
-    const n2=(nm.n2||t.player2_name||""); const first=String(n1).split(/\s+/)[0]||n1; const code=CODE_P1[n1]||"";
-    const cd=code?`<b class="cd">${code}</b>`:""; const body=`${cd} ${esc(first)}`;
-    return `<td class="fp${right?' r':''}" title="${esc(n1+(n2?' & '+n2:''))}">${body}</td>`; };
-  let fxh="";
+  const fpFull=(id,right,win)=>{ const nm=nameById[id]||{}; const t=byId[id]||{}; const n1=(nm.n1||t.team_name||"");
+    const n2=(nm.n2||t.player2_name||""); const code=CODE_P1[n1]||""; const cd=code?`<b class="cd">${code}</b>`:"";
+    const names=`${esc(n1)}${n2?` <small>&amp; ${esc(n2)}</small>`:""}`;
+    return `<td class="fp ${right?'r':'l'}${win?' win':''}" title="${esc(n1+(n2?' & '+n2:''))}">${cd} ${names}</td>`; };
+  FXH={}; FXM={};
   for(const g of ["A","B","C","D"]){
     const gid=gLeagueId[g];
     let ms=(matches||[]).filter(m=>m.league_id===gid && m.home_team_id && m.away_team_id).map(m=>{
@@ -272,41 +275,47 @@ async function load(){
     let rows="";
     ms.forEach(({m,t,c})=>{
       const fin=(m.status==='completed'||m.status==='finished')&&m.home_score!=null&&m.away_score!=null;
-      const hs=num(m.home_score), as=num(m.away_score);
-      const hw=fin&&hs>as, aw=fin&&as>hs;
+      const hs=num(m.home_score), as=num(m.away_score); const hw=fin&&hs>as, aw=fin&&as>hs;
       rows+=`<tr class="${fin?'done':''}">`
         +`<td class="ft">${esc(t||'—')}</td><td class="cc">${c||'·'}</td>`
-        +fpCell(m.home_team_id,false).replace('class="fp"',`class="fp${hw?' win':''}"`)
+        +fpFull(m.home_team_id,false,hw)
         +`<td class="sc">${fin?`${hs}–${as}`:'v'}</td>`
-        +fpCell(m.away_team_id,true).replace('class="fp r"',`class="fp r${aw?' win':''}"`)
+        +fpFull(m.away_team_id,true,aw)
         +`</tr>`;
     });
-    if(!ms.length) rows=`<tr><td colspan="5" style="color:var(--sec);padding:.8vh">No fixtures</td></tr>`;
-    fxh+=`<div class="fxg"><h3>GROUP ${g} <small>${done}/${ms.length} played</small></h3>`
-      +`<table class="fxt"><thead><tr><th>Time</th><th class="cc">Ct</th><th>Pair</th><th class="sc"></th><th class="p2">Pair</th></tr></thead>`
-      +`<tbody>${rows}</tbody></table></div>`;
+    if(!ms.length) rows=`<tr><td colspan="5" style="color:var(--sec);padding:1.5vh">No fixtures yet</td></tr>`;
+    FXH[g]=`<table class="fxone"><colgroup><col style="width:10%"><col style="width:5%"><col style="width:36%"><col style="width:8%"><col style="width:41%"></colgroup><thead><tr><th>Time</th><th class="cc">Ct</th><th>Pair 1</th><th class="sc">Score</th><th class="p2">Pair 2</th></tr></thead><tbody>${rows}</tbody></table>`;
+    FXM[g]={done, total:ms.length};
   }
-  $("fx").innerHTML=fxh;
-
+  if(VIEW>=1) showView(VIEW);  // refresh the group currently on screen with live scores
+ 
   const played=matches.filter(m=>m.status==='completed'||m.status==='finished').length;
   $("foot").textContent=`Group matches ${played}/60 played · Q% = live chance of reaching the knockout · updates live · display code ${CODE}`;
   $("codeLbl").textContent=CODE;
 }
-// rotate the right column between the knockout bracket and the group fixtures
-let VIEW=0;
+// rotate the right column: knockout (0), then each group's fixtures (1-4)
+let VIEW=0, rotT=null;
+const DWELL=[14000,11000,11000,11000,11000];   // ms per slide (knockout dwells a touch longer)
 function showView(v){
   VIEW=v;
-  $("koPanel").style.display = v===0?"flex":"none";
-  $("fxPanel").style.display = v===1?"flex":"none";
-  $("koTitle").textContent   = v===0?"KNOCKOUT":"GROUP FIXTURES & RESULTS";
-  $("rot0").className = v===0?"on":"";
-  $("rot1").className = v===1?"on":"";
+  const isKo = v===0;
+  $("koPanel").style.display = isKo?"flex":"none";
+  $("fxPanel").style.display = isKo?"none":"flex";
+  if(isKo){ $("koTitle").textContent="KNOCKOUT"; }
+  else {
+    const g=GVIEW[v-1], m=FXM[g]||{done:0,total:0};
+    $("koTitle").innerHTML=`GROUP ${g} · FIXTURES <span class="sub2">${m.done}/${m.total} played</span>`;
+    $("fx").innerHTML = FXH[g] || `<div style="color:var(--sec);padding:2vh">Loading…</div>`;
+  }
+  for(let i=0;i<5;i++){ const el=$("rot"+i); if(el) el.className=(i===v?"on":""); }
 }
+function rotStep(){ showView((VIEW+1)%5); rotT=setTimeout(rotStep, DWELL[VIEW]); }
 showView(0);
-setInterval(()=>showView(VIEW?0:1), 12000);
-
+rotT=setTimeout(rotStep, DWELL[0]);
+ 
 load();
 setInterval(load, 15000);
 </script>
 </body>
 </html>
+ 
