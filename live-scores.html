@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Scores</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#131f33; --panel2:#0e1a2b; --line:#24344d;
+    --txt:#e8eef6; --mut:#8aa0bb; --teal:#14c4b4; --green:#28c76f; --red:#f5674b;
+    --A:#14c4b4; --B:#3b9bf5; --C:#f5c542; --D:#ff7a59;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  body{padding:14px 16px 40px;}
+  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  h1{font-size:26px;font-weight:800;letter-spacing:-.3px;margin:0;
+     background:linear-gradient(90deg,#14c4b4,#3b9bf5);-webkit-background-clip:text;background-clip:text;color:transparent;
+     white-space:nowrap;}
+  #title{background:transparent;border:none;color:transparent;font:inherit;font-size:26px;font-weight:800;
+     letter-spacing:-.3px;padding:0;min-width:120px;
+     background:linear-gradient(90deg,#14c4b4,#3b9bf5);-webkit-background-clip:text;background-clip:text;}
+  #title:focus{outline:none;color:var(--txt);-webkit-text-fill-color:var(--txt);}
+  .spacer{flex:1}
+  .btn{background:var(--panel);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:9px 14px;font-size:14px;font-weight:600;cursor:pointer;}
+  .btn:hover{border-color:var(--teal)}
+  .btn.on{background:var(--teal);color:#04121d;border-color:var(--teal)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  @media(max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:620px){.grid{grid-template-columns:1fr}}
+  .group{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .ghead{padding:12px 14px;font-weight:800;font-size:18px;letter-spacing:.3px;
+    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;}
+  .dot{width:12px;height:12px;border-radius:50%;flex:none;}
+  .rows{padding:8px;display:flex;flex-direction:column;gap:8px;}
+  .row{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;
+    background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;
+    transition:background .2s;}
+  .row.lead{border-color:rgba(20,196,180,.55);box-shadow:inset 0 0 0 1px rgba(20,196,180,.25);}
+  .rank{font-weight:800;color:var(--mut);text-align:center;font-size:15px;}
+  .who{min-width:0;}
+  .code{font-weight:800;font-size:18px;letter-spacing:.5px;}
+  .nm{border:none;background:transparent;color:var(--mut);font:inherit;font-size:13px;
+    width:100%;padding:2px 0;margin-top:1px;}
+  .nm:focus{outline:none;color:var(--txt);}
+  .nm::placeholder{color:#5c7091;}
+  .sc{display:flex;align-items:center;gap:8px;}
+  .pts{font-size:30px;font-weight:800;color:var(--teal);min-width:52px;text-align:right;
+    font-variant-numeric:tabular-nums;cursor:pointer;line-height:1;}
+  .pbtn{border:none;border-radius:10px;width:44px;height:44px;font-size:22px;font-weight:800;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;line-height:1;}
+  .plus{background:var(--green);color:#04121d;}
+  .minus{background:transparent;border:1px solid var(--line);color:var(--mut);width:34px;height:34px;font-size:18px;}
+  .minus:hover{border-color:var(--red);color:var(--red);}
+  .foot{color:var(--mut);font-size:12.5px;margin-top:18px;line-height:1.5;}
+  .foot b{color:var(--txt)}
+  /* Display mode: hide controls, enlarge for TV */
+  body.display .pbtn,body.display .minus{display:none;}
+  body.display .nm{pointer-events:none;}
+  body.display .row{grid-template-columns:40px 1fr auto;padding:14px 16px;}
+  body.display .code{font-size:26px;}
+  body.display .nm{font-size:16px;}
+  body.display .pts{font-size:44px;cursor:default;}
+  body.display .rank{font-size:20px;}
+  body.display .ghead{font-size:24px;padding:16px;}
+  body.display h1,body.display #title{font-size:34px;}
+  .hide{display:none!important;}
+</style>
+</head>
+<body>
+<header>
+  <input id="title" value="Live Scores" spellcheck="false" aria-label="Title">
+  <div class="spacer"></div>
+  <button class="btn" id="modeBtn">📺 Display mode</button>
+  <button class="btn" id="fsBtn">⛶ Fullscreen</button>
+  <button class="btn" id="expBtn">⬇ Backup</button>
+  <button class="btn" id="impBtn">⬆ Restore</button>
+  <button class="btn" id="resetBtn">↺ Reset</button>
+  <input type="file" id="impFile" accept="application/json" class="hide">
+</header>
+<div class="grid" id="grid"></div>
+<div class="foot" id="foot">
+  Tap <b>+1</b> when a pairing wins a game. Each group sorts itself by points, highest first.
+  Scores save automatically in <b>this browser on this device</b> — a refresh won't lose them.
+  Open a second tab/window for the clubhouse screen and it stays in sync live.
+  Tap a score number to type an exact total. Use <b>Backup</b> before closing if you want a copy.
+</div>
+<script>
+"use strict";
+const KEY="clubscores_v1";
+const GROUPS=[
+  {id:"A",name:"Group A",color:"var(--A)"},
+  {id:"B",name:"Group B",color:"var(--B)"},
+  {id:"C",name:"Group C",color:"var(--C)"},
+  {id:"D",name:"Group D",color:"var(--D)"}
+];
+function freshData(){
+  const g={};
+  GROUPS.forEach(G=>{
+    g[G.id]={name:G.name,pairs:[]};
+    for(let i=1;i<=5;i++) g[G.id].pairs.push({code:G.id+i,name:"",pts:0});
+  });
+  return {title:"Live Scores",groups:g};
+}
+function load(){
+  try{const raw=localStorage.getItem(KEY); if(raw){const d=JSON.parse(raw); if(d&&d.groups) return d;}}catch(e){}
+  return freshData();
+}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(DATA));}catch(e){}
+}
+let DATA=load();
+
+const $=id=>document.getElementById(id);
+const grid=$("grid");
+
+function render(){
+  $("title").value=DATA.title||"Live Scores";
+  document.title=(DATA.title||"Live Scores");
+  let html="";
+  GROUPS.forEach(G=>{
+    const grp=DATA.groups[G.id]; if(!grp) return;
+    const pairs=grp.pairs.map((p,idx)=>({p,idx}))
+      .sort((a,b)=> b.p.pts-a.p.pts || a.p.code.localeCompare(b.p.code));
+    let rows="";
+    pairs.forEach((o,i)=>{
+      const p=o.p, lead = i===0 && p.pts>0;
+      rows+=`<div class="row${lead?' lead':''}">
+        <div class="rank">${i+1}</div>
+        <div class="who">
+          <div class="code">${esc(p.code)}</div>
+          <input class="nm" data-g="${G.id}" data-i="${o.idx}" placeholder="add names…" value="${esc(p.name||"")}">
+        </div>
+        <div class="sc">
+          <button class="pbtn minus" data-act="dec" data-g="${G.id}" data-i="${o.idx}" title="Subtract a point">–</button>
+          <div class="pts" data-act="edit" data-g="${G.id}" data-i="${o.idx}" title="Tap to set exact score">${p.pts}</div>
+          <button class="pbtn plus" data-act="inc" data-g="${G.id}" data-i="${o.idx}" title="Won a game (+1)">+</button>
+        </div>
+      </div>`;
+    });
+    html+=`<div class="group">
+      <div class="ghead"><span class="dot" style="background:${G.color}"></span>${esc(grp.name)}</div>
+      <div class="rows">${rows}</div>
+    </div>`;
+  });
+  grid.innerHTML=html;
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+// --- events (delegated) ---
+grid.addEventListener("click",e=>{
+  const t=e.target.closest("[data-act]"); if(!t) return;
+  const g=t.getAttribute("data-g"), i=+t.getAttribute("data-i"), act=t.getAttribute("data-act");
+  const p=DATA.groups[g].pairs[i]; if(!p) return;
+  if(act==="inc"){ p.pts++; }
+  else if(act==="dec"){ p.pts=Math.max(0,p.pts-1); }
+  else if(act==="edit"){
+    if(document.body.classList.contains("display")) return;
+    const v=prompt("Set exact points for "+p.code+":",p.pts);
+    if(v===null) return;
+    const n=parseInt(v,10); if(Number.isNaN(n)||n<0){ return; }
+    p.pts=n;
+  } else return;
+  save(); render();
+});
+grid.addEventListener("input",e=>{
+  const t=e.target; if(!t.classList.contains("nm")) return;
+  const g=t.getAttribute("data-g"), i=+t.getAttribute("data-i");
+  DATA.groups[g].pairs[i].name=t.value; save();
+});
+
+$("title").addEventListener("input",e=>{ DATA.title=e.target.value; save(); document.title=e.target.value||"Live Scores"; });
+
+// --- toolbar ---
+$("modeBtn").onclick=()=>{
+  document.body.classList.toggle("display");
+  const on=document.body.classList.contains("display");
+  $("modeBtn").textContent=on?"✎ Scoring mode":"📺 Display mode";
+  $("modeBtn").classList.toggle("on",on);
+};
+$("fsBtn").onclick=()=>{
+  if(!document.fullscreenElement){ document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen(); }
+  else { document.exitFullscreen&&document.exitFullscreen(); }
+};
+$("resetBtn").onclick=()=>{
+  if(!confirm("Reset ALL scores to 0? (Names and titles are kept.)")) return;
+  GROUPS.forEach(G=>DATA.groups[G.id].pairs.forEach(p=>p.pts=0));
+  save(); render();
+};
+$("expBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify(DATA,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="live-scores-backup-"+new Date().toISOString().slice(0,16).replace(/[:T]/g,"-")+".json";
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+};
+$("impBtn").onclick=()=>$("impFile").click();
+$("impFile").onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d&&d.groups){ DATA=d; save(); render(); } else alert("That file doesn't look like a scores backup."); }catch(err){ alert("Couldn't read that file."); } };
+  r.readAsText(f); e.target.value="";
+};
+
+// keep multiple tabs/windows on the same browser in sync
+window.addEventListener("storage",e=>{ if(e.key===KEY){ DATA=load(); render(); } });
+
+render();
+</script>
+</body>
+</html>
