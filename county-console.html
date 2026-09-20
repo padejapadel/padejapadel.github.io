@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cambridge vs Essex — Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700;800;900&family=Saira:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070f1a; --panel:#0d1b2e; --panel2:#0b1626; --line:#1b2c45;
+    --ink:#eaf2ff; --dim:#8aa4c0; --dim2:#5a7a99;
+    --camb:#3BA0E0; --essex:#E24B4A; --gold:#FFD54A; --ok:#3DE39E;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Hanken Grotesk',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  a{color:var(--camb)}
+  .wrap{max-width:1000px;margin:0 auto;padding:16px}
+  h1,h2,h3{font-family:'Saira',sans-serif;margin:0}
+  .display-font{font-family:'Saira',sans-serif}
+
+  /* login */
+  #login{max-width:360px;margin:14vh auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px}
+  #login h1{font-size:22px;margin-bottom:4px}
+  #login p{color:var(--dim);font-size:13px;margin:0 0 16px}
+  input,select{width:100%;box-sizing:border-box;font:inherit;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none}
+  input:focus,select:focus{border-color:var(--camb)}
+  label{display:block;font-size:12px;color:var(--dim);margin:12px 0 5px;letter-spacing:.02em}
+  button{font:inherit;font-weight:800;border:0;border-radius:10px;padding:11px 16px;cursor:pointer;background:var(--camb);color:#04121d}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:700}
+  button:disabled{opacity:.55;cursor:default}
+  .err{color:var(--essex);font-size:13px;min-height:18px;margin-top:8px}
+
+  /* header */
+  .top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 0 14px;border-bottom:1px solid var(--line);margin-bottom:14px}
+  .top h1{font-size:22px;letter-spacing:.01em}
+  .top .sub{color:var(--dim);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+  .spacer{flex:1}
+  .tally{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 14px}
+  .tally .n{font-family:'Saira';font-weight:900;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+  .tally .camb{color:var(--camb)} .tally .essex{color:var(--essex)}
+  .tally .dash{color:var(--dim2);font-weight:800}
+  .tally .lbl{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+  .savebar{display:flex;align-items:center;gap:10px}
+  .status{font-size:12px;color:var(--dim);min-width:120px;text-align:right}
+  .status.ok{color:var(--ok)} .status.bad{color:var(--essex)}
+
+  /* settings row */
+  .settings{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:16px}
+  @media(max-width:640px){ .settings{grid-template-columns:1fr 1fr} }
+
+  /* fixtures */
+  .fx{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+  .fx .fxhead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .fx .no{font-family:'Saira';font-weight:900;color:var(--dim2);font-size:15px;min-width:58px}
+  .fx .bracket{flex:1}
+  .fx .win{font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .fx .win.pending{background:#12243a;color:var(--dim)}
+  .fx .win.a{background:var(--camb);color:#04121d}
+  .fx .win.b{background:var(--essex);color:#fff}
+  .fx .meta{display:grid;grid-template-columns:120px 160px 1fr;gap:10px;margin-bottom:10px}
+  @media(max-width:640px){ .fx .meta{grid-template-columns:1fr 1fr} }
+  .teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:640px){ .teams{grid-template-columns:1fr} }
+  .side{border:1px solid var(--line);border-radius:12px;padding:10px}
+  .side.camb{border-color:rgba(59,160,224,.5)} .side.essex{border-color:rgba(226,75,74,.5)}
+  .side .sn{font-family:'Saira';font-weight:800;font-size:13px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+  .side.camb .sn{color:var(--camb)} .side.essex .sn{color:var(--essex)}
+  .side .pl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+  .sets{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .setcol{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .setcol .sl{font-size:10px;color:var(--dim2);text-transform:uppercase;letter-spacing:.06em}
+  .setcell{display:flex;gap:4px}
+  .setcell input{width:44px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums;padding:8px 4px}
+  .foot{color:var(--dim2);font-size:12px;text-align:center;margin:18px 0 8px}
+  .foot a{color:var(--dim)}
+</style>
+</head>
+<body>
+
+<!-- PASSCODE GATE -->
+<div id="login" style="display:none">
+  <h1>County Match Console</h1>
+  <p>Enter the event passcode to configure teams and score the matches.</p>
+  <label>Passcode</label>
+  <input id="gateCode" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Event passcode">
+  <div class="err" id="gateErr"></div>
+  <button id="gateBtn" style="width:100%;margin-top:14px">Continue</button>
+</div>
+
+<!-- CONSOLE -->
+<div class="wrap" id="app" style="display:none">
+  <div class="top">
+    <div>
+      <h1 id="hTitle">Cambridge vs Essex</h1>
+      <div class="sub" id="hSub">County Match Day · Brentwood</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="tally">
+      <div style="text-align:center"><div class="n camb" id="tCamb">0</div><div class="lbl" id="lCamb">Cambridge</div></div>
+      <div class="dash">–</div>
+      <div style="text-align:center"><div class="n essex" id="tEssex">0</div><div class="lbl" id="lEssex">Essex</div></div>
+    </div>
+    <div class="savebar">
+      <div class="status" id="status">Loading…</div>
+      <button id="saveBtn">Save</button>
+      <button class="ghost" id="changeCodeBtn" title="Change passcode">Change code</button>
+    </div>
+  </div>
+
+  <div class="settings">
+    <div><label>Title</label><input id="cfgTitle"></div>
+    <div><label>Date</label><input id="cfgDate" type="date"></div>
+    <div><label>Venue</label><input id="cfgVenue"></div>
+    <div><label>Team A name</label><input id="cfgTeamA"></div>
+    <div><label>Team B name</label><input id="cfgTeamB"></div>
+    <div style="display:flex;align-items:flex-end"><a id="displayLink" href="county-display.html" target="_blank" rel="noopener">Open the TV display ↗</a></div>
+  </div>
+
+  <div id="fixtures"></div>
+
+  <div class="foot">Best of 3 sets · the winner of each match scores 1 point for their county. Changes save automatically. · <a href="clubconsole.html">Back to club console</a></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  "use strict";
+  var SUPABASE_URL="https://odrckirnjavfptlfygbo.supabase.co";
+  var SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo";
+  var EVENT_ID="cambridge-essex-2026-10-03";
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  var MODEL=null, saveTimer=null;
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
+
+  function defaultModel(){
+    var brackets=["Level 2 · Women","Level 2 · Women","Level 2.5 · Men","Level 2.5 · Men","Level 3.0 · Men","Level 3.5 · Men","Level 4.0 · Men/Mixed","Level 4.5 · Men"];
+    return {
+      title:"Cambridge vs Essex", subtitle:"County Match Day", date:"2026-10-03",
+      venue:"Brentwood Padel Club", teamA:"Cambridge", teamB:"Essex",
+      fixtures: brackets.map(function(b,i){
+        return {no:i+1,bracket:b,court:"",time:"",a1:"",a2:"",b1:"",b2:"",
+          sets:[{a:"",b:""},{a:"",b:""},{a:"",b:""}]};
+      })
+    };
+  }
+  // Winner of a best-of-3 from set games. Returns "a","b" or "" (undecided).
+  function winnerOf(fx){
+    var aw=0,bw=0;
+    (fx.sets||[]).forEach(function(s){
+      var a=parseInt(s.a,10), b=parseInt(s.b,10);
+      if(isNaN(a)||isNaN(b)) return;
+      if(a>b) aw++; else if(b>a) bw++;
+    });
+    if(aw>=2) return "a";
+    if(bw>=2) return "b";
+    return "";
+  }
+  function tally(){
+    var a=0,b=0; (MODEL.fixtures||[]).forEach(function(fx){ var w=winnerOf(fx); if(w==="a")a++; else if(w==="b")b++; });
+    return {a:a,b:b};
+  }
+
+  // ---------- rendering ----------
+  function renderHeader(){
+    $("hTitle").textContent = MODEL.title || "Cambridge vs Essex";
+    $("hSub").textContent = (MODEL.subtitle||"") + (MODEL.venue? " · "+MODEL.venue : "");
+    $("lCamb").textContent = MODEL.teamA || "Team A";
+    $("lEssex").textContent = MODEL.teamB || "Team B";
+    var t=tally(); $("tCamb").textContent=t.a; $("tEssex").textContent=t.b;
+    $("cfgTitle").value=MODEL.title||""; $("cfgDate").value=MODEL.date||"";
+    $("cfgVenue").value=MODEL.venue||""; $("cfgTeamA").value=MODEL.teamA||""; $("cfgTeamB").value=MODEL.teamB||"";
+  }
+  function setRow(i,si){
+    var s=MODEL.fixtures[i].sets[si]||{a:"",b:""};
+    return '<div class="setcol"><div class="sl">Set '+(si+1)+'</div><div class="setcell">'
+      + '<input inputmode="numeric" data-fx="'+i+'" data-set="'+si+'" data-side="a" value="'+esc(s.a)+'">'
+      + '<input inputmode="numeric" data-fx="'+i+'" data-set="'+si+'" data-side="b" value="'+esc(s.b)+'">'
+      + '</div></div>';
+  }
+  function winBadge(i){
+    var w=winnerOf(MODEL.fixtures[i]);
+    if(w==="a") return '<span class="win a">'+esc(MODEL.teamA||"A")+' win</span>';
+    if(w==="b") return '<span class="win b">'+esc(MODEL.teamB||"B")+' win</span>';
+    return '<span class="win pending">In progress</span>';
+  }
+  function renderFixtures(){
+    var html="";
+    MODEL.fixtures.forEach(function(fx,i){
+      html += '<div class="fx" data-card="'+i+'">'
+        + '<div class="fxhead">'
+        +   '<div class="no">Match '+(i+1)+'</div>'
+        +   '<input class="bracket" data-fx="'+i+'" data-field="bracket" value="'+esc(fx.bracket)+'">'
+        +   '<span data-badge="'+i+'">'+winBadge(i)+'</span>'
+        + '</div>'
+        + '<div class="meta">'
+        +   '<div><label>Court</label><input data-fx="'+i+'" data-field="court" value="'+esc(fx.court)+'" placeholder="e.g. 3"></div>'
+        +   '<div><label>Start time</label><input data-fx="'+i+'" data-field="time" value="'+esc(fx.time)+'" placeholder="e.g. 10:00"></div>'
+        +   '<div></div>'
+        + '</div>'
+        + '<div class="teams">'
+        +   '<div class="side camb"><div class="sn">'+esc(MODEL.teamA||"Team A")+'</div>'
+        +     '<div class="pl"><input data-fx="'+i+'" data-field="a1" value="'+esc(fx.a1)+'" placeholder="Player 1"><input data-fx="'+i+'" data-field="a2" value="'+esc(fx.a2)+'" placeholder="Player 2"></div>'
+        +     '<div class="sets">'+setRow(i,0)+setRow(i,1)+setRow(i,2)+'</div>'
+        +   '</div>'
+        +   '<div class="side essex"><div class="sn">'+esc(MODEL.teamB||"Team B")+'</div>'
+        +     '<div class="pl"><input data-fx="'+i+'" data-field="b1" value="'+esc(fx.b1)+'" placeholder="Player 1"><input data-fx="'+i+'" data-field="b2" value="'+esc(fx.b2)+'" placeholder="Player 2"></div>'
+        +     '<div class="sets" style="opacity:.55;pointer-events:none"><div class="sl" style="font-size:11px;color:var(--dim2)">Games are entered on the '+esc(MODEL.teamA||"Team A")+' side (top = '+esc(MODEL.teamA||"A")+', bottom = '+esc(MODEL.teamB||"B")+')</div></div>'
+        +   '</div>'
+        + '</div>'
+        + '</div>';
+    });
+    $("fixtures").innerHTML=html;
+  }
+  function render(){ renderHeader(); renderFixtures(); }
+
+  function refreshWinner(i){
+    var b=document.querySelector('[data-badge="'+i+'"]'); if(b) b.innerHTML=winBadge(i);
+    var t=tally(); $("tCamb").textContent=t.a; $("tEssex").textContent=t.b;
+  }
+
+  // ---------- input handling ----------
+  document.addEventListener("input", function(e){
+    var el=e.target; if(!el||el.tagName!=="INPUT"&&el.tagName!=="SELECT") return;
+    var d=el.dataset;
+    if(d.fx!=null && d.field){ MODEL.fixtures[+d.fx][d.field]=el.value; if(d.field==="bracket"){/* no winner change */} scheduleSave(); return; }
+    if(d.fx!=null && d.set!=null && d.side){ MODEL.fixtures[+d.fx].sets[+d.set][d.side]=el.value; refreshWinner(+d.fx); scheduleSave(); return; }
+    // settings
+    if(el.id==="cfgTitle"){ MODEL.title=el.value; $("hTitle").textContent=el.value; scheduleSave(); }
+    if(el.id==="cfgDate"){ MODEL.date=el.value; scheduleSave(); }
+    if(el.id==="cfgVenue"){ MODEL.venue=el.value; $("hSub").textContent=(MODEL.subtitle||"")+(el.value?" · "+el.value:""); scheduleSave(); }
+    if(el.id==="cfgTeamA"){ MODEL.teamA=el.value; $("lCamb").textContent=el.value; scheduleSave(); }
+    if(el.id==="cfgTeamB"){ MODEL.teamB=el.value; $("lEssex").textContent=el.value; scheduleSave(); }
+  });
+
+  function setStatus(msg, cls){ var s=$("status"); s.textContent=msg; s.className="status"+(cls?" "+cls:""); }
+  function scheduleSave(){ setStatus("Editing…"); clearTimeout(saveTimer); saveTimer=setTimeout(save, 900); }
+
+  function save(){
+    clearTimeout(saveTimer);
+    setStatus("Saving…");
+    sb.rpc("county_save",{p_id:EVENT_ID, p_data:MODEL, p_code:getCode()}).then(function(res){
+      if(res.error){
+        if(/bad code/i.test(res.error.message||"")){ setStatus("Passcode rejected","bad"); showGate("Passcode changed — please re-enter."); return; }
+        setStatus("Save failed — retrying", "bad"); clearTimeout(saveTimer); saveTimer=setTimeout(save,4000);
+      } else { var t=new Date(); setStatus("Saved "+String(t.getHours()).padStart(2,"0")+":"+String(t.getMinutes()).padStart(2,"0"), "ok"); }
+    }).catch(function(){ setStatus("Save failed — retrying","bad"); clearTimeout(saveTimer); saveTimer=setTimeout(save,4000); });
+  }
+
+  // ---------- load ----------
+  function loadState(){
+    setStatus("Loading…");
+    return sb.from("county_state").select("data").eq("id",EVENT_ID).maybeSingle().then(function(res){
+      var d = res && res.data && res.data.data;
+      MODEL = (d && d.fixtures && d.fixtures.length) ? d : defaultModel();
+      // make sure every fixture has 3 set slots
+      MODEL.fixtures.forEach(function(fx){ fx.sets=fx.sets||[]; while(fx.sets.length<3) fx.sets.push({a:"",b:""}); });
+      render(); setStatus("Ready","ok");
+    });
+  }
+
+  // ---------- passcode gate ----------
+  var CKEY="countyConsoleCode";
+  function getCode(){ try{ return localStorage.getItem(CKEY)||""; }catch(e){ return ""; } }
+  function setCode(c){ try{ localStorage.setItem(CKEY,c); }catch(e){} }
+  function showGate(msg){ $("login").style.display="block"; $("app").style.display="none"; $("gateErr").textContent=msg||""; setTimeout(function(){ try{$("gateCode").focus();}catch(e){} },50); }
+  function showApp(){ $("login").style.display="none"; $("app").style.display="block"; loadState(); }
+  function checkCode(code){ return sb.rpc("county_check_code",{p_code:code}).then(function(r){ return !r.error && r.data===true; }).catch(function(){ return false; }); }
+
+  $("gateBtn").addEventListener("click", function(){
+    var c=($("gateCode").value||"").trim();
+    if(!c){ $("gateErr").textContent="Enter the passcode."; return; }
+    $("gateBtn").disabled=true; $("gateErr").textContent="Checking…";
+    checkCode(c).then(function(ok){
+      $("gateBtn").disabled=false;
+      if(ok){ setCode(c); showApp(); } else { $("gateErr").textContent="Wrong passcode — try again."; }
+    });
+  });
+  $("gateCode").addEventListener("keydown", function(e){ if(e.key==="Enter") $("gateBtn").click(); });
+  $("changeCodeBtn").addEventListener("click", function(){ try{ localStorage.removeItem(CKEY); }catch(e){} $("gateCode").value=""; showGate(); });
+  $("saveBtn").addEventListener("click", save);
+
+  // boot: verify a stored passcode, else prompt for it.
+  (function(){
+    var c=getCode();
+    if(!c){ showGate(); return; }
+    checkCode(c).then(function(ok){ if(ok) showApp(); else showGate("Passcode changed — please re-enter."); });
+  })();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cambridge vs Essex — Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800;900&family=Saira:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070f1a; --panel:#0d1b2e; --line:#1b2c45;
+    --ink:#eaf2ff; --dim:#8aa4c0; --dim2:#5a7a99;
+    --camb:#3BA0E0; --camb2:#0e3a56; --essex:#E24B4A; --essex2:#4a1614;
+    --gold:#FFD54A; --live:#ff3b3b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);
+    font-family:'Hanken Grotesk',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
+  .display{font-family:'Saira',sans-serif}
+  .stage{height:100vh;display:flex;flex-direction:column;padding:2.2vh 2vw;gap:1.6vh}
+
+  /* header */
+  .hdr{display:flex;align-items:center;gap:1.2vw}
+  .hdr .title{font-family:'Saira';font-weight:900;font-size:3.4vh;letter-spacing:.02em;line-height:1}
+  .hdr .meta{color:var(--dim);font-weight:800;font-size:1.5vh;letter-spacing:.14em;text-transform:uppercase;margin-top:.5vh}
+  .hdr .spacer{flex:1}
+  .live{display:flex;align-items:center;gap:.6vw;background:var(--live);color:#fff;font-family:'Saira';font-weight:900;
+    font-size:1.7vh;letter-spacing:.14em;padding:.5vh 1vw;border-radius:.7vh}
+  .live .dot{width:1.1vh;height:1.1vh;border-radius:50%;background:#fff;animation:pulse 1.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  /* scoreboard */
+  .board{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1.4vw;
+    background:var(--panel);border:1px solid var(--line);border-radius:2vh;padding:2.2vh 2vw}
+  .team{display:flex;align-items:center;gap:1.4vw}
+  .team.b{flex-direction:row-reverse;text-align:right}
+  .team .nm{font-family:'Saira';font-weight:900;font-size:4.6vh;line-height:1}
+  .team.a .nm{color:var(--camb)} .team.b .nm{color:var(--essex)}
+  .team .pts{font-family:'Saira';font-weight:900;font-size:11vh;line-height:.8;font-variant-numeric:tabular-nums;
+    min-width:12vh;text-align:center;border-radius:1.4vh;padding:.4vh 1vh}
+  .team.a .pts{background:var(--camb);color:#04121d}
+  .team.b .pts{background:var(--essex);color:#fff}
+  .team.dim .pts{opacity:.5}
+  .mid{text-align:center}
+  .mid .vs{font-family:'Saira';font-weight:900;color:var(--dim2);font-size:2.4vh;letter-spacing:.1em}
+  .mid .target{color:var(--dim);font-size:1.5vh;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-top:.6vh}
+  .mid .won{color:var(--gold);font-family:'Saira';font-weight:900;font-size:1.9vh;margin-top:.6vh;letter-spacing:.06em}
+
+  /* matches grid */
+  .grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:1.2vh 1.4vw}
+  .m{background:var(--panel);border:1px solid var(--line);border-radius:1.4vh;padding:1.1vh 1.2vw;display:flex;flex-direction:column;gap:.8vh;min-height:0}
+  .m .mh{display:flex;align-items:center;gap:.8vw}
+  .m .brk{font-family:'Saira';font-weight:800;font-size:1.8vh;letter-spacing:.02em}
+  .m .sp{flex:1}
+  .m .ct{color:var(--dim);font-weight:800;font-size:1.4vh;letter-spacing:.05em;white-space:nowrap}
+  .m .row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:1vw;padding:.5vh .7vw;border-radius:.9vh}
+  .m .row.a{background:rgba(59,160,224,.10)} .m .row.b{background:rgba(226,75,74,.10)}
+  .m .row.win.a{background:var(--camb)} .m .row.win.a .who,.m .row.win.a .sc b,.m .row.win.a .tick{color:#04121d}
+  .m .row.win.b{background:var(--essex)} .m .row.win.b .who,.m .row.win.b .sc b,.m .row.win.b .tick{color:#fff}
+  .m .who{font-weight:800;font-size:1.9vh;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .m .sc{display:flex;gap:.7vw;align-items:center}
+  .m .sc b{font-family:'Saira';font-weight:900;font-size:2.1vh;font-variant-numeric:tabular-nums;min-width:1.6vh;text-align:center}
+  .m .tick{font-weight:900;font-size:1.8vh;color:transparent;width:1.6vh;text-align:center}
+  .waiting{color:var(--dim2);font-size:1.6vh;font-weight:700}
+  .off{position:fixed;bottom:.8vh;right:1vw;color:var(--dim2);font-size:1.2vh}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="hdr">
+    <div>
+      <div class="title" id="title">Cambridge vs Essex</div>
+      <div class="meta" id="meta">County Match Day</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="live"><span class="dot"></span>LIVE</div>
+  </div>
+
+  <div class="board">
+    <div class="team a" id="teamA"><div class="pts" id="ptsA">0</div><div class="nm" id="nmA">Cambridge</div></div>
+    <div class="mid">
+      <div class="vs">vs</div>
+      <div class="target">First to 5 wins the day</div>
+      <div class="won" id="won"></div>
+    </div>
+    <div class="team b" id="teamB"><div class="pts" id="ptsB">0</div><div class="nm" id="nmB">Essex</div></div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</div>
+<div class="off" id="off"></div>
+
+<script>
+(function(){
+  "use strict";
+  var SUPA="https://odrckirnjavfptlfygbo.supabase.co";
+  var ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo";
+  var EVENT_ID="cambridge-essex-2026-10-03";
+  var WIN_TARGET=5;
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
+  function pairName(p1,p2){ p1=(p1||"").trim(); p2=(p2||"").trim(); if(p1&&p2) return p1+" & "+p2; return p1||p2||""; }
+  function winnerOf(fx){
+    var aw=0,bw=0;
+    (fx.sets||[]).forEach(function(s){ var a=parseInt(s.a,10),b=parseInt(s.b,10); if(isNaN(a)||isNaN(b))return; if(a>b)aw++; else if(b>a)bw++; });
+    if(aw>=2)return"a"; if(bw>=2)return"b"; return"";
+  }
+  function setsHtml(fx, side){
+    var out="";
+    (fx.sets||[]).forEach(function(s){
+      var a=s.a, b=s.b; if((a===""||a==null)&&(b===""||b==null)) return;
+      out += '<b>'+esc(side==="a"? (a===""?"–":a) : (b===""?"–":b))+'</b>';
+    });
+    return out || '<span class="waiting" style="font-size:1.5vh">—</span>';
+  }
+
+  function render(d){
+    var A=d.teamA||"Cambridge", B=d.teamB||"Essex";
+    document.getElementById("title").textContent = d.title||"Cambridge vs Essex";
+    var meta=[]; if(d.subtitle)meta.push(d.subtitle); if(d.venue)meta.push(d.venue);
+    if(d.date){ try{ var dt=new Date(d.date+"T00:00:00"); if(!isNaN(dt)) meta.push(dt.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})); }catch(e){} }
+    document.getElementById("meta").textContent = meta.join(" · ");
+    document.getElementById("nmA").textContent=A; document.getElementById("nmB").textContent=B;
+
+    var fx=d.fixtures||[], a=0,b=0;
+    fx.forEach(function(f){ var w=winnerOf(f); if(w==="a")a++; else if(w==="b")b++; });
+    document.getElementById("ptsA").textContent=a; document.getElementById("ptsB").textContent=b;
+
+    // dim the trailing side; announce the winner if someone hits the target or all matches are done
+    var tA=document.getElementById("teamA"), tB=document.getElementById("teamB");
+    tA.classList.toggle("dim", a<b); tB.classList.toggle("dim", b<a);
+    var won=document.getElementById("won");
+    var done = fx.length && fx.every(function(f){ return winnerOf(f)!==""; });
+    if(a>=WIN_TARGET || (done && a>b)) won.textContent = "🏆 "+A+" win";
+    else if(b>=WIN_TARGET || (done && b>a)) won.textContent = "🏆 "+B+" win";
+    else if(done && a===b) won.textContent = "Match drawn";
+    else won.textContent="";
+
+    var html="";
+    fx.forEach(function(f,i){
+      var w=winnerOf(f);
+      var ct=[]; if(f.court)ct.push("Court "+esc(f.court)); if(f.time)ct.push(esc(f.time));
+      html += '<div class="m">'
+        + '<div class="mh"><div class="brk">'+esc(f.bracket||("Match "+(i+1)))+'</div><div class="sp"></div><div class="ct">'+ct.join(" · ")+'</div></div>'
+        + '<div class="row a'+(w==="a"?" win a":"")+'"><div class="who">'+(esc(pairName(f.a1,f.a2))||('<span class="waiting">'+esc(A)+' pair TBC</span>'))+'</div><div class="sc">'+setsHtml(f,"a")+'<span class="tick">'+(w==="a"?"✓":"")+'</span></div></div>'
+        + '<div class="row b'+(w==="b"?" win b":"")+'"><div class="who">'+(esc(pairName(f.b1,f.b2))||('<span class="waiting">'+esc(B)+' pair TBC</span>'))+'</div><div class="sc">'+setsHtml(f,"b")+'<span class="tick">'+(w==="b"?"✓":"")+'</span></div></div>'
+        + '</div>';
+    });
+    document.getElementById("grid").innerHTML = html;
+  }
+
+  function poll(){
+    fetch(SUPA+"/rest/v1/county_state?id=eq."+encodeURIComponent(EVENT_ID)+"&select=data",
+      { headers:{ apikey:ANON, Authorization:"Bearer "+ANON } })
+      .then(function(r){ return r.json(); })
+      .then(function(rows){ var d=rows&&rows[0]&&rows[0].data; if(d) render(d); document.getElementById("off").textContent=""; })
+      .catch(function(){ document.getElementById("off").textContent="reconnecting…"; });
+  }
+
+  // Keep a wall-mounted TV awake without reloading.
+  (function keepAwake(){
+    var lock=null;
+    function acq(){ if(!("wakeLock" in navigator)||document.visibilityState!=="visible")return;
+      navigator.wakeLock.request("screen").then(function(l){ lock=l; l.addEventListener("release",function(){lock=null;}); }).catch(function(){}); }
+    document.addEventListener("visibilitychange",function(){ if(document.visibilityState==="visible"&&!lock)acq(); });
+    setInterval(function(){ if(!lock)acq(); },30000); acq();
+  })();
+
+  poll();
+  setInterval(poll, 8000);
+})();
+</script>
+</body>
+</html>
