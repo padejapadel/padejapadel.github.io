@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Padeja Store — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0D1B2A; --panel:#12243a; --panel2:#0f1e30; --line:rgba(255,255,255,.10);
+    --ink:#eaf2ff; --dim:#8ea6c4; --teal:#00D4AA; --sky:#00A8FF; --coral:#FF6B6B; --gold:#FFD54A;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,#16304d,var(--navy)) fixed;
+    color:var(--ink);font-family:'Hanken Grotesk',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;min-height:100vh}
+  a{color:var(--teal)}
+  .wrap{max-width:960px;margin:0 auto;padding:20px 16px 60px}
+  h1{font-size:22px;letter-spacing:.5px;margin:0}
+  .muted{color:var(--dim)} .sm{font-size:13px}
+  input,textarea,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);font-size:15px;outline:none;font-family:inherit}
+  input:focus,textarea:focus,select:focus{border-color:var(--teal)}
+  label{display:block;font-size:11px;font-weight:800;letter-spacing:1.2px;color:var(--dim);margin:12px 0 5px;text-transform:uppercase}
+  .btn{border:0;border-radius:11px;cursor:pointer;font-weight:800;font-size:14px;padding:11px 16px;
+    color:#04121f;background:linear-gradient(90deg,var(--teal),var(--sky))}
+  .btn.sec{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+  .btn.warn{background:transparent;color:var(--coral);border:1px solid rgba(255,107,107,.4)}
+  .btn.sm{padding:7px 11px;font-size:12px;border-radius:9px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:16px;padding:16px 18px;margin-top:14px}
+  .tabs{display:flex;gap:8px;margin:18px 0 4px}
+  .tab{padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--panel);
+    color:var(--dim);font-weight:800;cursor:pointer;font-size:14px}
+  .tab.on{background:linear-gradient(90deg,var(--teal),var(--sky));color:#04121f;border-color:transparent}
+  .pill{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.4px;padding:3px 9px;border-radius:999px;border:1px solid var(--line)}
+  .pill.paid{color:var(--gold);border-color:rgba(255,213,74,.4)}
+  .pill.shipped,.pill.collected{color:var(--teal);border-color:rgba(0,212,170,.4)}
+  .pill.ready_for_collection{color:var(--sky);border-color:rgba(0,168,255,.4)}
+  .pill.cancelled,.pill.refunded{color:var(--coral);border-color:rgba(255,107,107,.4)}
+  .thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;background:#fff;border:1px solid var(--line)}
+  .vrow{display:grid;grid-template-columns:1fr 90px 1fr auto;gap:8px;align-items:center;margin-top:8px}
+  .imgrow{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .err{color:var(--coral);font-size:13px;margin-top:10px;min-height:1em}
+  .ok{color:var(--teal);font-size:13px;margin-top:10px;min-height:1em}
+  .hide{display:none}
+  hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:560px){.grid2{grid-template-columns:1fr}.vrow{grid-template-columns:1fr 70px 1fr auto}}
+  code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Gate -->
+  <div id="gate" class="card" style="max-width:420px;margin:60px auto 0">
+    <h1>Padeja Store admin</h1>
+    <p class="muted sm">Enter the store passcode to manage products and orders.</p>
+    <label>Passcode</label>
+    <input id="code" type="password" autocomplete="off" placeholder="Store passcode">
+    <div class="err" id="gateErr"></div>
+    <button class="btn" id="gateBtn" style="width:100%;margin-top:14px">Continue</button>
+  </div>
+
+  <!-- App -->
+  <div id="app" class="hide">
+    <div class="row" style="justify-content:space-between">
+      <h1>Padeja Store <span class="muted sm">admin</span></h1>
+      <button class="btn sec sm" id="logout">Lock</button>
+    </div>
+    <div class="tabs">
+      <div class="tab on" data-tab="products" id="tabProducts">Products</div>
+      <div class="tab" data-tab="orders" id="tabOrders">Orders</div>
+      <div class="tab" data-tab="codes" id="tabCodes">Codes</div>
+      <div class="tab" data-tab="clubs" id="tabClubs">Club discounts</div>
+    </div>
+
+    <!-- Products -->
+    <div id="viewProducts">
+      <div class="row" style="justify-content:space-between;margin-top:10px">
+        <div class="muted sm" id="prodCount"></div>
+        <button class="btn sm" id="newProduct">+ New product</button>
+      </div>
+      <div id="editor" class="card hide"></div>
+      <div id="products"></div>
+    </div>
+
+    <!-- Orders -->
+    <div id="viewOrders" class="hide">
+      <div class="row" style="justify-content:space-between;margin-top:10px">
+        <div class="muted sm" id="orderCount"></div>
+        <button class="btn sec sm" id="refreshOrders">Refresh</button>
+      </div>
+      <div id="orders"></div>
+    </div>
+
+    <!-- Discount codes -->
+    <div id="viewCodes" class="hide">
+      <div class="row" style="justify-content:space-between;margin-top:10px">
+        <div class="muted sm" id="codeCount"></div>
+        <button class="btn sec sm" id="refreshCodes">Refresh</button>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <label>Add a discount code</label>
+        <div class="muted sm" style="margin:-4px 0 8px">Codes work across the whole store and are matched
+          ignoring capitals (PADEL10 = padel10). Turn one off any time with its switch below.</div>
+        <div class="grid2">
+          <div><label>Code</label><input id="ncCode" placeholder="PADEL10" autocapitalize="characters"></div>
+          <div><label>Type</label><select id="ncKind">
+            <option value="fixed">£ off the item</option>
+            <option value="free_delivery">Free delivery</option>
+          </select></div>
+        </div>
+        <div id="ncAmountWrap"><label>Amount off (£)</label><input id="ncAmount" inputmode="decimal" placeholder="5.00"></div>
+        <div class="err" id="ncErr"></div><div class="ok" id="ncOk"></div>
+        <div class="row" style="margin-top:10px"><button class="btn" id="addCode">Add code</button></div>
+      </div>
+      <div id="codes" style="margin-top:12px"></div>
+    </div>
+
+    <!-- Club discounts -->
+    <div id="viewClubs" class="hide">
+      <div class="row" style="justify-content:space-between;margin-top:10px">
+        <div class="muted sm" id="clubDiscCount"></div>
+        <button class="btn sec sm" id="refreshClubs">Refresh</button>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <label>Add a preferred-club discount</label>
+        <div class="muted sm" style="margin:-4px 0 8px">Members of the chosen club (it in their Preferred Clubs) get £ off every item you tick as
+          <b>Include in preferred-club member discounts</b>, and see a bubble on it. It never stacks with a code — the bigger one wins.</div>
+        <div class="grid2">
+          <div><label>Club</label><select id="ncClub"><option value="">Loading clubs…</option></select></div>
+          <div><label>Amount off (£)</label><input id="ncClubAmount" inputmode="decimal" placeholder="5.00"></div>
+        </div>
+        <div class="err" id="ncClubErr"></div><div class="ok" id="ncClubOk"></div>
+        <div class="row" style="margin-top:10px"><button class="btn" id="addClubDisc">Add club discount</button></div>
+      </div>
+      <div id="clubDiscs" style="margin-top:12px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var SUPA="https://odrckirnjavfptlfygbo.supabase.co";
+  var ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo";
+  var CODE="";
+  var $=function(id){return document.getElementById(id)};
+  function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]})}
+  function money(p){return "£"+(Number(p||0)/100).toFixed(2)}
+  function poundsToPence(v){var n=parseFloat(String(v).replace(/[^0-9.]/g,""));return isNaN(n)?0:Math.round(n*100)}
+
+  async function rpc(fn, params){
+    var r=await fetch(SUPA+"/rest/v1/rpc/"+fn,{method:"POST",
+      headers:{apikey:ANON,Authorization:"Bearer "+ANON,"Content-Type":"application/json"},
+      body:JSON.stringify(params||{})});
+    if(!r.ok){ var t=await r.text(); throw new Error(t||("HTTP "+r.status)); }
+    var ct=r.headers.get("content-type")||""; return ct.indexOf("application/json")>-1? r.json(): r.text();
+  }
+
+  function fileToBase64(file){return new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(String(fr.result).split(",")[1])};fr.onerror=rej;fr.readAsDataURL(file);});}
+  async function apiUpload(body){
+    var r=await fetch(SUPA+"/functions/v1/store-admin-upload",{method:"POST",
+      headers:{apikey:ANON,Authorization:"Bearer "+ANON,"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!r.ok){ var t=await r.text(); throw new Error(t||("HTTP "+r.status)); }
+    return r.json();
+  }
+
+  // ---------- Gate ----------
+  async function tryCode(c){
+    try{ var ok=await rpc("store_admin_check_code",{p_code:c}); return ok===true; }catch(e){ return false; }
+  }
+  $("gateBtn").onclick=async function(){
+    var c=$("code").value.trim(); $("gateErr").textContent="";
+    if(!c){ $("gateErr").textContent="Enter the passcode."; return; }
+    $("gateBtn").disabled=true;
+    if(await tryCode(c)){ CODE=c; try{localStorage.setItem("padeja_store_code",c)}catch(e){} openApp(); }
+    else { $("gateErr").textContent="Wrong passcode."; }
+    $("gateBtn").disabled=false;
+  };
+  $("code").addEventListener("keydown",function(e){if(e.key==="Enter")$("gateBtn").click()});
+  $("logout").onclick=function(){ CODE=""; try{localStorage.removeItem("padeja_store_code")}catch(e){} $("app").classList.add("hide"); $("gate").classList.remove("hide"); };
+
+  function openApp(){ $("gate").classList.add("hide"); $("app").classList.remove("hide"); loadProducts(); }
+
+  // ---------- Tabs ----------
+  $("tabProducts").onclick=function(){switchTab("products")};
+  $("tabOrders").onclick=function(){switchTab("orders")};
+  $("tabCodes").onclick=function(){switchTab("codes")};
+  $("tabClubs").onclick=function(){switchTab("clubs")};
+  function switchTab(t){
+    $("tabProducts").classList.toggle("on",t==="products");
+    $("tabOrders").classList.toggle("on",t==="orders");
+    $("tabCodes").classList.toggle("on",t==="codes");
+    $("tabClubs").classList.toggle("on",t==="clubs");
+    $("viewProducts").classList.toggle("hide",t!=="products");
+    $("viewOrders").classList.toggle("hide",t!=="orders");
+    $("viewCodes").classList.toggle("hide",t!=="codes");
+    $("viewClubs").classList.toggle("hide",t!=="clubs");
+    if(t==="codes") loadCodes();
+    if(t==="orders") loadOrders();
+    if(t==="clubs") loadClubDiscounts();
+  }
+
+  // ---------- Products ----------
+  var PRODUCTS=[];
+  async function loadProducts(){
+    $("products").innerHTML='<p class="muted sm">Loading…</p>';
+    try{ PRODUCTS=await rpc("store_admin_products",{p_code:CODE})||[]; }catch(e){ $("products").innerHTML='<p class="err">'+esc(e.message)+'</p>'; return; }
+    $("prodCount").textContent=PRODUCTS.length+" product"+(PRODUCTS.length===1?"":"s");
+    renderProducts();
+  }
+  function renderProducts(){
+    if(!PRODUCTS.length){ $("products").innerHTML='<div class="card muted sm">No products yet. Tap “+ New product”.</div>'; return; }
+    $("products").innerHTML=PRODUCTS.map(function(p){
+      var img=(p.images&&p.images[0])?'<img class="thumb" src="'+esc(p.images[0])+'">':'<div class="thumb"></div>';
+      var stock=(p.variants||[]).reduce(function(a,v){return a+(v.stock_qty||0)},0);
+      var sizes=(p.variants||[]).map(function(v){return esc(v.value)+" ("+v.stock_qty+")"}).join(" · ")||'<span class="muted">no sizes</span>';
+      return '<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start">'
+        +'<div class="row" style="align-items:flex-start">'+img+'<div><div style="font-weight:800">'+esc(p.name)
+        +(p.active?'':' <span class="pill cancelled">hidden</span>')+'</div>'
+        +'<div class="muted sm">'+money(p.price_pence)+' · '+esc(p.category||'—')+'</div>'
+        +'<div class="sm" style="margin-top:4px">'+sizes+'</div>'
+        +'<div class="muted sm">Total stock: '+stock+'</div></div></div>'
+        +'<div class="row"><button class="btn sm sec" data-edit="'+p.id+'">Edit</button>'
+        +'<button class="btn sm warn" data-del="'+p.id+'">Delete</button></div>'
+        +'</div></div>';
+    }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-edit]"),function(b){b.onclick=function(){openEditor(b.getAttribute("data-edit"))}});
+    Array.prototype.forEach.call(document.querySelectorAll("[data-del]"),function(b){b.onclick=function(){delProduct(b.getAttribute("data-del"))}});
+  }
+
+  $("newProduct").onclick=function(){openEditor(null)};
+
+  function openEditor(id){
+    var p=id?PRODUCTS.filter(function(x){return x.id===id})[0]:{name:"",description:"",images:[],price_pence:0,category:"",active:true,variants:[]};
+    var e=$("editor"); e.classList.remove("hide");
+    e.innerHTML=''
+      +'<div class="row" style="justify-content:space-between"><h3 style="margin:0">'+(id?"Edit product":"New product")+'</h3>'
+      +'<button class="btn sec sm" id="closeEd">Close</button></div>'
+      +'<div class="grid2">'
+        +'<div><label>Name</label><input id="fName" value="'+esc(p.name)+'"></div>'
+        +'<div><label>Price (£)</label><input id="fPrice" inputmode="decimal" value="'+(p.price_pence?(p.price_pence/100).toFixed(2):"")+'" placeholder="24.99"></div>'
+      +'</div>'
+      +'<label>Description</label><textarea id="fDesc" rows="2">'+esc(p.description||"")+'</textarea>'
+      +'<div class="grid2"><div><label>Category</label><input id="fCat" value="'+esc(p.category||"")+'" placeholder="Apparel"></div>'
+      +'<div><label>Visible in store?</label><select id="fActive"><option value="true"'+(p.active!==false?" selected":"")+'>Yes — on sale</option><option value="false"'+(p.active===false?" selected":"")+'>No — hidden</option></select></div></div>'
+      +'<div class="grid2"><div><label>Sub-category</label><input id="fSubCat" value="'+esc(p.sub_category||"")+'" placeholder="T-shirt"></div>'
+      +'<div><label>Colour</label><input id="fColour" value="'+esc(p.colour||"")+'" placeholder="Navy"></div></div>'
+      +'<div class="muted sm" style="margin:-4px 0 8px">Sub-category &amp; colour power the shop filters. Use consistent words (e.g. always "Navy") so they group nicely.</div>'
+      +'<label>Product photos</label><div id="images"></div>'
+      +'<div class="row" style="margin-top:8px"><button class="btn sec sm" id="uploadImg">⬆ Upload photo</button><button class="btn sec sm" id="addImg">+ Add image URL</button><input type="file" id="imgFile" accept="image/*" class="hide"><span class="muted sm" id="upStatus"></span></div>'
+      +'<hr><label>Sizes / options &amp; stock</label><div class="muted sm" style="margin:-4px 0 8px">Type a size name in the <b>Size</b> box (e.g. M) — stock is held per size. The faint grey text is only a hint, not a real entry.</div><div id="variants"></div><button class="btn sec sm" id="addVar" style="margin-top:8px">+ Add size</button>'
+      +'<hr><label><input type="checkbox" id="fCustom"'+(p.customisable?" checked":"")+' style="width:auto;margin-right:8px;vertical-align:middle">Offer customisation on this item</label>'
+      +'<div class="muted sm" style="margin:-4px 0 8px">Buyers can add personalisation (e.g. a name &amp; country flag) for an extra charge. They type their details in a box at checkout.</div>'
+      +'<div id="customFields" class="grid2"'+(p.customisable?"":' style="display:none"')+'>'
+        +'<div><label>What can they add?</label><input id="fCustomLabel" value="'+esc(p.custom_label||"")+'" placeholder="Name &amp; country flag on back"></div>'
+        +'<div><label>Extra charge (£)</label><input id="fCustomPrice" inputmode="decimal" value="'+(p.custom_price_pence?(p.custom_price_pence/100).toFixed(2):"")+'" placeholder="15.00"></div>'
+      +'</div>'
+      +'<hr><label><input type="checkbox" id="fClubElig"'+(p.club_discount_eligible?" checked":"")+' style="width:auto;margin-right:8px;vertical-align:middle">Include in preferred-club member discounts</label>'
+      +'<div class="muted sm" style="margin:-4px 0 8px">If ticked, members of any club with an active discount (see the <b>Club discounts</b> tab) get £ off this item and see a bubble on it.</div>'
+      +'<div class="err" id="edErr"></div><div class="ok" id="edOk"></div>'
+      +'<div class="row" style="margin-top:14px"><button class="btn" id="saveEd">Save product</button></div>';
+
+    $("closeEd").onclick=function(){e.classList.add("hide"); e.innerHTML="";};
+    // images
+    var imgs=(p.images||[]).slice(); if(!imgs.length) imgs=[""];
+    function drawImgs(){ $("images").innerHTML=imgs.map(function(u,i){
+      return '<div class="imgrow"><input data-img="'+i+'" value="'+esc(u)+'" placeholder="https://…/photo.jpg"><button class="btn warn sm" data-imgdel="'+i+'">×</button></div>';
+    }).join("");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-img]"),function(inp){inp.oninput=function(){imgs[+inp.getAttribute("data-img")]=inp.value}});
+      Array.prototype.forEach.call(document.querySelectorAll("[data-imgdel]"),function(b){b.onclick=function(){imgs.splice(+b.getAttribute("data-imgdel"),1); if(!imgs.length)imgs=[""]; drawImgs();}});
+    }
+    drawImgs(); $("addImg").onclick=function(){imgs.push(""); drawImgs();};
+    $("uploadImg").onclick=function(){$("imgFile").click()};
+    $("imgFile").onchange=async function(){
+      var f=$("imgFile").files[0]; if(!f)return;
+      $("upStatus").textContent="Uploading…";
+      try{
+        var b64=await fileToBase64(f);
+        var res=await apiUpload({code:CODE,filename:f.name,content_type:f.type||"image/jpeg",data_base64:b64});
+        if(imgs.length===1&&!imgs[0]) imgs[0]=res.url; else imgs.push(res.url);
+        drawImgs(); $("upStatus").textContent="Added ✓";
+      }catch(e){ $("upStatus").textContent="Upload failed: "+e.message; }
+      $("imgFile").value="";
+    };
+    // variants
+    var vars=(p.variants||[]).map(function(v){return {id:v.id,value:v.value,stock_qty:v.stock_qty,sku:v.sku||""}});
+    if(!vars.length) vars=[{id:null,value:"",stock_qty:0,sku:""}];
+    function drawVars(){ $("variants").innerHTML='<div class="vrow muted sm"><div>Size</div><div>Stock</div><div>SKU (optional)</div><div></div></div>'+vars.map(function(v,i){
+      return '<div class="vrow"><input data-v="'+i+'" data-f="value" value="'+esc(v.value)+'" placeholder="type a size →">'
+        +'<input data-v="'+i+'" data-f="stock_qty" inputmode="numeric" value="'+(v.stock_qty||0)+'">'
+        +'<input data-v="'+i+'" data-f="sku" value="'+esc(v.sku||"")+'" placeholder="PADTEE-M">'
+        +'<button class="btn warn sm" data-vdel="'+i+'">×</button></div>';
+    }).join("");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-v]"),function(inp){inp.oninput=function(){var i=+inp.getAttribute("data-v"),f=inp.getAttribute("data-f");vars[i][f]=f==="stock_qty"?(parseInt(inp.value,10)||0):inp.value;}});
+      Array.prototype.forEach.call(document.querySelectorAll("[data-vdel]"),function(b){b.onclick=function(){var i=+b.getAttribute("data-vdel"); vars[i]._del=true; vars.splice(i,1); if(!vars.length)vars=[{id:null,value:"",stock_qty:0,sku:""}]; drawVars();}});
+    }
+    var removed=[]; drawVars();
+    $("addVar").onclick=function(){vars.push({id:null,value:"",stock_qty:0,sku:""}); drawVars();};
+    // Show the label/price fields only when "customisable" is ticked.
+    $("fCustom").onchange=function(){ $("customFields").style.display = $("fCustom").checked ? "grid" : "none"; };
+
+    $("saveEd").onclick=async function(){
+      $("edErr").textContent=""; $("edOk").textContent="";
+      var name=$("fName").value.trim(); var pence=poundsToPence($("fPrice").value);
+      if(!name){ $("edErr").textContent="Name is required."; return; }
+      if(pence<=0){ $("edErr").textContent="Enter a valid price."; return; }
+      // Read photos + size rows straight from the inputs at save time, so a value
+      // typed in never depends on an input event having fired/stayed in sync.
+      var cleanImgs=[];
+      Array.prototype.forEach.call(document.querySelectorAll("#images [data-img]"),function(inp){ var u=inp.value.trim(); if(u) cleanImgs.push(u); });
+      // Read each size row straight from the inputs at save time.
+      var rows=[];
+      Array.prototype.forEach.call(document.querySelectorAll("#variants [data-v]"),function(inp){
+        var i=+inp.getAttribute("data-v"), f=inp.getAttribute("data-f");
+        if(!rows[i]) rows[i]={ id:(vars[i]&&vars[i].id)||null, value:"", stock_qty:0, sku:"" };
+        if(f==="stock_qty") rows[i].stock_qty=parseInt(inp.value,10)||0; else rows[i][f]=(inp.value||"").trim();
+      });
+      // Keep only rows the user actually put something in; a row counts as "used" if it
+      // has a size name, some stock, or a SKU. A fully blank row is just ignored.
+      var used=rows.filter(function(r){ return r && (r.value || r.stock_qty>0 || (r.sku&&r.sku.trim())); });
+      // A used row with stock/SKU but no size name is almost certainly a forgotten size.
+      var missing=used.filter(function(r){ return !r.value; });
+      if(missing.length){
+        $("edErr").textContent="Add a size name (e.g. M) in the Size box before saving — the grey “type a size” text is only a hint, not a real entry.";
+        return;
+      }
+      if(!used.length){
+        $("edErr").textContent="Add at least one size (e.g. M) with its stock — a product with no sizes can’t be bought.";
+        return;
+      }
+      var custOn=$("fCustom").checked;
+      var custPence=custOn?poundsToPence($("fCustomPrice").value):0;
+      if(custOn && custPence<=0){ $("edErr").textContent="Enter the extra charge (£) for customisation, or untick it."; return; }
+      var product={name:name,description:$("fDesc").value.trim(),images:cleanImgs,price_pence:pence,
+        category:$("fCat").value.trim(),sub_category:$("fSubCat").value.trim(),colour:$("fColour").value.trim(),
+        active:$("fActive").value==="true",
+        customisable:custOn, custom_label:custOn?$("fCustomLabel").value.trim():null, custom_price_pence:custPence,
+        club_discount_eligible:$("fClubElig").checked};
+      if(id) product.id=id;
+      $("saveEd").disabled=true;
+      try{
+        var pid=await rpc("store_admin_save_product",{p_code:CODE,p:product});
+        pid=String(pid).replace(/"/g,"");
+        for(var k=0;k<used.length;k++){ var v=used[k];
+          await rpc("store_admin_save_variant",{p_code:CODE,p:{id:v.id||null,product_id:pid,label:"Size",value:v.value,sku:v.sku||null,stock_qty:v.stock_qty||0,sort:k}});
+        }
+        // Confirm from the server what actually persisted.
+        var fresh=await rpc("store_admin_products",{p_code:CODE})||[];
+        var justSaved=fresh.filter(function(x){return x.id===pid})[0];
+        var report=justSaved?(justSaved.variants||[]).map(function(v){return v.value+" ("+v.stock_qty+")"}).join(" · "):"";
+        $("edOk").textContent="Saved ✓"+(report?" — stock now: "+report:"");
+        PRODUCTS=fresh; renderProducts();
+        $("prodCount").textContent=PRODUCTS.length+" product"+(PRODUCTS.length===1?"":"s");
+        setTimeout(function(){ $("editor").classList.add("hide"); $("editor").innerHTML=""; },1400);
+      }catch(err){ $("edErr").textContent=err.message; }
+      $("saveEd").disabled=false;
+    };
+    e.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+
+  async function delProduct(id){
+    if(!confirm("Delete this product and all its sizes? This can't be undone.")) return;
+    try{ await rpc("store_admin_delete_product",{p_code:CODE,p_id:id}); loadProducts(); }catch(e){ alert(e.message); }
+  }
+
+  // ---------- Orders ----------
+  $("refreshOrders").onclick=loadOrders;
+  var STATUSES=["paid","shipped","ready_for_collection","collected","cancelled","refunded"];
+  async function loadOrders(){
+    $("orders").innerHTML='<p class="muted sm">Loading…</p>';
+    var list; try{ list=await rpc("store_admin_orders",{p_code:CODE})||[]; }catch(e){ $("orders").innerHTML='<p class="err">'+esc(e.message)+'</p>'; return; }
+    $("orderCount").textContent=list.length+" order"+(list.length===1?"":"s");
+    if(!list.length){ $("orders").innerHTML='<div class="card muted sm">No orders yet.</div>'; return; }
+    $("orders").innerHTML=list.map(function(o){
+      var items=(o.items||[]).map(function(i){return esc(i.product_name)+(i.variant_value?" ("+esc(i.variant_value)+")":"")+" ×"+i.qty}).join(", ");
+      var a=o.shipping_address||{};
+      var addr=o.fulfilment_method==="collection"
+        ? '<b>Click &amp; Collect</b> — Brentwood Padel Club'
+        : '<b>Deliver</b> — '+[a.line1,a.line2,a.city,a.postcode].filter(Boolean).map(esc).join(", ");
+      var opts=STATUSES.map(function(s){return '<option value="'+s+'"'+(o.status===s?" selected":"")+'>'+s.replace(/_/g," ")+'</option>'}).join("");
+      var when=new Date(o.created_at).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+      return '<div class="card"><div class="row" style="justify-content:space-between">'
+        +'<div><span class="pill '+o.status+'">'+o.status.replace(/_/g," ")+'</span> <span class="muted sm">'+when+'</span></div>'
+        +'<div style="font-weight:800">'+money(o.total_pence)+'</div></div>'
+        +'<div style="margin-top:8px;font-weight:700">'+items+'</div>'
+        +'<div class="sm" style="margin-top:4px">'+addr+'</div>'
+        +'<div class="muted sm" style="margin-top:4px">'+esc(o.buyer_name||"")+(o.buyer_email?' · '+esc(o.buyer_email):"")
+        +' · item '+money(o.item_price_pence)+' + p&p '+money(o.shipping_pence)
+        +((o.discount_pence>0||o.discount_code)?' · '+(o.discount_code?('code '+esc(o.discount_code)):'member')+' −'+money(o.discount_pence):"")+'</div>'
+        +'<div class="row" style="margin-top:10px"><select data-ord="'+o.id+'" style="max-width:220px">'+opts+'</select>'
+        +'<button class="btn sm" data-save="'+o.id+'">Update</button></div></div>';
+    }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-save]"),function(b){b.onclick=async function(){
+      var id=b.getAttribute("data-save"); var sel=document.querySelector('[data-ord="'+id+'"]');
+      b.disabled=true; try{ await rpc("store_admin_set_order_status",{p_code:CODE,p_order_id:id,p_status:sel.value}); loadOrders(); }catch(e){ alert(e.message); b.disabled=false; }
+    }});
+  }
+
+  // ---------- Discount codes ----------
+  $("ncKind").onchange=function(){ $("ncAmountWrap").style.display = $("ncKind").value==="fixed" ? "" : "none"; };
+  async function loadCodes(){
+    $("codes").innerHTML='<p class="muted sm">Loading…</p>';
+    var list; try{ list=await rpc("store_admin_discount_codes",{p_code:CODE})||[]; }catch(e){ $("codes").innerHTML='<p class="err">'+esc(e.message)+'</p>'; return; }
+    $("codeCount").textContent=list.length+" code"+(list.length===1?"":"s");
+    if(!list.length){ $("codes").innerHTML='<div class="card muted sm">No codes yet. Add one above.</div>'; return; }
+    $("codes").innerHTML=list.map(function(c){
+      var what=c.kind==="free_delivery" ? "Free delivery" : (money(c.amount_pence)+" off the item");
+      return '<div class="card"><div class="row" style="justify-content:space-between;align-items:center">'
+        +'<div><div style="font-weight:800;letter-spacing:1px">'+esc(c.code)+(c.active?'':' <span class="pill cancelled">off</span>')+'</div>'
+        +'<div class="muted sm">'+what+'</div></div>'
+        +'<div class="row"><button class="btn sm sec" data-toggle="'+c.id+'" data-active="'+(c.active?"1":"0")+'">'+(c.active?"Turn off":"Turn on")+'</button>'
+        +'<button class="btn sm warn" data-cdel="'+c.id+'">Delete</button></div></div></div>';
+    }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-toggle]"),function(b){b.onclick=async function(){
+      var id=b.getAttribute("data-toggle"), on=b.getAttribute("data-active")==="1";
+      var row=CODES_BY_ID[id]; if(!row) return; b.disabled=true;
+      try{ await rpc("store_admin_save_discount",{p_code:CODE,p:{id:id,code:row.code,kind:row.kind,amount_pence:row.amount_pence,active:!on}}); loadCodes(); }catch(e){ alert(e.message); b.disabled=false; }
+    }});
+    Array.prototype.forEach.call(document.querySelectorAll("[data-cdel]"),function(b){b.onclick=async function(){
+      if(!confirm("Delete this code?")) return; var id=b.getAttribute("data-cdel"); b.disabled=true;
+      try{ await rpc("store_admin_delete_discount",{p_code:CODE,p_id:id}); loadCodes(); }catch(e){ alert(e.message); b.disabled=false; }
+    }});
+    CODES_BY_ID={}; list.forEach(function(c){ CODES_BY_ID[c.id]=c; });
+  }
+  var CODES_BY_ID={};
+  $("refreshCodes").onclick=loadCodes;
+  $("addCode").onclick=async function(){
+    $("ncErr").textContent=""; $("ncOk").textContent="";
+    var code=$("ncCode").value.trim(), kind=$("ncKind").value;
+    if(!code){ $("ncErr").textContent="Enter a code."; return; }
+    var amount = kind==="fixed" ? poundsToPence($("ncAmount").value) : 0;
+    if(kind==="fixed" && amount<=0){ $("ncErr").textContent="Enter an amount off (£)."; return; }
+    $("addCode").disabled=true;
+    try{
+      await rpc("store_admin_save_discount",{p_code:CODE,p:{code:code,kind:kind,amount_pence:amount,active:true}});
+      $("ncOk").textContent="Added ✓"; $("ncCode").value=""; $("ncAmount").value=""; loadCodes();
+    }catch(e){ $("ncErr").textContent=e.message; }
+    $("addCode").disabled=false;
+  };
+
+  // ---------- Club discounts ----------
+  var CLUBS_LOADED=false, CLUB_DISCS_BY_ID={};
+  async function loadClubsDropdown(){
+    if(CLUBS_LOADED) return;
+    try{
+      var clubs=await rpc("store_admin_clubs",{p_code:CODE})||[];
+      $("ncClub").innerHTML='<option value="">Choose a club…</option>'+clubs.map(function(c){return '<option value="'+esc(c.name)+'">'+esc(c.name)+'</option>'}).join("");
+      CLUBS_LOADED=true;
+    }catch(e){ $("ncClub").innerHTML='<option value="">Could not load clubs</option>'; }
+  }
+  async function loadClubDiscounts(){
+    loadClubsDropdown();
+    $("clubDiscs").innerHTML='<p class="muted sm">Loading…</p>';
+    var list; try{ list=await rpc("store_admin_club_discounts",{p_code:CODE})||[]; }catch(e){ $("clubDiscs").innerHTML='<p class="err">'+esc(e.message)+'</p>'; return; }
+    $("clubDiscCount").textContent=list.length+" club discount"+(list.length===1?"":"s");
+    if(!list.length){ $("clubDiscs").innerHTML='<div class="card muted sm">No club discounts yet. Add one above.</div>'; return; }
+    CLUB_DISCS_BY_ID={}; list.forEach(function(d){ CLUB_DISCS_BY_ID[d.id]=d; });
+    $("clubDiscs").innerHTML=list.map(function(d){
+      return '<div class="card"><div class="row" style="justify-content:space-between;align-items:center">'
+        +'<div><div style="font-weight:800">'+esc(d.club_name)+(d.active?'':' <span class="pill cancelled">off</span>')+'</div>'
+        +'<div class="muted sm">'+money(d.amount_pence)+' off eligible items for members</div></div>'
+        +'<div class="row"><button class="btn sm sec" data-cdtoggle="'+d.id+'">'+(d.active?"Turn off":"Turn on")+'</button>'
+        +'<button class="btn sm warn" data-cddel="'+d.id+'">Delete</button></div></div></div>';
+    }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-cdtoggle]"),function(b){b.onclick=async function(){
+      var id=b.getAttribute("data-cdtoggle"), d=CLUB_DISCS_BY_ID[id]; if(!d)return; b.disabled=true;
+      try{ await rpc("store_admin_save_club_discount",{p_code:CODE,p:{id:id,club_name:d.club_name,amount_pence:d.amount_pence,active:!d.active}}); loadClubDiscounts(); }catch(e){ alert(e.message); b.disabled=false; }
+    }});
+    Array.prototype.forEach.call(document.querySelectorAll("[data-cddel]"),function(b){b.onclick=async function(){
+      if(!confirm("Delete this club discount?"))return; var id=b.getAttribute("data-cddel"); b.disabled=true;
+      try{ await rpc("store_admin_delete_club_discount",{p_code:CODE,p_id:id}); loadClubDiscounts(); }catch(e){ alert(e.message); b.disabled=false; }
+    }});
+  }
+  $("refreshClubs").onclick=loadClubDiscounts;
+  $("addClubDisc").onclick=async function(){
+    $("ncClubErr").textContent=""; $("ncClubOk").textContent="";
+    var club=$("ncClub").value, amt=poundsToPence($("ncClubAmount").value);
+    if(!club){ $("ncClubErr").textContent="Choose a club."; return; }
+    if(amt<=0){ $("ncClubErr").textContent="Enter an amount off (£)."; return; }
+    $("addClubDisc").disabled=true;
+    try{ await rpc("store_admin_save_club_discount",{p_code:CODE,p:{club_name:club,amount_pence:amt,active:true}}); $("ncClubOk").textContent="Added ✓"; $("ncClubAmount").value=""; loadClubDiscounts(); }
+    catch(e){ $("ncClubErr").textContent=e.message; }
+    $("addClubDisc").disabled=false;
+  };
+
+  // ---------- boot: remember code per device ----------
+  (function(){ var saved=""; try{saved=localStorage.getItem("padeja_store_code")||""}catch(e){}
+    if(saved){ tryCode(saved).then(function(ok){ if(ok){ CODE=saved; openApp(); } }); }
+  })();
+})();
+</script>
+</body>
+</html>
