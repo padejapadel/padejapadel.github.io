@@ -197,12 +197,26 @@
     if(w==="b") return '<span class="win b">'+esc(MODEL.teamB||"B")+' win</span>';
     return '<span class="win pending">In progress</span>';
   }
+  // Sort key for a start time like "13.00" / "14:30" -> minutes since midnight.
+  // Blank/unknown times sort to the end.
+  function timeKey(t){
+    var s=String(t==null?"":t).replace(":",".").trim();
+    if(!s) return 999999;
+    var p=s.split("."); var h=parseInt(p[0],10), m=parseInt(p[1]||"0",10);
+    if(isNaN(h)) return 999999;
+    return h*60+(isNaN(m)?0:m);
+  }
   function renderFixtures(){
     var html="";
-    MODEL.fixtures.forEach(function(fx,i){
+    // Show matches in start-time order (earliest first); keep the ORIGINAL index
+    // for editing so scores still save to the right match.
+    var order = MODEL.fixtures.map(function(_,i){return i;})
+      .sort(function(a,b){ var d=timeKey(MODEL.fixtures[a].time)-timeKey(MODEL.fixtures[b].time); return d!==0?d:a-b; });
+    order.forEach(function(i, pos){
+      var fx = MODEL.fixtures[i];
       html += '<div class="fx" data-card="'+i+'">'
         + '<div class="fxhead">'
-        +   '<div class="no">Match '+(i+1)+'</div>'
+        +   '<div class="no">Match '+(pos+1)+'</div>'
         +   '<input class="bracket" data-fx="'+i+'" data-field="bracket" value="'+esc(fx.bracket)+'">'
         +   '<span data-badge="'+i+'">'+winBadge(i)+'</span>'
         + '</div>'

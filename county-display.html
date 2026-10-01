@@ -180,6 +180,14 @@
   // Event rename: the saved match data still calls the teams Essex / Cambridge.
   // Show them as Brentwood / Haverhill. Players and scores are left untouched.
   function renameTeam(s){ return s==null?s:String(s).replace(/\bessex\b/ig,"Brentwood").replace(/\bcambridge\b/ig,"Haverhill"); }
+  // Sort key for a start time like "13.00" / "14:30" -> minutes since midnight; blanks last.
+  function timeKey(t){
+    var s=String(t==null?"":t).replace(":",".").trim();
+    if(!s) return 999999;
+    var p=s.split("."); var h=parseInt(p[0],10), m=parseInt(p[1]||"0",10);
+    if(isNaN(h)) return 999999;
+    return h*60+(isNaN(m)?0:m);
+  }
   function render(d){
     var A=renameTeam(d.teamA)||"Brentwood", B=renameTeam(d.teamB)||"Haverhill";
     document.getElementById("title").textContent = A+" vs "+B;
@@ -205,7 +213,9 @@
     else won.textContent="";
 
     var html="";
-    fx.forEach(function(f,i){
+    // Show matches in start-time order (earliest first).
+    var ordered = fx.slice().sort(function(x,y){ return timeKey(x.time)-timeKey(y.time); });
+    ordered.forEach(function(f,i){
       var w=winnerOf(f);
       var ct=[]; if(f.court)ct.push("Court "+esc(f.court)); if(f.time)ct.push(esc(f.time));
       html += '<div class="m">'
