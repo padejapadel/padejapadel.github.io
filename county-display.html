@@ -86,6 +86,16 @@
   .foot{display:flex;align-items:center;justify-content:center;gap:2vw;height:5.6vh}
   .foot img.powered{height:4.6vh;width:auto;display:block;opacity:.95}
   .off{position:fixed;bottom:1vh;right:1.2vw;color:var(--dim2);font-size:1.2vh;font-weight:700}
+  /* Live win-probability bar */
+  .winprob{margin:0 0 1.3vh}
+  .wp-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:.6vh}
+  .wp-head .nm{font-family:'Saira';font-weight:800;font-size:2vh;letter-spacing:.02em;white-space:nowrap}
+  .wp-a-txt{color:var(--a)} .wp-b-txt{color:var(--b)}
+  .wp-head .nm b{font-variant-numeric:tabular-nums}
+  .wp-cap{color:var(--dim2);font-weight:800;font-size:1.3vh;letter-spacing:.14em;text-transform:uppercase;text-align:center}
+  .wp-bar{display:flex;height:2.4vh;border-radius:1.2vh;overflow:hidden;background:#0f1e30;border:1px solid var(--line)}
+  .wp-bar .fa{background:linear-gradient(90deg,#0088d6,var(--a));transition:width .8s ease;min-width:0}
+  .wp-bar .fb{background:linear-gradient(90deg,var(--b),#e2504f);transition:width .8s ease;min-width:0}
 </style>
 </head>
 <body>
@@ -116,6 +126,15 @@
       <div class="tblock"><div class="nm" id="nmB">Haverhill</div></div>
       <div class="pts" id="ptsB">0</div>
     </div>
+  </div>
+
+  <div class="winprob">
+    <div class="wp-head">
+      <span class="nm wp-a-txt"><span id="wpAteam">Brentwood</span> <b id="wpAnum">50%</b></span>
+      <span class="wp-cap">Win probability</span>
+      <span class="nm wp-b-txt"><b id="wpBnum">50%</b> <span id="wpBteam">Haverhill</span></span>
+    </div>
+    <div class="wp-bar"><div class="fa" id="wpAfill" style="width:50%"></div><div class="fb" id="wpBfill" style="width:50%"></div></div>
   </div>
 
   <div class="grid" id="grid"></div>
@@ -180,6 +199,28 @@
   // Event rename: the saved match data still calls the teams Essex / Cambridge.
   // Show them as Brentwood / Haverhill. Players and scores are left untouched.
   function renameTeam(s){ return s==null?s:String(s).replace(/\bessex\b/ig,"Brentwood").replace(/\bcambridge\b/ig,"Haverhill"); }
+  // ---- Live win probability -------------------------------------------------
+  // Each still-to-play match is treated as a 50/50 toss; we work out the chance
+  // each team reaches the target (5) — a tie counts as half each — so it starts
+  // at 50/50 and shifts with every completed result. Returns {a,b} percentages
+  // that always add up to 100.
+  function nCk(n,k){ if(k<0||k>n) return 0; k=Math.min(k,n-k); var c=1; for(var i=0;i<k;i++) c=c*(n-i)/(i+1); return c; }
+  function winProb(a,b,r){
+    var T=WIN_TARGET;
+    if(a>=T) return {a:100,b:0};
+    if(b>=T) return {a:0,b:100};
+    if(r<=0){ if(a>b) return {a:100,b:0}; if(b>a) return {a:0,b:100}; return {a:50,b:50}; }
+    var pB=0,pH=0,pD=0, tot=Math.pow(2,r);
+    for(var k=0;k<=r;k++){
+      var w=nCk(r,k)/tot, A=a+k, B=b+(r-k);
+      if(A>=T) pB+=w; else if(B>=T) pH+=w;
+      else if(A>B) pB+=w; else if(B>A) pH+=w; else pD+=w;
+    }
+    var pctA=Math.round((pB+0.5*pD)*100);
+    if(pctA<0)pctA=0; if(pctA>100)pctA=100;
+    return {a:pctA, b:100-pctA};
+  }
+
   // Sort key for a start time like "13.00" / "14:30" -> minutes since midnight; blanks last.
   function timeKey(t){
     var s=String(t==null?"":t).replace(":",".").trim();
@@ -201,6 +242,12 @@
     fx.forEach(function(f){ var w=winnerOf(f); if(w==="a")a++; else if(w==="b")b++; });
     document.getElementById("ptsA").textContent=a; document.getElementById("ptsB").textContent=b;
     document.getElementById("pips").innerHTML=pipsHtml(a,b);
+
+    // Live win probability (undecided matches = 50/50 each).
+    var wp = winProb(a, b, fx.length-(a+b));
+    document.getElementById("wpAteam").textContent=A; document.getElementById("wpBteam").textContent=B;
+    document.getElementById("wpAnum").textContent=wp.a+"%"; document.getElementById("wpBnum").textContent=wp.b+"%";
+    document.getElementById("wpAfill").style.width=wp.a+"%"; document.getElementById("wpBfill").style.width=wp.b+"%";
 
     // dim the trailing side; announce the winner if someone hits the target or all matches are done
     var tA=document.getElementById("teamA"), tB=document.getElementById("teamB");
