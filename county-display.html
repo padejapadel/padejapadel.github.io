@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Essex vs Haverhill — Live</title>
+<title>Brentwood vs Haverhill — Live</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800;900&family=Saira:wght@700;800;900&display=swap" rel="stylesheet">
@@ -92,7 +92,7 @@
 <div class="stage">
   <div class="hdr">
     <div>
-      <div class="title" id="title">Cambridge vs Essex</div>
+      <div class="title" id="title">Brentwood vs Haverhill</div>
       <div class="meta" id="meta">County Match Day</div>
     </div>
     <div class="spacer"></div>
@@ -102,7 +102,7 @@
   <div class="board">
     <div class="team a" id="teamA">
       <img class="crest" id="crestA" alt="" style="display:none">
-      <div class="tblock"><div class="nm" id="nmA">Cambridge</div></div>
+      <div class="tblock"><div class="nm" id="nmA">Brentwood</div></div>
       <div class="pts" id="ptsA">0</div>
     </div>
     <div class="mid">
@@ -113,7 +113,7 @@
     </div>
     <div class="team b" id="teamB">
       <img class="crest" id="crestB" alt="" style="display:none">
-      <div class="tblock"><div class="nm" id="nmB">Essex</div></div>
+      <div class="tblock"><div class="nm" id="nmB">Haverhill</div></div>
       <div class="pts" id="ptsB">0</div>
     </div>
   </div>
@@ -141,6 +141,10 @@
   };
   function crestFor(name){
     var n=(name||"").toLowerCase();
+    // Keep each side's existing crest after the rename:
+    // Brentwood (was Essex) -> the Essex crest; Haverhill (was Cambridge) -> the Cambridge crest.
+    if(n.indexOf("brentwood")>-1) return CREST.essex;
+    if(n.indexOf("haverhill")>-1) return CREST.cambridge;
     if(n.indexOf("cambridge")>-1) return CREST.cambridge;
     if(n.indexOf("essex")>-1)     return CREST.essex;
     return "";
@@ -173,9 +177,12 @@
     return out;
   }
 
+  // Event rename: the saved match data still calls the teams Essex / Cambridge.
+  // Show them as Brentwood / Haverhill. Players and scores are left untouched.
+  function renameTeam(s){ return s==null?s:String(s).replace(/\bessex\b/ig,"Brentwood").replace(/\bcambridge\b/ig,"Haverhill"); }
   function render(d){
-    var A=d.teamA||"Cambridge", B=d.teamB||"Essex";
-    document.getElementById("title").textContent = d.title||"Cambridge vs Essex";
+    var A=renameTeam(d.teamA)||"Brentwood", B=renameTeam(d.teamB)||"Haverhill";
+    document.getElementById("title").textContent = A+" vs "+B;
     var meta=[]; if(d.subtitle)meta.push(d.subtitle); if(d.venue)meta.push(d.venue);
     if(d.date){ try{ var dt=new Date(d.date+"T00:00:00"); if(!isNaN(dt)) meta.push(dt.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})); }catch(e){} }
     document.getElementById("meta").textContent = meta.join(" · ");

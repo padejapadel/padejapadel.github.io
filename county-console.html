@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cambridge vs Essex — Console</title>
+<title>Brentwood vs Haverhill — Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700;800;900&family=Saira:wght@600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -92,14 +92,14 @@
 <div class="wrap" id="app" style="display:none">
   <div class="top">
     <div>
-      <h1 id="hTitle">Cambridge vs Essex</h1>
+      <h1 id="hTitle">Brentwood vs Haverhill</h1>
       <div class="sub" id="hSub">County Match Day · Brentwood</div>
     </div>
     <div class="spacer"></div>
     <div class="tally">
-      <div style="text-align:center"><div class="n camb" id="tCamb">0</div><div class="lbl" id="lCamb">Cambridge</div></div>
+      <div style="text-align:center"><div class="n camb" id="tCamb">0</div><div class="lbl" id="lCamb">Brentwood</div></div>
       <div class="dash">–</div>
-      <div style="text-align:center"><div class="n essex" id="tEssex">0</div><div class="lbl" id="lEssex">Essex</div></div>
+      <div style="text-align:center"><div class="n essex" id="tEssex">0</div><div class="lbl" id="lEssex">Haverhill</div></div>
     </div>
     <div class="savebar">
       <div class="status" id="status">Loading…</div>
@@ -133,13 +133,24 @@
   var MODEL=null, saveTimer=null;
 
   function $(id){ return document.getElementById(id); }
+
+  // Event rename: the saved match still names the teams Essex / Cambridge. Show and
+  // save them as Brentwood / Haverhill. Players and scores are left completely untouched.
+  function renameTeam(s){ return s==null?s:String(s).replace(/\bessex\b/ig,"Brentwood").replace(/\bcambridge\b/ig,"Haverhill"); }
+  function migrateNames(m){
+    if(!m) return false;
+    var a=renameTeam(m.teamA), b=renameTeam(m.teamB), t=(a||"Brentwood")+" vs "+(b||"Haverhill");
+    var changed=(a!==m.teamA)||(b!==m.teamB)||(t!==m.title);
+    m.teamA=a; m.teamB=b; m.title=t;
+    return changed;
+  }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
 
   function defaultModel(){
     var brackets=["Level 2 · Women","Level 2 · Women","Level 2.5 · Men","Level 2.5 · Men","Level 3.0 · Men","Level 3.5 · Men","Level 4.0 · Men/Mixed","Level 4.5 · Men"];
     return {
-      title:"Cambridge vs Essex", subtitle:"County Match Day", date:"2026-10-03",
-      venue:"Brentwood Padel Club", teamA:"Cambridge", teamB:"Essex",
+      title:"Brentwood vs Haverhill", subtitle:"County Match Day", date:"2026-10-03",
+      venue:"Brentwood Padel Club", teamA:"Brentwood", teamB:"Haverhill",
       fixtures: brackets.map(function(b,i){
         return {no:i+1,bracket:b,court:"",time:"",a1:"",a2:"",b1:"",b2:"",
           sets:[{a:"",b:""},{a:"",b:""},{a:"",b:""}]};
@@ -165,7 +176,7 @@
 
   // ---------- rendering ----------
   function renderHeader(){
-    $("hTitle").textContent = MODEL.title || "Cambridge vs Essex";
+    $("hTitle").textContent = MODEL.title || "Brentwood vs Haverhill";
     $("hSub").textContent = (MODEL.subtitle||"") + (MODEL.venue? " · "+MODEL.venue : "");
     $("lCamb").textContent = MODEL.teamA || "Team A";
     $("lEssex").textContent = MODEL.teamB || "Team B";
@@ -257,7 +268,9 @@
       MODEL = (d && d.fixtures && d.fixtures.length) ? d : defaultModel();
       // make sure every fixture has 3 set slots
       MODEL.fixtures.forEach(function(fx){ fx.sets=fx.sets||[]; while(fx.sets.length<3) fx.sets.push({a:"",b:""}); });
+      var renamed = migrateNames(MODEL);   // flip old Essex/Cambridge names to the new ones
       render(); setStatus("Ready","ok");
+      if(renamed) scheduleSave();          // persist the corrected names once (players untouched)
     });
   }
 
