@@ -281,6 +281,9 @@
       +'</div>'
       +'<hr><label><input type="checkbox" id="fClubElig"'+(p.club_discount_eligible?" checked":"")+' style="width:auto;margin-right:8px;vertical-align:middle">Include in preferred-club member discounts</label>'
       +'<div class="muted sm" style="margin:-4px 0 8px">If ticked, members of any club with an active discount (see the <b>Club discounts</b> tab) get £ off this item and see a bubble on it.</div>'
+      +'<hr><label><input type="checkbox" id="fPreorder"'+(p.preorder?" checked":"")+' style="width:auto;margin-right:8px;vertical-align:middle">Sell as a pre-order</label>'
+      +'<div class="muted sm" style="margin:-4px 0 8px">Customers can buy &amp; pay now even when it&#39;s out of stock; you dispatch later. Untick to close pre-orders.</div>'
+      +'<div id="preorderFields"'+(p.preorder?"":' style="display:none"')+'><label>Dispatch note (shown to buyers)</label><input id="fPreorderNote" value="'+esc(p.preorder_dispatch_note||"")+'" placeholder="Ships w/c 2 November 2026"></div>'
       +'<div class="err" id="edErr"></div><div class="ok" id="edOk"></div>'
       +'<div class="row" style="margin-top:14px"><button class="btn" id="saveEd">Save product</button></div>';
 
@@ -322,6 +325,7 @@
     $("addVar").onclick=function(){vars.push({id:null,value:"",stock_qty:0,sku:""}); drawVars();};
     // Show the label/price fields only when "customisable" is ticked.
     $("fCustom").onchange=function(){ $("customFields").style.display = $("fCustom").checked ? "grid" : "none"; };
+    $("fPreorder").onchange=function(){ $("preorderFields").style.display = $("fPreorder").checked ? "block" : "none"; };
 
     $("saveEd").onclick=async function(){
       $("edErr").textContent=""; $("edOk").textContent="";
@@ -359,7 +363,9 @@
         category:$("fCat").value.trim(),sub_category:$("fSubCat").value.trim(),colour:$("fColour").value.trim(),
         active:$("fActive").value==="true",
         customisable:custOn, custom_label:custOn?$("fCustomLabel").value.trim():null, custom_price_pence:custPence,
-        club_discount_eligible:$("fClubElig").checked};
+        club_discount_eligible:$("fClubElig").checked,
+        preorder:$("fPreorder").checked,
+        preorder_dispatch_note:$("fPreorder").checked?$("fPreorderNote").value.trim():null};
       if(id) product.id=id;
       $("saveEd").disabled=true;
       try{
@@ -404,13 +410,14 @@
       var opts=STATUSES.map(function(s){return '<option value="'+s+'"'+(o.status===s?" selected":"")+'>'+s.replace(/_/g," ")+'</option>'}).join("");
       var when=new Date(o.created_at).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
       return '<div class="card"><div class="row" style="justify-content:space-between">'
-        +'<div><span class="pill '+o.status+'">'+o.status.replace(/_/g," ")+'</span> <span class="muted sm">'+when+'</span></div>'
+        +'<div><span class="pill '+o.status+'">'+o.status.replace(/_/g," ")+'</span>'+(o.is_preorder?' <span class="pill" style="background:#7c5cff22;color:#b9a9ff">pre-order</span>':'')+' <span class="muted sm">'+when+'</span></div>'
         +'<div style="font-weight:800">'+money(o.total_pence)+'</div></div>'
         +'<div style="margin-top:8px;font-weight:700">'+items+'</div>'
         +'<div class="sm" style="margin-top:4px">'+addr+'</div>'
         +'<div class="muted sm" style="margin-top:4px">'+esc(o.buyer_name||"")+(o.buyer_email?' · '+esc(o.buyer_email):"")
         +' · item '+money(o.item_price_pence)+' + p&p '+money(o.shipping_pence)
-        +((o.discount_pence>0||o.discount_code)?' · '+(o.discount_code?('code '+esc(o.discount_code)):'member')+' −'+money(o.discount_pence):"")+'</div>'
+        +((o.discount_pence>0||o.discount_code)?' · '+(o.discount_code?('code '+esc(o.discount_code)):'member')+' −'+money(o.discount_pence):"")
+        +((o.is_preorder&&o.preorder_dispatch_note)?' · '+esc(o.preorder_dispatch_note):"")+'</div>'
         +'<div class="row" style="margin-top:10px"><select data-ord="'+o.id+'" style="max-width:220px">'+opts+'</select>'
         +'<button class="btn sm" data-save="'+o.id+'">Update</button></div></div>';
     }).join("");
