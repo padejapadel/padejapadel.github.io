@@ -184,6 +184,13 @@
     return r.json();
   }
 
+  async function apiSetStatus(body){
+    var r=await fetch(SUPA+"/functions/v1/store-admin-set-status",{method:"POST",
+      headers:{apikey:ANON,Authorization:"Bearer "+ANON,"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!r.ok){ var t=await r.text(); throw new Error(t||("HTTP "+r.status)); }
+    return r.json();
+  }
+
   // ---------- Gate ----------
   async function tryCode(c){
     try{ var ok=await rpc("store_admin_check_code",{p_code:c}); return ok===true; }catch(e){ return false; }
@@ -423,7 +430,7 @@
     }).join("");
     Array.prototype.forEach.call(document.querySelectorAll("[data-save]"),function(b){b.onclick=async function(){
       var id=b.getAttribute("data-save"); var sel=document.querySelector('[data-ord="'+id+'"]');
-      b.disabled=true; try{ await rpc("store_admin_set_order_status",{p_code:CODE,p_order_id:id,p_status:sel.value}); loadOrders(); }catch(e){ alert(e.message); b.disabled=false; }
+      b.disabled=true; try{ await apiSetStatus({code:CODE,order_id:id,status:sel.value}); loadOrders(); }catch(e){ alert(e.message); b.disabled=false; }
     }});
   }
 
