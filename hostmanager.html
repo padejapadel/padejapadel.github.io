@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Padeja — Host Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0A1624; --card:#122034; --card2:#0D1B2E; --line:#1E3050;
+    --white:#F2F6FC; --muted:#8AA4C0; --brand:#3BC8F5; --accent:#F09537;
+    --green:#1D9E75; --loss:#E24B4A; --amber:#E2A23B;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--white); min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:15px; line-height:1.45;
+  }
+  a{color:var(--brand)}
+  .hidden{display:none !important}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px}
+
+  /* top bar */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid var(--line);padding:14px 24px;position:sticky;top:0;background:var(--bg);z-index:5;
+  }
+  .brand{font-size:19px;font-weight:800;letter-spacing:.3px}
+  .brand span{color:var(--brand)}
+  .brand .sub{color:var(--muted);font-weight:600;font-size:14px;margin-left:10px}
+  .whoami{display:flex;align-items:center;gap:14px;color:var(--muted);font-size:13px}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    border:0;border-radius:11px;padding:12px 18px;font-size:15px;font-weight:700;cursor:pointer;
+    font-family:inherit;text-decoration:none}
+  .btn-primary{background:var(--brand);color:#06131f}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+  .btn-sm{padding:8px 14px;font-size:13px;border-radius:9px}
+  .btn:disabled{opacity:.5;cursor:default}
+
+  /* login */
+  .login-center{min-height:calc(100vh - 0px);display:flex;align-items:center;justify-content:center;padding:24px}
+  .login-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px 24px}
+  .login-card h1{font-size:20px;margin:16px 0 4px;text-align:center}
+  .login-card p.lead{color:var(--muted);font-size:14px;text-align:center;margin:0 0 20px}
+  label{display:block;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin:0 0 6px}
+  input[type=email],input[type=password]{
+    width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;
+    color:var(--white);font-size:15px;padding:12px 14px;margin-bottom:14px;font-family:inherit}
+  input:focus{outline:none;border-color:var(--brand)}
+  .err{color:var(--loss);font-size:13px;margin:4px 0 12px;min-height:16px}
+  .link-row{text-align:center;margin-top:14px;font-size:13px}
+  .link-row a{cursor:pointer}
+
+  /* competition list */
+  .list-head{display:flex;align-items:center;justify-content:space-between;margin:6px 0 18px;gap:14px;flex-wrap:wrap}
+  .list-head h2{font-size:22px;font-weight:800;margin:0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .comp-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:border-color .12s}
+  .comp-card:hover{border-color:var(--brand)}
+  .comp-card h3{font-size:16px;margin:0 0 8px;font-weight:700}
+  .row-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;letter-spacing:.3px}
+  .chip-owner{background:rgba(59,200,245,.14);color:var(--brand)}
+  .chip-cohost{background:rgba(240,149,55,.15);color:var(--accent)}
+  .chip-open{background:rgba(29,158,117,.16);color:var(--green)}
+  .chip-closed{background:rgba(226,162,59,.16);color:var(--amber)}
+  .chip-neutral{background:rgba(138,164,192,.14);color:var(--muted)}
+  .muted{color:var(--muted)}
+  .empty{color:var(--muted);text-align:center;padding:60px 20px}
+
+  /* detail */
+  .back{display:inline-flex;align-items:center;gap:7px;color:var(--brand);cursor:pointer;font-weight:600;margin-bottom:14px}
+  .detail-head h2{font-size:24px;font-weight:800;margin:0 0 6px}
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0 8px}
+  .info-tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .info-tile .k{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+  .info-tile .v{font-size:16px;font-weight:700;margin-top:3px}
+  .section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:16px}
+  .section h3{font-size:12px;font-weight:800;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin:0 0 12px}
+  .reg{background:var(--card2);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+  .reg .name{font-weight:700;font-size:15px}
+  .reg .players{color:var(--muted);font-size:13px;margin-top:2px}
+  .reg .pay{font-size:12px;font-weight:700;margin-top:4px}
+  .pay-paid{color:var(--green)} .pay-wait{color:var(--amber)} .pay-refund{color:var(--muted)} .pay-none{color:var(--muted)}
+  .notice{background:rgba(59,200,245,.08);border:1px solid rgba(59,200,245,.25);border-radius:10px;padding:12px 14px;color:var(--muted);font-size:13px;margin-top:8px}
+  .spinner{color:var(--muted);text-align:center;padding:40px}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="view-login">
+  <div class="login-center">
+    <div class="login-card">
+      <div class="brand" style="text-align:center">Pade<span>ja</span> <span class="sub" style="display:block;margin:4px 0 0">Host Manager</span></div>
+      <h1>Sign in</h1>
+      <p class="lead">Use your normal Padeja email and password to manage your competitions.</p>
+      <form id="loginForm" autocomplete="on">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" placeholder="you@email.com" required />
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+        <div class="err" id="loginErr"></div>
+        <button class="btn btn-primary" type="submit" id="loginBtn" style="width:100%">Sign in</button>
+      </form>
+      <div class="link-row"><a id="forgotLink">Forgot your password?</a></div>
+      <div class="err" id="forgotMsg" style="text-align:center;color:var(--muted)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP (list + detail) ============ -->
+<div id="view-app" class="hidden">
+  <div class="topbar">
+    <div class="brand">Pade<span>ja</span><span class="sub">Host Manager</span></div>
+    <div class="whoami">
+      <span id="whoamiText"></span>
+      <button class="btn btn-ghost btn-sm" id="signOutBtn">Sign out</button>
+    </div>
+  </div>
+
+  <!-- list -->
+  <div id="view-list" class="wrap">
+    <div class="list-head">
+      <h2>Your competitions</h2>
+      <button class="btn btn-primary" id="createBtn">+ Create a competition</button>
+    </div>
+    <div id="createNote" class="notice hidden">Creating competitions on the web is coming in a later phase. For now, create them in the app — they'll appear here to manage.</div>
+    <div id="listSpinner" class="spinner">Loading your competitions…</div>
+    <div id="compGrid" class="grid"></div>
+    <div id="listEmpty" class="empty hidden">You're not hosting or co-hosting any competitions yet.<br>Create one in the Padeja app and it'll show up here.</div>
+  </div>
+
+  <!-- detail -->
+  <div id="view-detail" class="wrap hidden">
+    <div class="back" id="backBtn">← Back to your competitions</div>
+    <div class="detail-head">
+      <h2 id="dName"></h2>
+      <div class="row-chips" id="dChips"></div>
+    </div>
+    <div class="info-grid" id="dInfo"></div>
+    <div id="detailSpinner" class="spinner">Loading…</div>
+    <div id="regSections"></div>
+    <div class="notice">This is a read-only view for now (Phase 1). Approvals, reserves, pairing, fixtures and score entry come in the next phases.</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const SUPABASE_URL = "https://odrckirnjavfptlfygbo.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  const $ = (id) => document.getElementById(id);
+  const show = (id) => $(id).classList.remove("hidden");
+  const hide = (id) => $(id).classList.add("hidden");
+  const esc = (s) => (s == null ? "" : String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])));
+  const money = (p) => "£" + ((p || 0) / 100).toFixed(2);
+
+  let MY_UID = null;
+
+  // ---------- auth ----------
+  async function boot() {
+    const { data } = await sb.auth.getSession();
+    if (data && data.session) { await onSignedIn(); }
+    else { show("view-login"); hide("view-app"); }
+  }
+
+  $("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    $("loginErr").textContent = "";
+    $("loginBtn").disabled = true; $("loginBtn").textContent = "Signing in…";
+    const email = $("email").value.trim();
+    const password = $("password").value;
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    $("loginBtn").disabled = false; $("loginBtn").textContent = "Sign in";
+    if (error) { $("loginErr").textContent = error.message || "Couldn't sign in. Check your email and password."; return; }
+    await onSignedIn();
+  });
+
+  $("forgotLink").addEventListener("click", async () => {
+    const email = $("email").value.trim();
+    if (!email) { $("forgotMsg").textContent = "Enter your email above first, then tap Forgot password."; return; }
+    const { error } = await sb.auth.resetPasswordForEmail(email);
+    $("forgotMsg").textContent = error ? "Couldn't send the reset email — try again." : "If that email has an account, a password-reset link is on its way.";
+  });
+
+  $("signOutBtn").addEventListener("click", async () => {
+    await sb.auth.signOut();
+    location.reload();
+  });
+
+  async function onSignedIn() {
+    const { data: u } = await sb.auth.getUser();
+    MY_UID = u && u.user ? u.user.id : null;
+    $("whoamiText").textContent = u && u.user ? ("Signed in as " + u.user.email) : "";
+    hide("view-login"); show("view-app");
+    showList();
+    await loadCompetitions();
+  }
+
+  // ---------- competition list ----------
+  $("createBtn").addEventListener("click", () => { show("createNote"); });
+  $("backBtn").addEventListener("click", showList);
+
+  function showList(){ show("view-list"); hide("view-detail"); }
+  function showDetail(){ hide("view-list"); show("view-detail"); }
+
+  async function loadCompetitions() {
+    show("listSpinner"); hide("listEmpty"); $("compGrid").innerHTML = "";
+    const { data, error } = await sb.rpc("list_my_host_competitions");
+    hide("listSpinner");
+    if (error) { $("compGrid").innerHTML = '<div class="empty">Couldn’t load your competitions: ' + esc(error.message) + '</div>'; return; }
+    const comps = data || [];
+    if (!comps.length) { show("listEmpty"); return; }
+    // newest-ish first: keep server order, but push archived to the end
+    comps.sort((a,b) => (a.archived_at?1:0) - (b.archived_at?1:0));
+    $("compGrid").innerHTML = comps.map(renderCompCard).join("");
+    document.querySelectorAll("[data-comp]").forEach(el => {
+      el.addEventListener("click", () => openDetail(comps.find(c => c.id === el.getAttribute("data-comp"))));
+    });
+  }
+
+  function renderCompCard(c) {
+    const isOwner = c.created_by && MY_UID && c.created_by === MY_UID;
+    const roleChip = isOwner
+      ? '<span class="chip chip-owner">Owner</span>'
+      : '<span class="chip chip-cohost">Co-host</span>';
+    const regStatus = (c.registration_status || "").toLowerCase();
+    let regChip = "";
+    if (regStatus === "open") regChip = '<span class="chip chip-open">Registration open</span>';
+    else if (regStatus === "closed") regChip = '<span class="chip chip-closed">Registration closed</span>';
+    const fmt = c.format ? '<span class="chip chip-neutral">' + esc(cap(c.format)) + '</span>' : "";
+    const status = c.status ? '<span class="chip chip-neutral">' + esc(cap(c.status)) + '</span>' : "";
+    const archived = c.archived_at ? '<span class="chip chip-neutral">Archived</span>' : "";
+    return '<div class="comp-card" data-comp="' + esc(c.id) + '">' +
+      '<h3>' + esc(c.name || "Untitled competition") + '</h3>' +
+      '<div class="row-chips">' + roleChip + fmt + status + regChip + archived + '</div>' +
+      '</div>';
+  }
+  const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
+  // ---------- detail (read-only) ----------
+  async function openDetail(c) {
+    if (!c) return;
+    showDetail();
+    $("dName").textContent = c.name || "Untitled competition";
+    const isOwner = c.created_by && MY_UID && c.created_by === MY_UID;
+    const requiresPayment = c.has_entry_fee === true && (c.entry_fee_amount || 0) > 0;
+    $("dChips").innerHTML =
+      (isOwner ? '<span class="chip chip-owner">Owner</span>' : '<span class="chip chip-cohost">Co-host</span>') +
+      (c.format ? '<span class="chip chip-neutral">' + esc(cap(c.format)) + '</span>' : "") +
+      (c.status ? '<span class="chip chip-neutral">' + esc(cap(c.status)) + '</span>' : "") +
+      ((c.registration_status||"").toLowerCase()==="open" ? '<span class="chip chip-open">Registration open</span>'
+        : (c.registration_status||"").toLowerCase()==="closed" ? '<span class="chip chip-closed">Registration closed</span>' : "");
+
+    $("dInfo").innerHTML = [
+      infoTile("Format", c.format ? cap(c.format) : "—"),
+      infoTile("Entry fee", requiresPayment ? money(c.entry_fee_amount) : "Free"),
+      infoTile("Max players", c.max_players ? String(c.max_players) : "No limit"),
+      infoTile("Reserves", (c.reserves_enabled === false) ? "Off" : "On"),
+      infoTile("Join code", c.registration_code ? esc(c.registration_code) : "—"),
+    ].join("");
+
+    show("detailSpinner");
+    $("regSections").innerHTML = "";
+    const { data, error } = await sb.from("league_registrations")
+      .select("*").eq("tournament_id", c.id).order("created_at", { ascending: true });
+    hide("detailSpinner");
+    if (error) { $("regSections").innerHTML = '<div class="section">Couldn’t load registrations: ' + esc(error.message) + '</div>'; return; }
+    renderRegistrations(data || [], requiresPayment);
+  }
+
+  function infoTile(k, v){ return '<div class="info-tile"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>'; }
+
+  function isSolo(r){ return r.player1_profile_id && !r.player2_profile_id && !r.individual_profile_id; }
+  function isSettled(r, requiresPayment){ return !requiresPayment || (r.payment_status === "paid" && r.partner_payment_status !== "pending"); }
+  function displayName(r){
+    if (r.team_name && r.team_name.trim()) return r.team_name;
+    if (r.individual_name && r.individual_name.trim()) return r.individual_name;
+    const p1 = r.player1_name || "", p2 = r.player2_name || "";
+    if (p1 && p2) return p1 + " & " + p2;
+    return p1 || r.player_name || "Registration";
+  }
+  function playersLine(r){
+    const p1 = r.player1_name || "", p2 = r.player2_name || "";
+    if (p1 && p2) return p1 + " · " + p2;
+    if (r.individual_name) return r.individual_name;
+    return "";
+  }
+  function payChip(r, requiresPayment){
+    if (!requiresPayment) return "";
+    const ps = r.payment_status;
+    if (ps === "paid") return '<div class="pay pay-paid">Paid' + (r.partner_payment_status === "pending" ? " · partner's half owed" : "") + '</div>';
+    if (ps === "refunded") return '<div class="pay pay-refund">Refunded</div>';
+    return '<div class="pay pay-wait">Awaiting payment</div>';
+  }
+
+  function renderRegistrations(regs, requiresPayment) {
+    const reserve = regs.filter(r => r.status === "reserve").sort((a,b)=>(a.reserve_position||0)-(b.reserve_position||0));
+    const solo = regs.filter(r => r.status === "pending" && isSolo(r));
+    const pending = regs.filter(r => r.status === "pending" && !isSolo(r) && isSettled(r, requiresPayment));
+    const awaiting = regs.filter(r => r.status === "pending" && !isSolo(r) && !isSettled(r, requiresPayment));
+    const approved = regs.filter(r => r.status === "approved");
+
+    let html = "";
+    html += regSection("Pending approval", pending, requiresPayment, "No registrations waiting for approval.");
+    if (awaiting.length) html += regSection("Awaiting payment", awaiting, requiresPayment, "");
+    if (solo.length) html += regSection("Solo players (awaiting pairing)", solo, requiresPayment, "");
+    if (reserve.length) html += regSection("Reserves list", reserve, requiresPayment, "", true);
+    html += regSection("Approved", approved, requiresPayment, "No approved teams yet.");
+    $("regSections").innerHTML = html;
+  }
+
+  function regSection(title, rows, requiresPayment, emptyText, isReserve) {
+    let body;
+    if (!rows.length) body = emptyText ? '<div class="muted" style="font-size:13px">' + emptyText + '</div>' : "";
+    else body = rows.map((r,i) => {
+      const pos = isReserve ? '<span class="muted" style="font-weight:800;color:var(--accent);margin-right:8px">#' + (r.reserve_position || (i+1)) + '</span>' : "";
+      const pl = playersLine(r);
+      return '<div class="reg"><div class="name">' + pos + esc(displayName(r)) + '</div>' +
+        (pl ? '<div class="players">' + esc(pl) + '</div>' : "") +
+        payChip(r, requiresPayment) + '</div>';
+    }).join("");
+    return '<div class="section"><h3>' + esc(title) + ' (' + rows.length + ')</h3>' + (body || "") + '</div>';
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
