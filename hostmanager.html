@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Padeja — Host Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0A1624; --card:#122034; --card2:#0D1B2E; --line:#1E3050;
+    --white:#F2F6FC; --muted:#8AA4C0; --brand:#3BC8F5; --accent:#F09537;
+    --green:#1D9E75; --loss:#E24B4A; --amber:#E2A23B;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--white);min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45}
+  a{color:var(--brand)}
+  .hidden{display:none !important}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:14px 24px;position:sticky;top:0;background:var(--bg);z-index:5}
+  .brand{font-size:19px;font-weight:800;letter-spacing:.3px}
+  .brand span{color:var(--brand)}
+  .brand .sub{color:var(--muted);font-weight:600;font-size:14px;margin-left:10px}
+  .whoami{display:flex;align-items:center;gap:14px;color:var(--muted);font-size:13px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:0;border-radius:11px;padding:12px 18px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none}
+  .btn-primary{background:var(--brand);color:#06131f}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+  .btn-green{background:var(--green);color:#fff}
+  .btn-danger{background:transparent;color:var(--loss);border:1px solid var(--loss)}
+  .btn-amber{background:transparent;color:var(--accent);border:1px solid rgba(240,149,55,.6)}
+  .btn-sm{padding:8px 13px;font-size:13px;border-radius:9px}
+  .btn:disabled{opacity:.5;cursor:default}
+  .login-center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .login-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px 24px}
+  .login-card h1{font-size:20px;margin:16px 0 4px;text-align:center}
+  .login-card p.lead{color:var(--muted);font-size:14px;text-align:center;margin:0 0 20px}
+  label{display:block;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin:0 0 6px}
+  input[type=email],input[type=password]{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--white);font-size:15px;padding:12px 14px;margin-bottom:14px;font-family:inherit}
+  input:focus{outline:none;border-color:var(--brand)}
+  .err{color:var(--loss);font-size:13px;margin:4px 0 12px;min-height:16px}
+  .link-row{text-align:center;margin-top:14px;font-size:13px}
+  .link-row a{cursor:pointer}
+  .list-head{display:flex;align-items:center;justify-content:space-between;margin:6px 0 18px;gap:14px;flex-wrap:wrap}
+  .list-head h2{font-size:22px;font-weight:800;margin:0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .comp-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:border-color .12s}
+  .comp-card:hover{border-color:var(--brand)}
+  .comp-card h3{font-size:16px;margin:0 0 8px;font-weight:700}
+  .row-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;letter-spacing:.3px}
+  .chip-owner{background:rgba(59,200,245,.14);color:var(--brand)}
+  .chip-cohost{background:rgba(240,149,55,.15);color:var(--accent)}
+  .chip-open{background:rgba(29,158,117,.16);color:var(--green)}
+  .chip-closed{background:rgba(226,162,59,.16);color:var(--amber)}
+  .chip-neutral{background:rgba(138,164,192,.14);color:var(--muted)}
+  .muted{color:var(--muted)}
+  .empty{color:var(--muted);text-align:center;padding:60px 20px}
+  .back{display:inline-flex;align-items:center;gap:7px;color:var(--brand);cursor:pointer;font-weight:600;margin-bottom:14px}
+  .detail-head h2{font-size:24px;font-weight:800;margin:0 0 6px}
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0 8px}
+  .info-tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .info-tile .k{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+  .info-tile .v{font-size:16px;font-weight:700;margin-top:3px}
+  .section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:16px}
+  .section h3{font-size:12px;font-weight:800;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin:0 0 12px}
+  .reg{background:var(--card2);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+  .reg .name{font-weight:700;font-size:15px}
+  .reg .players{color:var(--muted);font-size:13px;margin-top:2px}
+  .reg .pay{font-size:12px;font-weight:700;margin-top:4px}
+  .pay-paid{color:var(--green)} .pay-wait{color:var(--amber)} .pay-refund{color:var(--muted)} .pay-none{color:var(--muted)}
+  .reg-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .notice{background:rgba(59,200,245,.08);border:1px solid rgba(59,200,245,.25);border-radius:10px;padding:12px 14px;color:var(--muted);font-size:13px;margin-top:8px}
+  .spinner{color:var(--muted);text-align:center;padding:40px}
+  /* modal */
+  .modal-ov{position:fixed;inset:0;background:rgba(4,10,20,.66);display:flex;align-items:center;justify-content:center;z-index:50;padding:24px}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;max-width:440px;width:100%}
+  .modal h3{margin:0 0 10px;font-size:18px}
+  .modal-body{color:var(--muted);font-size:14px;line-height:1.5}
+  .modal-actions{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+  .pick{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px;cursor:pointer}
+  .pick:hover{border-color:var(--brand)}
+  /* toast */
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#16304a;color:#fff;border:1px solid var(--line);border-radius:11px;padding:12px 18px;font-weight:600;font-size:14px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .toast-err{background:#3a1720;border-color:rgba(226,75,74,.5);color:#ffd7d7}
+  select,textarea{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--white);font-size:15px;padding:11px 14px;margin-bottom:14px;font-family:inherit}
+  select:focus,textarea:focus{outline:none;border-color:var(--brand)}
+  .fg{margin-bottom:4px}
+  .fg .hint{color:var(--muted);font-size:12px;margin:-8px 0 14px}
+  .seg{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .seg button{flex:1;min-width:110px;background:var(--card2);border:1px solid var(--line);color:var(--muted);border-radius:10px;padding:11px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
+  .seg button.on{background:rgba(59,200,245,.15);border-color:var(--brand);color:var(--brand)}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;max-width:620px;margin:0 auto}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="view-login">
+  <div class="login-center">
+    <div class="login-card">
+      <div class="brand" style="text-align:center">Pade<span>ja</span> <span class="sub" style="display:block;margin:4px 0 0">Host Manager</span></div>
+      <h1>Sign in</h1>
+      <p class="lead">Use your normal Padeja email and password to manage your competitions.</p>
+      <form id="loginForm" autocomplete="on">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" placeholder="you@email.com" required />
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+        <div class="err" id="loginErr"></div>
+        <button class="btn btn-primary" type="submit" id="loginBtn" style="width:100%">Sign in</button>
+      </form>
+      <div class="link-row"><a id="forgotLink">Forgot your password?</a></div>
+      <div class="err" id="forgotMsg" style="text-align:center;color:var(--muted)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="view-app" class="hidden">
+  <div class="topbar">
+    <div class="brand">Pade<span>ja</span><span class="sub">Host Manager</span></div>
+    <div class="whoami"><span id="whoamiText"></span><button class="btn btn-ghost btn-sm" id="signOutBtn">Sign out</button></div>
+  </div>
+
+  <div id="view-list" class="wrap">
+    <div class="list-head">
+      <h2>Your competitions</h2>
+      <button class="btn btn-primary" id="createBtn">+ Create a competition</button>
+    </div>
+    <div id="createNote" class="notice hidden">Creating competitions on the web is coming in a later phase. For now, create them in the app — they'll appear here to manage.</div>
+    <div id="listSpinner" class="spinner">Loading your competitions…</div>
+    <div id="compGrid" class="grid"></div>
+    <div id="listEmpty" class="empty hidden">You're not hosting or co-hosting any competitions yet.<br>Create one in the Padeja app and it'll show up here.</div>
+  </div>
+
+  <div id="view-detail" class="wrap hidden">
+    <div class="back" id="backBtn">← Back to your competitions</div>
+    <div class="detail-head"><h2 id="dName"></h2><div class="row-chips" id="dChips"></div></div>
+    <div id="dActions" style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap"></div>
+    <div class="info-grid" id="dInfo"></div>
+    <div id="detailSpinner" class="spinner">Loading…</div>
+    <div id="regSections"></div>
+    <div id="divArea"></div>
+  </div>
+
+  <div id="view-create" class="wrap hidden">
+    <div class="back" id="createBack">← Back to your competitions</div>
+    <div class="form-card">
+      <h2 style="margin:0 0 4px">Create a competition</h2>
+      <p class="muted" style="margin:0 0 20px;font-size:14px">It'll be created with registration open, ready for players to join.</p>
+
+      <div class="fg"><label>Name</label><input id="cName" type="text" placeholder="e.g. Autumn Mixed League" /></div>
+
+      <label>Format</label>
+      <div class="seg" id="cFormat">
+        <button type="button" data-v="league" class="on">League</button>
+        <button type="button" data-v="mexicano">Mexicano</button>
+        <button type="button" data-v="americano">Americano</button>
+      </div>
+
+      <div id="cLeagueMode">
+        <label>How do players register?</label>
+        <div class="seg" id="cRegMode">
+          <button type="button" data-v="team" class="on">In pairs</button>
+          <button type="button" data-v="individual">As individuals</button>
+        </div>
+        <div class="toggle-row" id="cSoloRow"><span>Allow solo registrations (you pair them later)</span><input type="checkbox" id="cAllowSolo" /></div>
+      </div>
+
+      <label>Who can play?</label>
+      <div class="seg" id="cType">
+        <button type="button" data-v="open" class="on">Open</button>
+        <button type="button" data-v="mixed">Mixed</button>
+        <button type="button" data-v="male">Men</button>
+        <button type="button" data-v="female">Women</button>
+      </div>
+
+      <div class="toggle-row"><span>Charge an entry fee</span><input type="checkbox" id="cPaid" /></div>
+      <div id="cFeeBox" class="hidden">
+        <div class="two">
+          <div class="fg"><label>Entry fee (£)</label><input id="cFee" type="number" min="3" step="0.01" placeholder="e.g. 25.00" /></div>
+          <div class="fg"><label>&nbsp;</label><div class="toggle-row" style="margin:0"><span style="font-size:13px">Includes court costs</span><input type="checkbox" id="cCourt" /></div></div>
+        </div>
+        <div class="hint">Minimum £3.00 · Padeja charges 15% (min £3) per registration. Players can split a team fee at checkout.</div>
+        <div id="cStripeWarn" class="notice hidden" style="color:var(--amber)">To charge an entry fee you first need to connect a payout account — do that in the Padeja app (Host a competition → Payouts), then come back. You can still create a free competition now.</div>
+      </div>
+
+      <div class="two">
+        <div class="fg"><label>Max players (optional)</label><input id="cMax" type="number" min="0" placeholder="No limit" /></div>
+        <div class="fg"><label>&nbsp;</label><div class="toggle-row" style="margin:0"><span style="font-size:13px">Allow a reserves list</span><input type="checkbox" id="cReserves" checked /></div></div>
+      </div>
+      <div class="hint">Registration closes automatically once the cap is reached (a team counts as 2 players).</div>
+
+      <div id="cLeagueOpts">
+        <div class="two">
+          <div class="fg"><label>Number of divisions</label>
+            <select id="cDivs"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+          <div class="fg"><label>&nbsp;</label><div class="toggle-row" style="margin:0"><span style="font-size:13px">Knockout playoffs</span><input type="checkbox" id="cPlayoffs" /></div></div>
+        </div>
+      </div>
+
+      <div id="cRoundsOpts" class="hidden">
+        <div class="fg"><label>Points to win each match</label><input id="cPoints" type="number" min="1" value="16" /></div>
+        <div class="fg"><label>Courts in use (comma-separated)</label><input id="cCourts" type="text" value="1, 2" /></div>
+      </div>
+
+      <label style="margin-top:4px">Rating range (optional)</label>
+      <div class="two"><input id="cMinLvl" type="number" step="0.01" placeholder="Min (e.g. 3.2)" /><input id="cMaxLvl" type="number" step="0.01" placeholder="Max (e.g. 4.0)" /></div>
+
+      <label>Dates (optional)</label>
+      <div class="two"><input id="cStart" type="date" /><input id="cEnd" type="date" /></div>
+
+      <div class="fg"><label>Venue (optional)</label><input id="cVenue" type="text" placeholder="e.g. Brentwood Padel Club" /></div>
+
+      <label>Visibility</label>
+      <div class="seg" id="cVis">
+        <button type="button" data-v="private" class="on">Private (join by code / link)</button>
+        <button type="button" data-v="public">Public</button>
+      </div>
+      <div class="hint" id="cVisHint">Private competitions are joinable by the code or share link. Public ones also appear in Browse-by-Club — pick the club in the app after creating.</div>
+
+      <div class="err" id="cErr"></div>
+      <button class="btn btn-primary" id="cSubmit" style="width:100%">Create competition</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const SUPABASE_URL = "https://odrckirnjavfptlfygbo.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  const $ = (id) => document.getElementById(id);
+  const show = (id) => $(id).classList.remove("hidden");
+  const hide = (id) => $(id).classList.add("hidden");
+  const esc = (s) => (s == null ? "" : String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])));
+  const money = (p) => "£" + ((p || 0) / 100).toFixed(2);
+  const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const nowIso = () => new Date().toISOString();
+
+  let MY_UID = null, HOST_NAME = "The host", HOST_STRIPE_ID = null, HOST_STRIPE_STATUS = null;
+  let CURRENT_COMP = null, CURRENT_REGS = [];
+
+  function toast(msg, isErr){ const t=document.createElement("div"); t.className="toast"+(isErr?" toast-err":""); t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 3600); }
+  function openModal(title, bodyHtml, buttons){
+    const ov=document.createElement("div"); ov.className="modal-ov";
+    const m=document.createElement("div"); m.className="modal";
+    m.innerHTML='<h3>'+esc(title)+'</h3><div class="modal-body">'+bodyHtml+'</div><div class="modal-actions"></div>';
+    ov.appendChild(m); const acts=m.querySelector(".modal-actions");
+    const close=()=>ov.remove();
+    (buttons||[]).forEach(b=>{ const btn=document.createElement("button"); btn.className="btn "+(b.cls||"btn-ghost"); btn.textContent=b.label; btn.onclick=()=>b.onClick?b.onClick(close):close(); acts.appendChild(btn); });
+    ov.addEventListener("click",(e)=>{ if(e.target===ov) close(); });
+    document.body.appendChild(ov); return close;
+  }
+  // run an async action with busy + reload-detail on success
+  async function run(fn, successMsg){
+    try{ await fn(); if(successMsg) toast(successMsg); if(CURRENT_COMP) await openDetail(CURRENT_COMP, true); }
+    catch(e){ console.error(e); toast((e && e.message) ? e.message : "Something went wrong — please try again.", true); }
+  }
+
+  // ---------- notifications (match the app) ----------
+  async function notify(body){
+    try{
+      const { data } = await sb.auth.getSession();
+      const token = data && data.session ? data.session.access_token : null;
+      if(!token) return;
+      await fetch(SUPABASE_URL+"/functions/v1/notify-feed-event",{ method:"POST",
+        headers:{ "Authorization":"Bearer "+token, "Content-Type":"application/json" },
+        body: JSON.stringify(body) });
+    }catch(e){ /* fire-and-forget */ }
+  }
+  function recipientIds(r){
+    const ids=[ r.submitted_by || r.individual_profile_id || r.player1_profile_id, r.player2_profile_id ].filter(Boolean);
+    return [...new Set(ids)];
+  }
+  async function notifyEvent(r, comp, eventType, extra){
+    for(const id of recipientIds(r)){
+      await notify({ event_type:eventType, target_user_id:id, actor_name:HOST_NAME, actor_id:MY_UID, tournament_id:comp.id, extra: Object.assign({ tournament_name:comp.name }, extra||{}) });
+    }
+  }
+
+  // ---------- auth ----------
+  async function boot(){
+    const { data } = await sb.auth.getSession();
+    if(data && data.session){ await onSignedIn(); } else { show("view-login"); hide("view-app"); }
+  }
+  $("loginForm").addEventListener("submit", async (e)=>{
+    e.preventDefault(); $("loginErr").textContent="";
+    $("loginBtn").disabled=true; $("loginBtn").textContent="Signing in…";
+    const { error } = await sb.auth.signInWithPassword({ email:$("email").value.trim(), password:$("password").value });
+    $("loginBtn").disabled=false; $("loginBtn").textContent="Sign in";
+    if(error){ $("loginErr").textContent=error.message||"Couldn't sign in. Check your email and password."; return; }
+    await onSignedIn();
+  });
+  $("forgotLink").addEventListener("click", async ()=>{
+    const email=$("email").value.trim();
+    if(!email){ $("forgotMsg").textContent="Enter your email above first, then tap Forgot password."; return; }
+    const { error } = await sb.auth.resetPasswordForEmail(email);
+    $("forgotMsg").textContent = error ? "Couldn't send the reset email — try again." : "If that email has an account, a password-reset link is on its way.";
+  });
+  $("signOutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.reload(); });
+
+  async function onSignedIn(){
+    const { data:u } = await sb.auth.getUser();
+    MY_UID = u && u.user ? u.user.id : null;
+    $("whoamiText").textContent = u && u.user ? ("Signed in as "+u.user.email) : "";
+    if(MY_UID){ const { data:p } = await sb.from("profiles").select("display_name, stripe_account_id, stripe_account_status").eq("id",MY_UID); if(p && p[0]){ if(p[0].display_name) HOST_NAME=p[0].display_name; HOST_STRIPE_ID=p[0].stripe_account_id||null; HOST_STRIPE_STATUS=p[0].stripe_account_status||null; } }
+    hide("view-login"); show("view-app"); showList(); await loadCompetitions();
+  }
+
+  // ---------- list ----------
+  $("createBtn").addEventListener("click", showCreate);
+  $("createBack").addEventListener("click", ()=>{ hide("view-create"); showList(); });
+  $("backBtn").addEventListener("click", showList);
+  function showList(){ show("view-list"); hide("view-detail"); hide("view-create"); }
+  function showDetail(){ hide("view-list"); show("view-detail"); }
+
+  async function loadCompetitions(){
+    show("listSpinner"); hide("listEmpty"); $("compGrid").innerHTML="";
+    const { data, error } = await sb.rpc("list_my_host_competitions");
+    hide("listSpinner");
+    if(error){ $("compGrid").innerHTML='<div class="empty">Couldn’t load your competitions: '+esc(error.message)+'</div>'; return; }
+    const comps = data || [];
+    if(!comps.length){ show("listEmpty"); return; }
+    comps.sort((a,b)=>(a.archived_at?1:0)-(b.archived_at?1:0));
+    $("compGrid").innerHTML = comps.map(renderCompCard).join("");
+    document.querySelectorAll("[data-comp]").forEach(el=>{ el.addEventListener("click", ()=>openDetail(comps.find(c=>c.id===el.getAttribute("data-comp")))); });
+  }
+  function renderCompCard(c){
+    const isOwner = c.created_by && MY_UID && c.created_by===MY_UID;
+    const role = isOwner ? '<span class="chip chip-owner">Owner</span>' : '<span class="chip chip-cohost">Co-host</span>';
+    const rs=(c.registration_status||"").toLowerCase();
+    const regChip = rs==="open" ? '<span class="chip chip-open">Registration open</span>' : rs==="closed" ? '<span class="chip chip-closed">Registration closed</span>' : "";
+    const fmt = c.format ? '<span class="chip chip-neutral">'+esc(cap(c.format))+'</span>' : "";
+    const st = c.status ? '<span class="chip chip-neutral">'+esc(cap(c.status))+'</span>' : "";
+    const arch = c.archived_at ? '<span class="chip chip-neutral">Archived</span>' : "";
+    return '<div class="comp-card" data-comp="'+esc(c.id)+'"><h3>'+esc(c.name||"Untitled competition")+'</h3><div class="row-chips">'+role+fmt+st+regChip+arch+'</div></div>';
+  }
+
+  // ---------- detail ----------
+  function requiresPaymentOf(c){ return c.has_entry_fee===true && (c.entry_fee_amount||0)>0; }
+  function isIndividualFormat(c){ return ["mexicano","americano"].includes((c.format||"").toLowerCase()); }
+
+  async function openDetail(c, keepScroll){
+    CURRENT_COMP = c;
+    showDetail();
+    $("dName").textContent = c.name || "Untitled competition";
+    const isOwner = c.created_by && MY_UID && c.created_by===MY_UID;
+    const reqPay = requiresPaymentOf(c);
+    $("dChips").innerHTML =
+      (isOwner?'<span class="chip chip-owner">Owner</span>':'<span class="chip chip-cohost">Co-host</span>') +
+      (c.format?'<span class="chip chip-neutral">'+esc(cap(c.format))+'</span>':"") +
+      (c.status?'<span class="chip chip-neutral">'+esc(cap(c.status))+'</span>':"") +
+      ((c.registration_status||"").toLowerCase()==="open"?'<span class="chip chip-open">Registration open</span>':(c.registration_status||"").toLowerCase()==="closed"?'<span class="chip chip-closed">Registration closed</span>':"");
+    $("dInfo").innerHTML = [
+      infoTile("Format", c.format?cap(c.format):"—"),
+      infoTile("Entry fee", reqPay?money(c.entry_fee_amount):"Free"),
+      infoTile("Max players", c.max_players?String(c.max_players):"No limit"),
+      infoTile("Reserves", (c.reserves_enabled===false)?"Off":"On"),
+      infoTile("Join code", c.registration_code?esc(c.registration_code):"—"),
+    ].join("");
+    renderDetailActions(c, isOwner);
+    if(!keepScroll){ show("detailSpinner"); $("regSections").innerHTML=""; }
+    const { data, error } = await sb.from("league_registrations").select("*").eq("tournament_id", c.id).order("created_at",{ascending:true});
+    hide("detailSpinner");
+    if(error){ $("regSections").innerHTML='<div class="section">Couldn’t load registrations: '+esc(error.message)+'</div>'; return; }
+    CURRENT_REGS = data || [];
+    renderRegistrations(CURRENT_REGS, reqPay, c);
+    await renderDivisions(c);
+  }
+  function infoTile(k,v){ return '<div class="info-tile"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>'; }
+  function isSolo(r){ return r.player1_profile_id && !r.player2_profile_id && !r.individual_profile_id; }
+  function isSettled(r, reqPay){ return !reqPay || (r.payment_status==="paid" && r.partner_payment_status!=="pending"); }
+  function displayName(r){
+    if(r.team_name && r.team_name.trim()) return r.team_name;
+    if(r.individual_name && r.individual_name.trim()) return r.individual_name;
+    const p1=r.player1_name||"", p2=r.player2_name||"";
+    if(p1 && p2) return p1+" & "+p2;
+    return p1 || r.player_name || "Registration";
+  }
+  function playersLine(r){ const p1=r.player1_name||"", p2=r.player2_name||""; if(p1&&p2) return p1+" · "+p2; if(r.individual_name) return r.individual_name; return ""; }
+  function payChip(r, reqPay){
+    if(!reqPay) return "";
+    if(r.payment_status==="paid") return '<div class="pay pay-paid">Paid'+(r.partner_payment_status==="pending"?" · partner's half owed":"")+'</div>';
+    if(r.payment_status==="refunded") return '<div class="pay pay-refund">Refunded</div>';
+    return '<div class="pay pay-wait">Awaiting payment</div>';
+  }
+
+  function renderRegistrations(regs, reqPay, comp){
+    const reserve = regs.filter(r=>r.status==="reserve").sort((a,b)=>(a.reserve_position||0)-(b.reserve_position||0));
+    const solo = regs.filter(r=>r.status==="pending" && isSolo(r));
+    const pending = regs.filter(r=>r.status==="pending" && !isSolo(r) && isSettled(r,reqPay));
+    const awaiting = regs.filter(r=>r.status==="pending" && !isSolo(r) && !isSettled(r,reqPay));
+    const approved = regs.filter(r=>r.status==="approved");
+    const reservesOn = comp.reserves_enabled !== false;
+
+    let html="";
+    html += section("Pending approval", pending, "No registrations waiting for approval.", (r)=>{
+      let b='<button class="btn btn-green btn-sm" data-act="approve" data-id="'+esc(r.id)+'">Approve</button>';
+      b+='<button class="btn btn-danger btn-sm" data-act="reject" data-id="'+esc(r.id)+'">Reject</button>';
+      return b;
+    });
+    if(awaiting.length) html += section("Awaiting payment", awaiting, "", (r)=>{
+      let b='';
+      if(reservesOn) b+='<button class="btn btn-amber btn-sm" data-act="demote" data-id="'+esc(r.id)+'">Move to reserves</button>';
+      b+='<button class="btn btn-danger btn-sm" data-act="reject" data-id="'+esc(r.id)+'">Reject</button>';
+      return b;
+    });
+    if(solo.length) html += section("Solo players (awaiting pairing)", solo, "", (r)=>{
+      let b='<button class="btn btn-primary btn-sm" data-act="pair" data-id="'+esc(r.id)+'">Pair…</button>';
+      if(reservesOn) b+='<button class="btn btn-amber btn-sm" data-act="demote" data-id="'+esc(r.id)+'">Move to reserves</button>';
+      b+='<button class="btn btn-danger btn-sm" data-act="remove" data-id="'+esc(r.id)+'">Remove</button>';
+      return b;
+    });
+    if(reserve.length) html += section("Reserves list", reserve, "", (r,i)=>{
+      let b='<button class="btn btn-primary btn-sm" data-act="promote" data-id="'+esc(r.id)+'">Offer place</button>';
+      if(reqPay && r.payment_status==="paid") b+='<button class="btn btn-danger btn-sm" data-act="refund" data-id="'+esc(r.id)+'">Refund</button>';
+      return b;
+    }, true);
+    html += section("Approved", approved, "No approved teams yet.", (r)=>{
+      let b='';
+      if(reservesOn) b+='<button class="btn btn-amber btn-sm" data-act="demote" data-id="'+esc(r.id)+'">Move to reserves</button>';
+      b+='<button class="btn btn-danger btn-sm" data-act="remove" data-id="'+esc(r.id)+'">Remove</button>';
+      return b;
+    });
+    $("regSections").innerHTML = html;
+
+    $("regSections").querySelectorAll("[data-act]").forEach(btn=>{
+      btn.addEventListener("click", ()=>onAction(btn.getAttribute("data-act"), btn.getAttribute("data-id")));
+    });
+  }
+
+  function section(title, rows, emptyText, actionsFn, isReserve){
+    let body;
+    if(!rows.length) body = emptyText ? '<div class="muted" style="font-size:13px">'+emptyText+'</div>' : "";
+    else body = rows.map((r,i)=>{
+      const pos = isReserve ? '<span style="font-weight:800;color:var(--accent);margin-right:8px">#'+(r.reserve_position||(i+1))+'</span>' : "";
+      const pl = playersLine(r);
+      const reqPay = requiresPaymentOf(CURRENT_COMP);
+      const acts = actionsFn ? '<div class="reg-actions">'+actionsFn(r,i)+'</div>' : "";
+      return '<div class="reg"><div class="name">'+pos+esc(displayName(r))+'</div>'+(pl?'<div class="players">'+esc(pl)+'</div>':"")+payChip(r,reqPay)+acts+'</div>';
+    }).join("");
+    return '<div class="section"><h3>'+esc(title)+' ('+rows.length+')</h3>'+(body||"")+'</div>';
+  }
+
+  // ---------- actions ----------
+  function regById(id){ return CURRENT_REGS.find(r=>r.id===id); }
+
+  function onAction(act, id){
+    const r = regById(id); const c = CURRENT_COMP; if(!r||!c) return;
+    const reqPay = requiresPaymentOf(c);
+    if(act==="approve") return approveFlow(r,c);
+    if(act==="reject") return openModal("Reject "+displayName(r)+"?", (reqPay?"If they've paid, their entry fee is refunded. ":"")+"This removes their registration.", [
+      { label:"Reject", cls:"btn-danger", onClick:(close)=>{ close(); run(()=>rejectReg(r), "Registration rejected."); } },
+      { label:"Cancel", cls:"btn-ghost" } ]);
+    if(act==="remove") return removeFlow(r,c,reqPay);
+    if(act==="promote") return openModal("Offer "+displayName(r)+" a place?", "They'll be moved off the reserves list and asked to pay. Once they pay you can approve them as normal.", [
+      { label:"Offer place", cls:"btn-primary", onClick:(close)=>{ close(); run(()=>promoteReserve(r,c), "Place offered — they've been asked to pay."); } },
+      { label:"Cancel", cls:"btn-ghost" } ]);
+    if(act==="demote") return openModal("Move "+displayName(r)+" to reserves?", "If they're approved, their team and unplayed fixtures are removed; anything paid stays as a credit. Can't be done once they've played a match.", [
+      { label:"Move to reserves", cls:"btn-amber", onClick:(close)=>{ close(); run(()=>demoteToReserve(r), "Moved to the reserves list."); } },
+      { label:"Cancel", cls:"btn-ghost" } ]);
+    if(act==="refund") return openModal("Refund "+displayName(r)+"?", "This returns their entry fee at Stripe. They stay on the reserves list — it doesn't remove them.", [
+      { label:"Refund", cls:"btn-danger", onClick:(close)=>{ close(); run(()=>refundReg(r), "Refund issued."); } },
+      { label:"Cancel", cls:"btn-ghost" } ]);
+    if(act==="pair") return pairFlow(r,c);
+  }
+
+  async function approveFlow(r,c){
+    if(isIndividualFormat(c)){ return run(()=>approveIndividual(r,c), "Approved."); }
+    const leagues = await loadLeagues(c.id);
+    if(leagues.length>1){
+      const body = '<div class="muted">Approve '+esc(displayName(r))+' into which division?</div>'+
+        leagues.map(l=>'<div class="pick" data-league="'+esc(l.id)+'">League '+esc(l.league_letter||l.name)+'</div>').join("");
+      const close = openModal("Choose a division", body, [ { label:"Cancel", cls:"btn-ghost" } ]);
+      document.querySelectorAll("[data-league]").forEach(el=>{ el.addEventListener("click", ()=>{ const lid=el.getAttribute("data-league"); close(); run(()=>approveLeague(r,c,lid), "Approved."); }); });
+      return;
+    }
+    const leagueId = leagues.length ? leagues[0].id : await createLeague(c.id,"League");
+    return run(()=>approveLeague(r,c,leagueId), "Approved.");
+  }
+
+  async function loadLeagues(tid){ const { data } = await sb.from("leagues").select("*").eq("tournament_id",tid).order("name",{ascending:true}); return data||[]; }
+  async function createLeague(tid,name){ const { data,error } = await sb.from("leagues").insert({ tournament_id:tid, name:name }).select().single(); if(error) throw error; return data.id; }
+
+  async function approveLeague(r,c,leagueId){
+    const payload = { league_id:leagueId, tournament_id:c.id,
+      team_name: r.team_name || r.player1_name || r.individual_name || "Team",
+      played:0, won:0, drawn:0, lost:0, points_for:0, points_against:0, league_points:0 };
+    const p1 = r.player1_profile_id || r.individual_profile_id; if(p1) payload.player1_profile_id=p1;
+    if(r.player2_profile_id) payload.player2_profile_id=r.player2_profile_id;
+    if(r.player2_name && r.player2_name.trim()) payload.player2_name=r.player2_name;
+    if(r.team_logo_url && r.team_logo_url.trim()) payload.team_logo_url=r.team_logo_url;
+    const { data:team, error } = await sb.from("league_teams").insert(payload).select().single();
+    if(error) throw error;
+    const { error:e2 } = await sb.from("league_registrations").update({ status:"approved", decided_at:nowIso(), resulting_team_id:team.id }).eq("id",r.id);
+    if(e2) throw e2;
+    await notifyEvent(r,c,"league_approved");
+  }
+
+  async function approveIndividual(r,c){
+    const profileId = r.submitted_by || r.individual_profile_id;
+    let already=false;
+    if(profileId){ const { data } = await sb.from("tournament_players").select("id").eq("tournament_id",c.id).eq("profile_id",profileId); already = !!(data && data.length); }
+    if(!already){ const payload={ tournament_id:c.id, display_name: r.individual_name||r.player1_name||"Player", total_points:0, matches_played:0, ranking:0 }; if(profileId) payload.profile_id=profileId; const { error } = await sb.from("tournament_players").insert(payload); if(error) throw error; }
+    const { error:e2 } = await sb.from("league_registrations").update({ status:"approved", decided_at:nowIso() }).eq("id",r.id);
+    if(e2) throw e2;
+    await notifyEvent(r,c,"league_approved");
+  }
+
+  async function rejectReg(r){
+    const { error } = await sb.from("league_registrations").update({ status:"rejected", decided_at:nowIso() }).eq("id",r.id);
+    if(error) throw error;
+  }
+  async function cancelNoRefund(r){
+    const { error } = await sb.from("league_registrations").update({ status:"cancelled", decided_at:nowIso() }).eq("id",r.id);
+    if(error) throw error;
+  }
+  function removeFlow(r,c,reqPay){
+    const buttons=[];
+    if(reqPay){
+      buttons.push({ label:"Remove & Refund", cls:"btn-danger", onClick:(close)=>{ close(); run(()=>removeApproved(r,c,true), "Removed & refunded."); } });
+      buttons.push({ label:"Remove — No Refund", cls:"btn-danger", onClick:(close)=>{ close(); run(()=>removeApproved(r,c,false), "Removed."); } });
+    } else {
+      buttons.push({ label:"Remove player", cls:"btn-danger", onClick:(close)=>{ close(); run(()=>removeApproved(r,c,false), "Removed."); } });
+    }
+    buttons.push({ label:"Cancel", cls:"btn-ghost" });
+    openModal("Remove "+displayName(r)+"?", reqPay?"Remove & Refund returns their entry fee. Remove — No Refund takes them out without refunding. Their fixtures are removed too. This can't be undone.":"Remove them from the competition. This can't be undone.", buttons);
+  }
+  async function removeApproved(r,c,refund){
+    if(refund){ await rejectReg(r); await notifyEvent(r,c,"withdrawal_approved"); }
+    else { await cancelNoRefund(r); await notifyEvent(r,c,"removed_no_refund"); }
+    if(r.resulting_team_id){ try{ await sb.rpc("host_remove_team_and_fixtures",{ p_team_id:r.resulting_team_id }); }catch(e){ console.warn("remove team/fixtures", e); } }
+  }
+
+  async function promoteReserve(r,c){
+    const { data, error } = await sb.rpc("host_promote_reserve",{ p_registration_id:r.id });
+    if(error) throw error;
+    const res = Array.isArray(data)?data[0]:data;
+    const target = res && res.player_profile_id;
+    if(target){
+      try{ await sb.from("notifications").insert({ user_id:target, type:"reserve_promoted", actor_id:MY_UID, actor_name:HOST_NAME }); }catch(e){}
+      await notify({ event_type:"reserve_promoted", target_user_id:target, actor_name:HOST_NAME, actor_id:MY_UID, tournament_id:(res&&res.tournament_id)||c.id, extra:{ tournament_name:(res&&res.tournament_name)||c.name, amount:(res&&res.amount_pence)||0 } });
+    }
+  }
+  async function demoteToReserve(r){ const { error } = await sb.rpc("host_demote_to_reserve",{ p_registration_id:r.id }); if(error) throw error; }
+  async function refundReg(r){
+    const { data } = await sb.auth.getSession(); const token = data && data.session ? data.session.access_token : null;
+    const res = await fetch(SUPABASE_URL+"/functions/v1/refund-registration",{ method:"POST", headers:{ "Authorization":"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ registration_id:r.id }) });
+    if(!res.ok) throw new Error("Refund didn't go through ("+res.status+"). Please try again.");
+  }
+
+  function pairFlow(primary,c){
+    const others = CURRENT_REGS.filter(x=>x.status==="pending" && isSolo(x) && x.id!==primary.id);
+    if(!others.length){ return openModal("Pair "+displayName(primary), '<div class="muted">No other solo players to pair with yet.</div>', [ {label:"Close",cls:"btn-ghost"} ]); }
+    const body = '<div class="muted">Pair '+esc(displayName(primary))+' with:</div>'+others.map(o=>'<div class="pick" data-sec="'+esc(o.id)+'">'+esc(displayName(o))+'</div>').join("");
+    const close = openModal("Pair players", body, [ {label:"Cancel",cls:"btn-ghost"} ]);
+    document.querySelectorAll("[data-sec]").forEach(el=>{ el.addEventListener("click", ()=>{ const sec=others.find(o=>o.id===el.getAttribute("data-sec")); close(); run(()=>pairSolos(primary,sec,c), "Players paired — the team now appears for approval."); }); });
+  }
+  async function pairSolos(primary,secondary,c){
+    const { error } = await sb.rpc("pair_solo_registrations",{ p_primary_id:primary.id, p_secondary_id:secondary.id });
+    if(error) throw error;
+    // league_paired push to both (each hears the other's name)
+    const nm=(x)=>x.player1_name||displayName(x);
+    const pairs=[ [primary.submitted_by||primary.player1_profile_id, nm(secondary)], [secondary.submitted_by||secondary.player1_profile_id, nm(primary)] ].filter(p=>p[0]);
+    for(const [uid,partnerName] of pairs){ await notify({ event_type:"league_paired", target_user_id:uid, actor_name:HOST_NAME, actor_id:MY_UID, tournament_id:c.id, extra:{ tournament_name:c.name, partner_name:partnerName } }); }
+  }
+
+
+  // ---------- Phase 3: divisions, fixtures, score entry, standings (league format) ----------
+  let TEAM_MAP = {};  // team_id -> team row, for the current competition
+
+  async function renderDivisions(c){
+    const area = $("divArea");
+    if (isIndividualFormat(c)) { area.innerHTML = '<div class="notice">Round-by-round scoring for Mexicano / Americano competitions is coming in a later phase.</div>'; return; }
+    area.innerHTML = '<div class="spinner">Loading fixtures & standings…</div>';
+    const leagues = await loadLeagues(c.id);
+    const teams = await loadAllTeams(c.id);
+    TEAM_MAP = {}; teams.forEach(t => { TEAM_MAP[t.id] = t; });
+
+    let head = '<div class="section"><h3>Fixtures & standings</h3>';
+    if (!leagues.length) {
+      head += '<div class="muted" style="font-size:13px">No divisions yet. Approve at least two teams, then generate fixtures.</div>';
+    } else {
+      head += '<button class="btn btn-primary btn-sm" id="genFixBtn">Generate fixtures for new teams</button>' +
+              '<div class="muted" style="font-size:12px;margin-top:8px">Adds round-robin fixtures for any newly-approved teams. Existing fixtures are never duplicated.</div>';
+    }
+    head += '</div>';
+
+    let body = "";
+    for (const lg of leagues) { body += await renderDivision(c, lg, leagues.length>1); }
+    area.innerHTML = head + body;
+
+    const gf = $("genFixBtn");
+    if (gf) gf.addEventListener("click", () => run(async () => {
+      const { data, error } = await sb.rpc("generate_missing_league_fixtures", { p_tournament_id: c.id });
+      if (error) throw error;
+      const n = (typeof data === "number") ? data : 0;
+      toast(n > 0 ? ("Added " + n + " fixture" + (n===1?"":"s") + ".") : "All fixtures are already up to date.");
+    }));
+
+    // wire per-match score buttons
+    area.querySelectorAll("[data-score]").forEach(btn => btn.addEventListener("click", () => scoreModal(btn.getAttribute("data-score"))));
+  }
+
+  async function loadAllTeams(tid){ const { data } = await sb.from("league_teams").select("*").eq("tournament_id", tid); return data || []; }
+
+  async function renderDivision(c, lg, multi){
+    const { data: standings } = await sb.from("league_teams").select("*").eq("league_id", lg.id)
+      .order("league_points", {ascending:false}).order("points_for", {ascending:false});
+    const { data: matches } = await sb.from("league_matches").select("*").eq("league_id", lg.id);
+    const title = multi ? ("League " + esc(lg.league_letter || lg.name)) : "Standings";
+
+    // standings table
+    let st = '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+      '<tr style="color:var(--muted);text-align:left"><th style="padding:6px 4px">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>PF</th><th>PA</th><th style="text-align:right">Pts</th></tr>';
+    (standings||[]).forEach(t => {
+      st += '<tr style="border-top:1px solid var(--line)">' +
+        '<td style="padding:7px 4px;font-weight:600">' + esc(t.team_name || "Team") + '</td>' +
+        '<td>' + (t.played||0) + '</td><td>' + (t.won||0) + '</td><td>' + (t.drawn||0) + '</td><td>' + (t.lost||0) + '</td>' +
+        '<td>' + (t.points_for||0) + '</td><td>' + (t.points_against||0) + '</td>' +
+        '<td style="text-align:right;font-weight:800;color:var(--brand)">' + (t.league_points||0) + '</td></tr>';
+    });
+    st += '</table>';
+    if (!standings || !standings.length) st = '<div class="muted" style="font-size:13px">No teams in this division yet.</div>';
+
+    // fixtures
+    let fx = "";
+    const ms = matches || [];
+    if (!ms.length) fx = '<div class="muted" style="font-size:13px;margin-top:12px">No fixtures yet — generate them above.</div>';
+    else {
+      fx = '<div style="margin-top:14px">';
+      ms.forEach(m => {
+        const hn = (TEAM_MAP[m.home_team_id] && TEAM_MAP[m.home_team_id].team_name) || "Team";
+        const an = (TEAM_MAP[m.away_team_id] && TEAM_MAP[m.away_team_id].team_name) || "Team";
+        const played = (m.status === "completed" || m.status === "verified" || m.home_sets != null || m.away_sets != null || m.home_score != null);
+        const score = played ? scoreText(m) : "vs";
+        const btn = '<button class="btn btn-ghost btn-sm" data-score="' + esc(m.id) + '">' + (played ? "Edit score" : "Enter score") + '</button>';
+        const disp = m.result_disputed ? ' <span class="chip chip-closed">Disputed</span>' : "";
+        fx += '<div class="reg" style="display:flex;align-items:center;justify-content:space-between;gap:10px">' +
+          '<div><span style="font-weight:600">' + esc(hn) + '</span> <span class="muted">' + score + '</span> <span style="font-weight:600">' + esc(an) + '</span>' + disp + '</div>' +
+          btn + '</div>';
+      });
+      fx += '</div>';
+    }
+    return '<div class="section"><h3>' + esc(title) + '</h3>' + st + fx + '</div>';
+  }
+
+  function scoreText(m){
+    const j = m.home_sets_json;
+    if (j){
+      try{ const arr = typeof j === "string" ? JSON.parse(j) : j;
+        if (Array.isArray(arr) && arr.length) return arr.map(s => (s.home ?? s.h ?? 0) + "-" + (s.away ?? s.a ?? 0)).join(", ");
+      }catch(e){}
+    }
+    if (m.home_sets != null || m.away_sets != null) return (m.home_sets||0) + "-" + (m.away_sets||0) + " (sets)";
+    if (m.home_score != null || m.away_score != null) return (m.home_score||0) + "-" + (m.away_score||0);
+    return "vs";
+  }
+
+  function matchById(id){
+    // search all current divisions' matches via TEAM_MAP is not enough; re-fetch lazily
+    return id;
+  }
+
+  async function scoreModal(matchId){
+    // fetch the match + team names
+    const { data: rows } = await sb.from("league_matches").select("*").eq("id", matchId);
+    const m = rows && rows[0]; if(!m){ toast("Couldn't load that fixture.", true); return; }
+    const hn = (TEAM_MAP[m.home_team_id] && TEAM_MAP[m.home_team_id].team_name) || "Home";
+    const an = (TEAM_MAP[m.away_team_id] && TEAM_MAP[m.away_team_id].team_name) || "Away";
+    // prefill existing sets
+    let pre = [];
+    if (m.home_sets_json){ try{ const a = typeof m.home_sets_json==="string"?JSON.parse(m.home_sets_json):m.home_sets_json; if(Array.isArray(a)) pre = a.map(s=>[s.home ?? s.h ?? "", s.away ?? s.a ?? ""]); }catch(e){} }
+    while (pre.length < 2) pre.push(["",""]);
+
+    function rowHtml(i, h, a){
+      return '<div style="display:flex;align-items:center;gap:8px;margin-top:8px" data-setrow="'+i+'">' +
+        '<span style="width:46px;color:var(--accent);font-weight:700">Set '+(i+1)+'</span>' +
+        '<input type="number" min="0" inputmode="numeric" value="'+esc(h)+'" style="width:64px;margin:0" data-h="'+i+'" />' +
+        '<span class="muted">–</span>' +
+        '<input type="number" min="0" inputmode="numeric" value="'+esc(a)+'" style="width:64px;margin:0" data-a="'+i+'" /></div>';
+    }
+    let body = '<div class="muted">' + esc(hn) + ' vs ' + esc(an) + ' — enter the games in each set. Leave a set blank if it wasn’t played.</div>' +
+      '<div id="setRows">' + pre.map((p,i)=>rowHtml(i,p[0],p[1])).join("") + '</div>' +
+      '<div style="margin-top:10px"><a id="addSet" style="cursor:pointer;font-size:13px">+ Add a set</a></div>';
+
+    const buttons = [
+      { label:"Save result", cls:"btn-green", onClick:(close)=>{
+        const sets = collectSets();
+        if(!sets.length){ toast("Enter at least one set.", true); return; }
+        close(); run(()=>hostSetResult(m, sets), "Result saved.");
+      }},
+    ];
+    const played = (m.status==="completed"||m.status==="verified"||m.home_sets!=null||m.home_score!=null);
+    if (played) buttons.push({ label:"Clear result (not played)", cls:"btn-danger", onClick:(close)=>{ close(); run(()=>clearResult(m), "Result cleared."); } });
+    buttons.push({ label:"Cancel", cls:"btn-ghost" });
+
+    openModal("Enter score", body, buttons);
+    let count = pre.length;
+    document.getElementById("addSet").addEventListener("click", ()=>{
+      if (count >= 3) return;
+      const div = document.createElement("div"); div.innerHTML = rowHtml(count, "", ""); document.getElementById("setRows").appendChild(div.firstChild); count++;
+    });
+  }
+
+  function collectSets(){
+    const rows = document.querySelectorAll("[data-setrow]");
+    const out = [];
+    rows.forEach(r=>{
+      const h = r.querySelector("[data-h]").value.trim();
+      const a = r.querySelector("[data-a]").value.trim();
+      if (h === "" && a === "") return;              // blank row = not played
+      out.push([ parseInt(h||"0",10), parseInt(a||"0",10) ]);
+    });
+    return out;
+  }
+
+  async function hostSetResult(m, sets){
+    const p_sets = sets.map(([h,a]) => ({ home:h, away:a }));
+    const { error } = await sb.rpc("host_set_league_result", { p_match_id:m.id, p_sets });
+    if (error) throw error;
+    await notifyLeagueResult(m.id);
+  }
+  async function clearResult(m){
+    const { error } = await sb.from("league_matches").update({
+      status:"pending", home_score:null, away_score:null, home_sets:null, away_sets:null, home_sets_json:null,
+      result_submitted_by:null, result_submitted_at:null, result_verified:false, result_verified_by:null,
+      result_disputed:false, dispute_reason:null, played_at:null
+    }).eq("id", m.id);
+    if (error) throw error;
+    try{ await sb.rpc("update_league_standings", { match_id:m.id }); }catch(e){}
+  }
+  async function notifyLeagueResult(matchId){
+    try{
+      const { data } = await sb.auth.getSession(); const token = data && data.session ? data.session.access_token : null; if(!token) return;
+      await fetch(SUPABASE_URL+"/functions/v1/notify-league-result",{ method:"POST", headers:{ "Authorization":"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ match_id:matchId, actor_id:MY_UID }) });
+    }catch(e){}
+  }
+
+
+  // ---------- Phase 4: create + edit ----------
+  function randomCode(){ const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<6;i++) s+=c[Math.floor(Math.random()*c.length)]; return s; }
+  function platformFee(p){ return Math.max(Math.round(p*0.15), 300); }
+  async function genRegCode(){ try{ const { data } = await sb.rpc("generate_registration_code"); return (""+data).replace(/"/g,"").trim() || randomCode(); }catch(e){ return randomCode(); } }
+
+  function wireSeg(containerId, onChange){
+    const box=$(containerId);
+    box.querySelectorAll("button[data-v]").forEach(b=>{
+      b.addEventListener("click", ()=>{ box.querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); if(onChange) onChange(b.getAttribute("data-v")); });
+    });
+  }
+  function segValue(containerId){ const el=$(containerId).querySelector("button.on"); return el?el.getAttribute("data-v"):null; }
+
+  let CREATE_WIRED=false;
+  function showCreate(){
+    hide("view-list"); hide("view-detail"); show("view-create");
+    // reset
+    ["cName","cFee","cMax","cMinLvl","cMaxLvl","cStart","cEnd","cVenue"].forEach(id=>$(id).value="");
+    $("cPoints").value="16"; $("cCourts").value="1, 2"; $("cDivs").value="1";
+    $("cPaid").checked=false; $("cCourt").checked=false; $("cAllowSolo").checked=false; $("cReserves").checked=true; $("cPlayoffs").checked=false;
+    $("cErr").textContent=""; hide("cFeeBox");
+    // default segments
+    resetSeg("cFormat","league"); resetSeg("cRegMode","team"); resetSeg("cType","open"); resetSeg("cVis","private");
+    applyFormat("league");
+    if(!CREATE_WIRED){
+      wireSeg("cFormat", applyFormat); wireSeg("cRegMode"); wireSeg("cType"); wireSeg("cVis");
+      $("cPaid").addEventListener("change", ()=>{ $("cFeeBox").classList.toggle("hidden", !$("cPaid").checked); updateStripeWarn(); });
+      $("cSubmit").addEventListener("click", submitCreate);
+      CREATE_WIRED=true;
+    }
+  }
+  function resetSeg(id,val){ $(id).querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.getAttribute("data-v")===val)); }
+  function applyFormat(f){
+    $("cLeagueMode").classList.toggle("hidden", f!=="league");
+    $("cLeagueOpts").classList.toggle("hidden", f!=="league");
+    $("cRoundsOpts").classList.toggle("hidden", f==="league");
+  }
+  function updateStripeWarn(){
+    const show = $("cPaid").checked && !(HOST_STRIPE_ID && (HOST_STRIPE_STATUS==="active"||HOST_STRIPE_STATUS==="enabled"||HOST_STRIPE_STATUS==="complete"));
+    $("cStripeWarn").classList.toggle("hidden", !show);
+  }
+
+  async function submitCreate(){
+    $("cErr").textContent="";
+    const name=$("cName").value.trim();
+    if(!name){ $("cErr").textContent="Give your competition a name."; return; }
+    const format=segValue("cFormat");
+    const paid=$("cPaid").checked;
+    const amountPence= paid ? Math.round(parseFloat($("cFee").value||"0")*100) : 0;
+    if(paid && amountPence<300){ $("cErr").textContent="Minimum entry fee is £3.00."; return; }
+    if(paid && amountPence>0 && !HOST_STRIPE_ID){ $("cErr").textContent="Connect a payout account in the app before charging an entry fee, or create a free competition."; return; }
+
+    const regMode = (format==="league") ? segValue("cRegMode") : "individual";
+    const type = segValue("cType");
+    const visibility = segValue("cVis");
+    const scoring = (format==="league") ? "classic" : "points";
+    const maxPlayers = parseInt(($("cMax").value||"").trim(),10);
+    const minLvl = parseFloat($("cMinLvl").value); const maxLvl=parseFloat($("cMaxLvl").value);
+    const numDivs = parseInt($("cDivs").value||"1",10);
+
+    $("cSubmit").disabled=true; $("cSubmit").textContent="Creating…";
+    try{
+      const payload = { name, format, status:"setup", created_by:MY_UID, share_code:randomCode(),
+        has_entry_fee:paid, entry_fee_amount: paid?amountPence:0, entry_fee_includes_court: paid?$("cCourt").checked:false,
+        competition_type:type, scoring_format:scoring, age_range_type:"all",
+        registration_code: await genRegCode(), registration_status:"open",
+        registration_mode: regMode, allow_individual_entries: (format==="league" && regMode==="team") ? $("cAllowSolo").checked : false,
+        reserves_enabled: $("cReserves").checked, visibility };
+      if(!isNaN(minLvl)) payload.min_level=minLvl;
+      if(!isNaN(maxLvl)) payload.max_level=maxLvl;
+      if($("cStart").value) payload.start_date=$("cStart").value;
+      if($("cEnd").value) payload.end_date=$("cEnd").value;
+      const venue=$("cVenue").value.trim(); if(venue) payload.venue_name=venue;
+      if(!isNaN(maxPlayers) && maxPlayers>0) payload.max_players=maxPlayers;
+      if(paid && amountPence>0){ payload.stripe_account_id=HOST_STRIPE_ID; payload.platform_fee_amount=platformFee(amountPence); }
+      if(scoring==="points") payload.points_target = parseInt($("cPoints").value||"16",10)||16;
+      if(format==="mexicano"||format==="americano"){
+        const courts = ($("cCourts").value||"").split(",").map(x=>parseInt(x.trim(),10)).filter(n=>!isNaN(n));
+        if(courts.length) payload.court_numbers = courts;
+      }
+      if(format==="americano") payload.fixture_generation="progressive";
+      if(format==="league"){
+        payload.invite_code=randomCode(); payload.number_of_leagues=numDivs; payload.playoff_enabled=$("cPlayoffs").checked;
+        payload.tournament_phase="registration";
+        payload.points_for_win=3; payload.points_for_draw=1; payload.points_for_loss=0; payload.points_per_played=0;
+        payload.points_per_win=3; payload.points_per_loss=0;
+        if($("cPlayoffs").checked) payload.playoff_teams=4;
+      }
+      const { data, error } = await sb.from("tournaments").insert(payload).select().single();
+      if(error) throw error;
+      if(format==="league"){ const L=["A","B","C","D"]; for(let i=0;i<Math.max(1,numDivs);i++){ await sb.from("leagues").insert({ tournament_id:data.id, name:"League "+L[i], league_letter:L[i] }); } }
+      toast("Competition created.");
+      hide("view-create"); await loadCompetitions(); openDetail(data);
+    }catch(e){ console.error(e); $("cErr").textContent=(e&&e.message)?e.message:"Couldn't create the competition. Please try again."; }
+    finally{ $("cSubmit").disabled=false; $("cSubmit").textContent="Create competition"; }
+  }
+
+  // ----- detail actions (edit + reg toggle) -----
+  function renderDetailActions(c, isOwner){
+    const el=$("dActions"); el.innerHTML="";
+    const edit=document.createElement("button"); edit.className="btn btn-ghost btn-sm"; edit.textContent="Edit competition"; edit.onclick=()=>openEdit(c,isOwner); el.appendChild(edit);
+    const rs=(c.registration_status||"").toLowerCase();
+    if(rs==="open"||rs==="closed"){
+      const t=document.createElement("button"); t.className="btn btn-ghost btn-sm"; t.textContent= rs==="open"?"Close registration":"Open registration";
+      t.onclick=()=>run(async()=>{ const next= rs==="open"?"closed":"open"; const { error }=await sb.from("tournaments").update({registration_status:next}).eq("id",c.id); if(error) throw error; c.registration_status=next; }, rs==="open"?"Registration closed.":"Registration opened.");
+      el.appendChild(t);
+    }
+  }
+
+  function openEdit(c, isOwner){
+    const reqPay = requiresPaymentOf(c);
+    const g=(label,inner)=>'<div class="fg"><label>'+label+'</label>'+inner+'</div>';
+    const txt=(id,val,ph)=>'<input id="'+id+'" type="text" value="'+esc(val==null?"":val)+'" placeholder="'+(ph||"")+'" />';
+    const num=(id,val,ph,step)=>'<input id="'+id+'" type="number" '+(step?'step="'+step+'" ':'')+'value="'+(val==null?"":esc(val))+'" placeholder="'+(ph||"")+'" />';
+    const dateI=(id,val)=>'<input id="'+id+'" type="date" value="'+(val?esc(String(val).slice(0,10)):"")+'" />';
+    const tog=(id,label,on)=>'<div class="toggle-row"><span>'+label+'</span><input type="checkbox" id="'+id+'" '+(on?"checked":"")+' /></div>';
+    const isLeague = (c.format||"").toLowerCase()==="league" || (c.format||"").toLowerCase()==="padeja_league";
+    let body='';
+    body+=g("Name", txt("eName", c.name, ""));
+    body+=g("Description", '<textarea id="eDesc" rows="2" placeholder="Optional details shown on the registration page">'+esc(c.description||"")+'</textarea>');
+    body+='<label>Who can play?</label><select id="eType">'+["open","mixed","male","female"].map(v=>'<option value="'+v+'"'+(((c.competition_type||"open")===v)?" selected":"")+'>'+cap(v)+'</option>').join("")+'</select>';
+    body+='<div class="two">'+g("Max players", num("eMax", c.max_players, "No limit"))+g("Rating min", num("eMin", c.min_level, "e.g. 3.2","0.01"))+'</div>';
+    body+='<div class="two">'+g("Rating max", num("eMax2", c.max_level, "e.g. 4.0","0.01"))+g("&nbsp;", "")+'</div>';
+    body+='<div class="two">'+g("Start date", dateI("eStart", c.start_date))+g("End date", dateI("eEnd", c.end_date))+'</div>';
+    body+=g("Venue", txt("eVenue", c.venue_name, "e.g. Brentwood Padel Club"));
+    body+=tog("eReserves","Allow a reserves list", c.reserves_enabled!==false);
+    if(isLeague) body+=tog("eSolo","Allow solo registrations (you pair them later)", c.allow_individual_entries===true);
+    if(isLeague) body+=tog("ePlayoffs","Knockout playoffs", c.playoff_enabled===true);
+    if(isOwner){
+      body+='<div style="border-top:1px solid var(--line);margin:8px 0 14px"></div>';
+      body+=tog("ePaid","Charge an entry fee", reqPay);
+      body+='<div id="eFeeBox" class="'+(reqPay?"":"hidden")+'">'+
+        '<div class="two">'+g("Entry fee (£)", '<input id="eFee" type="number" min="3" step="0.01" value="'+(reqPay?((c.entry_fee_amount||0)/100).toFixed(2):"")+'" />')+
+        g("&nbsp;", tog("eCourt","Includes court costs", c.entry_fee_includes_court===true))+'</div>'+
+        '<div class="hint">Minimum £3.00 · Padeja charges 15% (min £3).</div></div>';
+    }
+    const close = openModal("Edit competition", body, [
+      { label:"Save changes", cls:"btn-primary", onClick:(cl)=>{ submitEdit(c, isOwner, cl); } },
+      { label:"Cancel", cls:"btn-ghost" } ]);
+    if(isOwner){ const pc=$("ePaid"); if(pc) pc.addEventListener("change", ()=>$("eFeeBox").classList.toggle("hidden", !pc.checked)); }
+  }
+
+  async function submitEdit(c, isOwner, close){
+    try{
+      const upd={};
+      const name=$("eName").value.trim(); if(name) upd.name=name;
+      upd.description = $("eDesc").value.trim() || null;
+      upd.competition_type = $("eType").value;
+      const mx=parseInt($("eMax").value,10); upd.max_players = (!isNaN(mx)&&mx>0)?mx:null;
+      const mn=parseFloat($("eMin").value); upd.min_level = isNaN(mn)?null:mn;
+      const mx2=parseFloat($("eMax2").value); upd.max_level = isNaN(mx2)?null:mx2;
+      upd.start_date = $("eStart").value || null;
+      upd.end_date = $("eEnd").value || null;
+      upd.venue_name = $("eVenue").value.trim() || null;
+      upd.reserves_enabled = $("eReserves").checked;
+      if($("eSolo")) upd.allow_individual_entries = $("eSolo").checked;
+      if($("ePlayoffs")) upd.playoff_enabled = $("ePlayoffs").checked;
+      if(isOwner && $("ePaid")){
+        const paid=$("ePaid").checked;
+        upd.has_entry_fee=paid;
+        if(paid){ const amt=Math.round(parseFloat($("eFee").value||"0")*100); if(amt<300){ toast("Minimum entry fee is £3.00.", true); return; } upd.entry_fee_amount=amt; upd.platform_fee_amount=platformFee(amt); upd.entry_fee_includes_court=$("eCourt").checked; if(amt>0 && HOST_STRIPE_ID) upd.stripe_account_id=HOST_STRIPE_ID; }
+        else { upd.entry_fee_amount=0; }
+      }
+      const { error } = await sb.from("tournaments").update(upd).eq("id", c.id);
+      if(error) throw error;
+      Object.assign(c, upd);
+      close(); toast("Changes saved."); await openDetail(c, true);
+    }catch(e){ console.error(e); toast((e&&e.message)?e.message:"Couldn't save — please try again.", true); }
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
