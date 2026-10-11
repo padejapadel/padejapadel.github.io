@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data Defenders Loop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sky-top: #0b3a8c;
+      --sky-bottom: #3fa3e8;
+      --yellow: #ffd21f;
+      --navy: #0a1f44;
+      --window-bar: #10284f;
+      --fade: 1.5s;               /* how long each fade takes */
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;           /* one screen, no scrolling */
+      background: #000;
+      font-family: "Inter", system-ui, sans-serif;
+      color: #fff;
+    }
+
+    /* The two "scenes" sit on top of each other and fade in/out */
+    .scene {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity var(--fade) ease;
+      pointer-events: none;
+    }
+    .scene.show { opacity: 1; pointer-events: auto; }
+
+    /* ---------- Scene 1: the video ---------- */
+    #scene-video { background: #000; }
+    #scene-video video {
+      display: block;
+      width: 1152px;              /* full size... */
+      max-width: 100vw;           /* ...but shrink to fit the screen */
+      max-height: 100vh;
+      height: auto;
+      object-fit: contain;
+    }
+
+    /* ---------- Scene 2: the map window ---------- */
+    #scene-map {
+      background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom));
+      padding: 24px 16px;
+    }
+    #scene-map h2 {
+      font-family: "Luckiest Guy", "Impact", sans-serif;
+      font-weight: 400;
+      font-size: clamp(28px, 6vh, 56px);
+      letter-spacing: 1px;
+      line-height: 1;
+      text-align: center;
+      color: var(--yellow);
+      text-shadow: 3px 3px 0 var(--navy), -1px -1px 0 var(--navy), 1px -1px 0 var(--navy), -1px 1px 0 var(--navy);
+      margin: 0 0 8px;
+    }
+    #scene-map p.intro {
+      text-align: center;
+      margin: 0 0 3vh;
+      font-size: clamp(14px, 2vh, 18px);
+      opacity: .92;
+    }
+    .window {
+      /* As big as possible while the whole window still fits on screen */
+      width: min(1371px, 94vw, calc((100vh - 250px) * 2));
+      border: 4px solid var(--navy);
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--navy);
+      box-shadow: 8px 8px 0 var(--navy), 0 24px 60px rgba(0,0,0,.35);
+    }
+    .window-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--window-bar);
+      border-bottom: 3px solid var(--yellow);
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot.red { background: #ff5f57; }
+    .dot.amber { background: #febc2e; }
+    .dot.green { background: #28c840; }
+    .window-title {
+      margin-left: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: .5px;
+      color: #cfe0ff;
+    }
+    .window img { display: block; width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+
+  <!-- Scene 1: the Data Defenders video -->
+  <section class="scene show" id="scene-video">
+    <video id="video" src="data-defenders.mp4" poster="data-defenders-poster.jpg"
+           width="1152" height="960" autoplay muted playsinline preload="auto"></video>
+  </section>
+
+  <!-- Scene 2: the map (shown for 10 seconds) -->
+  <section class="scene" id="scene-map">
+    <h2>Around the World</h2>
+    <p class="intro">Wherever the data goes, the Data Defenders go too.</p>
+    <div class="window">
+      <div class="window-bar">
+        <span class="dot red"></span>
+        <span class="dot amber"></span>
+        <span class="dot green"></span>
+        <span class="window-title">mission-map.live</span>
+      </div>
+      <img src="travel-map.gif" width="1371" height="685"
+           alt="Animated map showing routes between the UK, the US, Spain and Austria">
+    </div>
+  </section>
+
+  <script>
+    // ===== Settings you can change =====
+    const MAP_SECONDS = 10;   // how long the map stays on screen
+    // ===================================
+
+    const video = document.getElementById('video');
+    const videoScene = document.getElementById('scene-video');
+    const mapScene = document.getElementById('scene-map');
+
+    // When the video finishes: fade to the map
+    video.addEventListener('ended', () => {
+      videoScene.classList.remove('show');
+      mapScene.classList.add('show');
+
+      // After 10 seconds: rewind the video and fade back to it
+      setTimeout(() => {
+        video.currentTime = 0;
+        video.play().catch(() => {});
+        mapScene.classList.remove('show');
+        videoScene.classList.add('show');
+      }, MAP_SECONDS * 1000);
+    });
+
+    // Backup: if the video can't load, still keep the loop going
+    video.addEventListener('error', () => {
+      setTimeout(() => video.dispatchEvent(new Event('ended')), 5000);
+    });
+
+    // Some browsers need a nudge to start the video automatically
+    video.play().catch(() => {});
+  </script>
+</body>
+</html>
