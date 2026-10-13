@@ -111,11 +111,11 @@
     body.idle { cursor: none; }
 
     /* ---------- Scene 2: the map window ---------- */
-    #scene-map {
+    .panel {
       background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom));
       padding: 24px 16px;
     }
-    #scene-map h2 {
+    .panel h2 {
       font-family: "Luckiest Guy", "Impact", sans-serif;
       font-weight: 400;
       font-size: clamp(28px, 6vh, 56px);
@@ -126,7 +126,7 @@
       text-shadow: 3px 3px 0 var(--navy), -1px -1px 0 var(--navy), 1px -1px 0 var(--navy), -1px 1px 0 var(--navy);
       margin: 0 0 8px;
     }
-    #scene-map p.intro {
+    .panel p.intro {
       text-align: center;
       margin: 0 0 3vh;
       font-size: clamp(14px, 2vh, 18px);
@@ -161,6 +161,8 @@
       color: #cfe0ff;
     }
     .window img { display: block; width: 100%; height: auto; }
+    /* The dashboard picture is taller in shape, so its window is a little narrower */
+    .window.dashboard { width: min(1600px, 94vw, calc((100vh - 290px) * 1.6)); }
   </style>
 </head>
 <body>
@@ -179,7 +181,7 @@
   </section>
 
   <!-- Scene 2: the map (shown for 10 seconds) -->
-  <section class="scene" id="scene-map">
+  <section class="scene panel" id="scene-map">
     <h2>Around the World</h2>
     <p class="intro">Wherever the data goes, the Data Defenders go too.</p>
     <div class="window">
@@ -194,12 +196,61 @@
     </div>
   </section>
 
+  <!-- Scene 3: the dashboard picture (shown for 10 seconds) -->
+  <section class="scene panel" id="scene-dashboard">
+    <h2>Global Overview</h2>
+    <p class="intro">Live health across EMEA, AMER and ASIA.</p>
+    <div class="window dashboard">
+      <div class="window-bar">
+        <span class="dot red"></span>
+        <span class="dot amber"></span>
+        <span class="dot green"></span>
+        <span class="window-title">rtds-global-overview</span>
+      </div>
+      <img src="rtds-global-overview.jpg" width="2880" height="1800"
+           alt="RTDS Global Overview dashboard showing London, New York, Tokyo, Hong Kong and Singapore all OK">
+    </div>
+  </section>
+
+  <!-- Scene 4: EventStream Overview (shown for 10 seconds) -->
+  <section class="scene panel" id="scene-eventstream">
+    <h2>EventStream Overview</h2>
+    <p class="intro">MarketsIO nodes in eu-west-1.</p>
+    <div class="window dashboard">
+      <div class="window-bar">
+        <span class="dot red"></span>
+        <span class="dot amber"></span>
+        <span class="dot green"></span>
+        <span class="window-title">marketsio-overview</span>
+      </div>
+      <img src="marketsio-overview.jpg" width="2880" height="1800"
+           alt="MarketsIO EventStream Overview dashboard with all APG, client and test source nodes OK">
+    </div>
+  </section>
+
+  <!-- Scene 5: APG Node Detail (shown for 10 seconds) -->
+  <section class="scene panel" id="scene-apg">
+    <h2>APG Node Detail</h2>
+    <p class="intro">A closer look at cjc1000-dev1-msio-demo-APG1.</p>
+    <div class="window dashboard">
+      <div class="window-bar">
+        <span class="dot red"></span>
+        <span class="dot amber"></span>
+        <span class="dot green"></span>
+        <span class="window-title">apg-node-detail</span>
+      </div>
+      <img src="apg-node-detail.jpg" width="2880" height="1800"
+           alt="APG node detail dashboard for cjc1000-dev1-msio-demo-APG1, status UP">
+    </div>
+  </section>
+
   <!-- Click this (or press F) to fill the whole screen with no tabs -->
   <button id="fs-btn" type="button">⛶ Full screen</button>
 
   <script>
     // ===== Settings you can change =====
-    const MAP_SECONDS = 10;   // how long the map stays on screen
+    const MAP_SECONDS = 10;        // how long the map stays on screen
+    const DASHBOARD_SECONDS = 10;  // how long each dashboard picture stays on screen
     const VIDEO_FIT = 'stretch';
     // 'stretch' = fill the screen, stretched sideways
     // 'zoom'    = fill the screen, keeps its shape, crops top and bottom
@@ -217,20 +268,33 @@
       videoBg.removeAttribute('src');   // don't load it if it isn't used
     }
     const videoScene = document.getElementById('scene-video');
-    const mapScene = document.getElementById('scene-map');
+    // The screens shown after the video, in order, and how long each stays
+    const afterVideo = [
+      { el: document.getElementById('scene-map'),       seconds: MAP_SECONDS },
+      { el: document.getElementById('scene-dashboard'),   seconds: DASHBOARD_SECONDS },
+      { el: document.getElementById('scene-eventstream'), seconds: DASHBOARD_SECONDS },
+      { el: document.getElementById('scene-apg'),         seconds: DASHBOARD_SECONDS },
+    ];
 
-    // When the video finishes: fade to the map
+    function show(el) {
+      document.querySelectorAll('.scene').forEach(s => s.classList.toggle('show', s === el));
+    }
+
+    // When the video finishes: fade through each screen in turn, then back to the video
     video.addEventListener('ended', () => {
-      videoScene.classList.remove('show');
-      mapScene.classList.add('show');
-
-      // After 10 seconds: rewind the video and fade back to it
-      setTimeout(() => {
-        video.currentTime = 0;
-        video.play().catch(() => {});
-        mapScene.classList.remove('show');
-        videoScene.classList.add('show');
-      }, MAP_SECONDS * 1000);
+      let i = 0;
+      function next() {
+        if (i < afterVideo.length) {
+          show(afterVideo[i].el);
+          setTimeout(next, afterVideo[i].seconds * 1000);
+          i++;
+        } else {
+          video.currentTime = 0;
+          video.play().catch(() => {});
+          show(videoScene);
+        }
+      }
+      next();
     });
 
     // Backup: if the video can't load, still keep the loop going
