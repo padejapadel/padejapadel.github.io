@@ -83,6 +83,13 @@
   /* toast */
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#16304a;color:#fff;border:1px solid var(--line);border-radius:11px;padding:12px 18px;font-weight:600;font-size:14px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.4)}
   .toast-err{background:#3a1720;border-color:rgba(226,75,74,.5);color:#ffd7d7}
+  .msg-thread{max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin:12px 0;padding:4px}
+  .bubble{max-width:78%;padding:9px 13px;border-radius:14px;font-size:14px;line-height:1.4;word-break:break-word}
+  .bubble.mine{align-self:flex-end;background:var(--brand);color:#06131f;border-bottom-right-radius:5px}
+  .bubble.theirs{align-self:flex-start;background:var(--card2);color:var(--white);border:1px solid var(--line);border-bottom-left-radius:5px}
+  .bubble .t{display:block;font-size:10px;opacity:.65;margin-top:3px}
+  .msg-input{display:flex;gap:8px;align-items:flex-end}
+  .msg-input textarea{flex:1;margin:0;resize:none;min-height:44px}
   select,textarea{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--white);font-size:15px;padding:11px 14px;margin-bottom:14px;font-family:inherit}
   select:focus,textarea:focus{outline:none;border-color:var(--brand)}
   .fg{margin-bottom:4px}
@@ -184,7 +191,7 @@
           <div class="fg"><label>Entry fee (£)</label><input id="cFee" type="number" min="3" step="0.01" placeholder="e.g. 25.00" /></div>
           <div class="fg"><label>&nbsp;</label><div class="toggle-row" style="margin:0"><span style="font-size:13px">Includes court costs</span><input type="checkbox" id="cCourt" /></div></div>
         </div>
-        <div class="hint">Minimum £3.00 · Padeja charges 15% (min £3) per registration. Players can split a team fee at checkout.</div>
+        <div class="hint">Minimum £3 per player (so £6 for a pairing) · Padeja charges 15% (min £3) per registration. Players can split a team fee at checkout.</div>
         <div id="cStripeWarn" class="notice hidden" style="color:var(--amber)">To charge an entry fee you first need to connect a payout account — do that in the Padeja app (Host a competition → Payouts), then come back. You can still create a free competition now.</div>
       </div>
 
@@ -441,7 +448,7 @@
       const pos = isReserve ? '<span style="font-weight:800;color:var(--accent);margin-right:8px">#'+(r.reserve_position||(i+1))+'</span>' : "";
       const pl = playersLine(r);
       const reqPay = requiresPaymentOf(CURRENT_COMP);
-      const acts = actionsFn ? '<div class="reg-actions">'+actionsFn(r,i)+'</div>' : "";
+      const acts = actionsFn ? '<div class="reg-actions">'+msgBtn(r)+actionsFn(r,i)+'</div>' : "";
       return '<div class="reg"><div class="name">'+pos+esc(displayName(r))+'</div>'+(pl?'<div class="players">'+esc(pl)+'</div>':"")+payChip(r,reqPay)+acts+'</div>';
     }).join("");
     return '<div class="section"><h3>'+esc(title)+' ('+rows.length+')</h3>'+(body||"")+'</div>';
@@ -453,6 +460,7 @@
   function onAction(act, id){
     const r = regById(id); const c = CURRENT_COMP; if(!r||!c) return;
     const reqPay = requiresPaymentOf(c);
+    if(act==="message") return messageModal(r);
     if(act==="approve") return approveFlow(r,c);
     if(act==="reject") return openModal("Reject "+displayName(r)+"?", (reqPay?"If they've paid, their entry fee is refunded. ":"")+"This removes their registration.", [
       { label:"Reject", cls:"btn-danger", onClick:(close)=>{ close(); run(()=>rejectReg(r), "Registration rejected."); } },
@@ -792,7 +800,8 @@
     const format=segValue("cFormat");
     const paid=$("cPaid").checked;
     const amountPence= paid ? Math.round(parseFloat($("cFee").value||"0")*100) : 0;
-    if(paid && amountPence<300){ $("cErr").textContent="Minimum entry fee is £3.00."; return; }
+    const minFee = (format==="league" && segValue("cRegMode")==="team") ? 600 : 300;
+    if(paid && amountPence<minFee){ $("cErr").textContent = (minFee===600 ? "Minimum entry fee is £6.00 (£3 per player)." : "Minimum entry fee is £3.00 per player."); return; }
     if(paid && amountPence>0 && !HOST_STRIPE_ID){ $("cErr").textContent="Connect a payout account in the app before charging an entry fee, or create a free competition."; return; }
 
     const regMode = (format==="league") ? segValue("cRegMode") : "individual";
@@ -875,9 +884,9 @@
       body+='<div style="border-top:1px solid var(--line);margin:8px 0 14px"></div>';
       body+=tog("ePaid","Charge an entry fee", reqPay);
       body+='<div id="eFeeBox" class="'+(reqPay?"":"hidden")+'">'+
-        '<div class="two">'+g("Entry fee (£)", '<input id="eFee" type="number" min="3" step="0.01" value="'+(reqPay?((c.entry_fee_amount||0)/100).toFixed(2):"")+'" />')+
+        '<div class="two">'+g("Entry fee (£)", '<input id="eFee" type="number" min="'+(c.registration_mode==="team"?"6":"3")+'" step="0.01" value="'+(reqPay?((c.entry_fee_amount||0)/100).toFixed(2):"")+'" />')+
         g("&nbsp;", tog("eCourt","Includes court costs", c.entry_fee_includes_court===true))+'</div>'+
-        '<div class="hint">Minimum £3.00 · Padeja charges 15% (min £3).</div></div>';
+        '<div class="hint">'+(c.registration_mode==="team"?"Minimum £6.00 (£3 per player)":"Minimum £3.00 per player")+' · Padeja charges 15% (min £3).</div></div>';
     }
     const close = openModal("Edit competition", body, [
       { label:"Save changes", cls:"btn-primary", onClick:(cl)=>{ submitEdit(c, isOwner, cl); } },
@@ -903,7 +912,7 @@
       if(isOwner && $("ePaid")){
         const paid=$("ePaid").checked;
         upd.has_entry_fee=paid;
-        if(paid){ const amt=Math.round(parseFloat($("eFee").value||"0")*100); if(amt<300){ toast("Minimum entry fee is £3.00.", true); return; } upd.entry_fee_amount=amt; upd.platform_fee_amount=platformFee(amt); upd.entry_fee_includes_court=$("eCourt").checked; if(amt>0 && HOST_STRIPE_ID) upd.stripe_account_id=HOST_STRIPE_ID; }
+        if(paid){ const amt=Math.round(parseFloat($("eFee").value||"0")*100); const minFeeE=(c.registration_mode==="team")?600:300; if(amt<minFeeE && amt!==(c.entry_fee_amount||0)){ toast(minFeeE===600?"Minimum entry fee is £6.00 (£3 per player).":"Minimum entry fee is £3.00 per player.", true); return; } upd.entry_fee_amount=amt; upd.platform_fee_amount=platformFee(amt); upd.entry_fee_includes_court=$("eCourt").checked; if(amt>0 && HOST_STRIPE_ID) upd.stripe_account_id=HOST_STRIPE_ID; }
         else { upd.entry_fee_amount=0; }
       }
       const { error } = await sb.from("tournaments").update(upd).eq("id", c.id);
@@ -911,6 +920,73 @@
       Object.assign(c, upd);
       close(); toast("Changes saved."); await openDetail(c, true);
     }catch(e){ console.error(e); toast((e&&e.message)?e.message:"Couldn't save — please try again.", true); }
+  }
+
+
+  // ---------- Phase 5: messaging a team / player ----------
+  function regMemberIds(r){
+    const ids=[]; if(r.player1_profile_id) ids.push(r.player1_profile_id); if(r.player2_profile_id) ids.push(r.player2_profile_id);
+    if(!ids.length && r.individual_profile_id) ids.push(r.individual_profile_id);
+    return ids;
+  }
+  function msgBtn(r){ return regMemberIds(r).length ? '<button class="btn btn-ghost btn-sm" data-act="message" data-id="'+esc(r.id)+'">Message</button>' : ""; }
+
+  async function messageModal(r){
+    const members = regMemberIds(r);
+    if(!members.length){ toast("No Padeja accounts on this entry to message.", true); return; }
+    const title = displayName(r);
+    // get or create the conversation
+    let convId=null, err=null;
+    try{
+      if(members.length>1){ const { data, error } = await sb.rpc("get_or_create_group_conversation", { p_participant_ids: members, p_title: title }); if(error) err=error; convId = data; }
+      else { const { data, error } = await sb.rpc("get_or_create_conversation", { other_user_id: members[0] }); if(error) err=error; convId = data; }
+    }catch(e){ err=e; }
+    convId = convId ? (""+convId).replace(/"/g,"") : null;
+    if(!convId){ toast((err&&err.message)?err.message:"Couldn't open the conversation.", true); return; }
+
+    // build modal
+    const ov=document.createElement("div"); ov.className="modal-ov";
+    const m=document.createElement("div"); m.className="modal"; m.style.maxWidth="520px";
+    m.innerHTML='<h3>Message '+esc(title)+'</h3>'+
+      '<div class="muted" style="font-size:12px">'+(members.length>1?"Both players see this thread.":"")+'</div>'+
+      '<div class="msg-thread" id="msgThread"><div class="muted" style="font-size:13px">Loading…</div></div>'+
+      '<div class="msg-input"><textarea id="msgBox" placeholder="Write a message…"></textarea>'+
+      '<button class="btn btn-primary" id="msgSend">Send</button></div>'+
+      '<div class="modal-actions" style="margin-top:10px"><button class="btn btn-ghost" id="msgClose">Close</button></div>';
+    ov.appendChild(m); document.body.appendChild(ov);
+    const close=()=>ov.remove();
+    ov.addEventListener("click",(e)=>{ if(e.target===ov) close(); });
+    m.querySelector("#msgClose").addEventListener("click", close);
+
+    async function loadThread(){
+      const { data } = await sb.from("messages").select("*").eq("conversation_id", convId).order("created_at",{ascending:true});
+      const th=m.querySelector("#msgThread");
+      if(!data || !data.length){ th.innerHTML='<div class="muted" style="font-size:13px">No messages yet — say hello.</div>'; return; }
+      th.innerHTML = data.map(msg=>{
+        const mine = msg.sender_id===MY_UID;
+        const t = msg.created_at ? new Date(msg.created_at).toLocaleString([], {day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) : "";
+        return '<div class="bubble '+(mine?"mine":"theirs")+'">'+esc(msg.body)+'<span class="t">'+esc(t)+'</span></div>';
+      }).join("");
+      th.scrollTop = th.scrollHeight;
+    }
+    await loadThread();
+
+    const sendBtn=m.querySelector("#msgSend"); const box=m.querySelector("#msgBox");
+    async function doSend(){
+      const body=box.value.trim(); if(!body) return;
+      sendBtn.disabled=true;
+      try{
+        const { error } = await sb.from("messages").insert({ conversation_id:convId, sender_id:MY_UID, body });
+        if(error) throw error;
+        box.value="";
+        await loadThread();
+        for(const id of members){ if(id!==MY_UID) notify({ event_type:"new_message", target_user_id:id, actor_name:HOST_NAME, actor_id:MY_UID }); }
+      }catch(e){ toast((e&&e.message)?e.message:"Couldn't send — try again.", true); }
+      finally{ sendBtn.disabled=false; box.focus(); }
+    }
+    sendBtn.addEventListener("click", doSend);
+    box.addEventListener("keydown",(e)=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); doSend(); } });
+    box.focus();
   }
 
   boot();
