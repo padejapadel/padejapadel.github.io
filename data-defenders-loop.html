@@ -91,6 +91,25 @@
       background: #fff;
     }
 
+    /* ---------- Full screen button ---------- */
+    #fs-btn {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 50;
+      padding: 12px 18px;
+      font: 600 15px "Inter", system-ui, sans-serif;
+      color: var(--navy);
+      background: var(--yellow);
+      border: 3px solid var(--navy);
+      border-radius: 10px;
+      box-shadow: 4px 4px 0 var(--navy);
+      cursor: pointer;
+      transition: opacity .4s;
+    }
+    #fs-btn.hidden { opacity: 0; pointer-events: none; }
+    body.idle { cursor: none; }
+
     /* ---------- Scene 2: the map window ---------- */
     #scene-map {
       background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom));
@@ -175,6 +194,9 @@
     </div>
   </section>
 
+  <!-- Click this (or press F) to fill the whole screen with no tabs -->
+  <button id="fs-btn" type="button">⛶ Full screen</button>
+
   <script>
     // ===== Settings you can change =====
     const MAP_SECONDS = 10;   // how long the map stays on screen
@@ -215,6 +237,35 @@
     video.addEventListener('error', () => {
       setTimeout(() => video.dispatchEvent(new Event('ended')), 5000);
     });
+
+
+    // ----- Full screen button -----
+    const fsBtn = document.getElementById('fs-btn');
+    const root = document.documentElement;
+    function isFull() { return document.fullscreenElement || document.webkitFullscreenElement; }
+    function toggleFull() {
+      if (isFull()) {
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      } else {
+        (root.requestFullscreen || root.webkitRequestFullscreen).call(root);
+      }
+    }
+    fsBtn.addEventListener('click', toggleFull);
+    document.addEventListener('keydown', e => { if (e.key === 'f' || e.key === 'F') toggleFull(); });
+
+    // Hide the button and mouse pointer when the mouse hasn't moved for 3 seconds
+    let idleTimer;
+    function wake() {
+      fsBtn.classList.remove('hidden');
+      document.body.classList.remove('idle');
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        fsBtn.classList.add('hidden');
+        document.body.classList.add('idle');
+      }, 3000);
+    }
+    document.addEventListener('mousemove', wake);
+    wake();
 
     // Some browsers need a nudge to start the video automatically
     video.play().catch(() => {});
