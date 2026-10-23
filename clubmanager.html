@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Padeja — Club Manager</title>
+<meta name="description" content="Padeja Club Manager — set up your courts, schedules, pricing and block bookings." />
+<style>
+  :root{
+    --bg:#0A1220; --panel:#101C30; --card:#13223A; --line:#20314f; --line2:#2b4068;
+    --white:#F3F7FD; --muted:#93A9C6; --brand:#3BC8F5; --accent:#F0A537;
+    --good:#35D191; --bad:#F2765B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(1100px 650px at 85% -10%, rgba(39,64,127,.35), transparent 60%), var(--bg);
+    color:var(--white); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; min-height:100vh;
+  }
+  a{color:var(--brand)}
+  button{font-family:inherit;cursor:pointer}
+  input,select{font-family:inherit}
+
+  /* header */
+  header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line);
+    background:linear-gradient(90deg, rgba(27,46,99,.55), rgba(16,28,48,.2));position:sticky;top:0;z-index:5}
+  .logo{font-size:22px;font-weight:900;letter-spacing:.5px}
+  .logo i{color:var(--brand);font-style:normal}
+  .logo small{display:block;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:1px;text-transform:uppercase}
+  header .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .clubsel select{background:var(--card);color:var(--white);border:1px solid var(--line2);border-radius:9px;padding:8px 12px;font-size:14px;font-weight:600}
+  .ghost{background:transparent;color:var(--muted);border:1px solid var(--line2);border-radius:9px;padding:8px 12px;font-size:13px;font-weight:700}
+  .ghost:hover{color:var(--white)}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:22px}
+
+  /* login */
+  .login{max-width:420px;margin:9vh auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:30px}
+  .login h1{font-size:24px;font-weight:900;margin-bottom:4px}
+  .login p{color:var(--muted);font-size:14px;margin-bottom:20px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .field input{width:100%;background:var(--card);color:var(--white);border:1px solid var(--line2);border-radius:10px;padding:12px 14px;font-size:15px}
+  .btn{background:var(--brand);color:#06131f;border:none;border-radius:10px;padding:12px 18px;font-size:15px;font-weight:900;width:100%}
+  .btn:hover{filter:brightness(1.05)}
+  .btn.sm{width:auto;padding:9px 14px;font-size:14px}
+  .btn.alt{background:var(--accent)}
+  .btn.danger{background:transparent;color:var(--bad);border:1px solid rgba(242,118,91,.5)}
+  .btn.line{background:transparent;color:var(--brand);border:1px solid var(--line2)}
+  .err{color:var(--bad);font-size:14px;font-weight:600;margin-top:6px;min-height:18px}
+  .ok{color:var(--good)}
+
+  /* tabs */
+  .tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+  .tab{background:var(--card);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:9px 18px;font-size:14px;font-weight:800}
+  .tab.on{background:var(--brand);color:#06131f;border-color:var(--brand)}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
+  .card h2{font-size:17px;font-weight:900;margin-bottom:4px}
+  .card .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .row .field{flex:1;min-width:140px;margin-bottom:0}
+  .row .field.sm{flex:0 0 120px}
+  .inline{display:flex;align-items:center;gap:10px}
+
+  table{width:100%;border-collapse:collapse;margin-top:6px}
+  th,td{text-align:left;padding:10px 10px;font-size:14px;border-bottom:1px solid var(--line)}
+  th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:800}
+  td .mini{color:var(--muted);font-size:12px}
+  .pill{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:.3px}
+  .pill.covered{background:rgba(59,200,245,.16);color:var(--brand)}
+  .pill.outdoor{background:rgba(240,165,55,.16);color:var(--accent)}
+  .pill.on{background:rgba(53,209,145,.16);color:var(--good)}
+  .pill.off{background:rgba(242,118,91,.16);color:var(--bad)}
+  .pill.fixed{background:rgba(124,155,255,.18);color:#9db0ff}
+  .pill.open{background:rgba(53,209,145,.16);color:var(--good)}
+  .iconbtn{background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;margin-left:6px}
+  .iconbtn:hover{color:var(--white)}
+  .iconbtn.del:hover{color:var(--bad);border-color:rgba(242,118,91,.5)}
+
+  .toggle{position:relative;width:46px;height:26px;flex:0 0 auto}
+  .toggle input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:var(--line2);border-radius:999px;transition:.2s}
+  .slider:before{content:"";position:absolute;height:20px;width:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+  .toggle input:checked + .slider{background:var(--good)}
+  .toggle input:checked + .slider:before{transform:translateX(20px)}
+
+  .empty{color:var(--muted);font-size:14px;padding:16px 0;text-align:center}
+  .muted{color:var(--muted)}
+  .tag-help{font-size:12px;color:var(--muted);margin-top:4px}
+  .hidden{display:none !important}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--line2);
+    color:var(--white);padding:12px 20px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);z-index:50;opacity:0;transition:opacity .25s}
+  .toast.show{opacity:1}
+  .toast.bad{border-color:rgba(242,118,91,.6)}
+  details{border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-top:12px;background:var(--card)}
+  details summary{font-weight:800;cursor:pointer;font-size:15px}
+  details[open] summary{margin-bottom:12px}
+  .sectlabel{font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--brand);margin:16px 0 8px}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginView">
+  <div class="login">
+    <div class="logo" style="margin-bottom:18px">Pade<i>ja</i><small>Club Manager</small></div>
+    <h1>Sign in</h1>
+    <p>Use your Padeja account. You'll see the clubs you're set up to manage.</p>
+    <div class="field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="you@club.com"></div>
+    <div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+    <button class="btn" id="loginBtn">Sign in</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="appView" class="hidden">
+  <header>
+    <div class="logo">Pade<i>ja</i><small>Club Manager</small></div>
+    <div class="right">
+      <span class="clubsel"><select id="clubSelect"></select></span>
+      <button class="ghost" id="logoutBtn">Sign out</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="tabs">
+      <button class="tab on" data-tab="settings">Settings</button>
+      <button class="tab" data-tab="courts">Courts</button>
+      <button class="tab" data-tab="schedules">Schedules &amp; pricing</button>
+      <button class="tab" data-tab="blocks">Block bookings</button>
+    </div>
+
+    <!-- SETTINGS -->
+    <section id="tab-settings" class="tabpane">
+      <div class="card">
+        <h2>Booking settings</h2>
+        <div class="sub" id="settingsClubName">—</div>
+        <div id="settingsBody"></div>
+      </div>
+    </section>
+
+    <!-- COURTS -->
+    <section id="tab-courts" class="tabpane hidden">
+      <div class="card">
+        <h2>Add a court</h2>
+        <div class="sub">Name it whatever your club calls it. Assign a schedule (made in the Schedules tab) to control its bookable times.</div>
+        <div class="row">
+          <div class="field"><label>Court name</label><input id="c_name" placeholder="e.g. Centre Court"></div>
+          <div class="field sm"><label>Surface</label><select id="c_surface"><option value="covered">Covered (indoor)</option><option value="outdoor">Outdoor</option></select></div>
+          <div class="field"><label>Schedule</label><select id="c_schedule"></select></div>
+          <div class="field"><label>Sponsor logo URL (optional)</label><input id="c_logo" placeholder="https://…/logo.png"></div>
+          <div class="field sm"><label>Order</label><input id="c_sort" type="number" value="0"></div>
+          <button class="btn sm alt" id="c_add">Add court</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Courts</h2>
+        <div id="courtsTable"></div>
+      </div>
+    </section>
+
+    <!-- SCHEDULES -->
+    <section id="tab-schedules" class="tabpane hidden">
+      <div class="card">
+        <h2>Add a schedule</h2>
+        <div class="sub">A "schedule" is a set of bookable times you can assign to one or more courts (so courts can run staggered starts). Pick fixed slots or open/free-length booking.</div>
+        <div class="row">
+          <div class="field"><label>Schedule name</label><input id="s_name" placeholder="e.g. Courts 1–3 weekday"></div>
+          <div class="field sm"><label>Mode</label><select id="s_mode"><option value="fixed">Fixed slots</option><option value="open">Open / free-length</option></select></div>
+          <div class="field sm openonly"><label>Start every</label><select id="s_gran"><option value="15">15 min</option><option value="30" selected>30 min</option><option value="60">60 min</option></select></div>
+          <div class="field sm openonly"><label>Buffer (min)</label><input id="s_buffer" type="number" value="0"></div>
+          <div class="field openonly"><label>Allowed durations (min)</label><input id="s_durs" placeholder="e.g. 60, 90, 120"></div>
+          <button class="btn sm alt" id="s_add">Add schedule</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Schedules</h2>
+        <div id="schedulesList"></div>
+      </div>
+    </section>
+
+    <!-- BLOCKS -->
+    <section id="tab-blocks" class="tabpane hidden">
+      <div class="card">
+        <h2>Create a block booking</h2>
+        <div class="sub">Reserve a court with no payment — coaching, maintenance, a club night. It shows on the grid with your label and can't be booked by players while it's on.</div>
+        <div class="row">
+          <div class="field"><label>Court</label><select id="b_court"></select></div>
+          <div class="field sm"><label>Date</label><input id="b_date" type="date"></div>
+          <div class="field sm"><label>Start</label><input id="b_start" type="time"></div>
+          <div class="field sm"><label>End</label><input id="b_end" type="time"></div>
+          <div class="field"><label>Label</label><input id="b_label" placeholder="e.g. Coaching"></div>
+          <button class="btn sm alt" id="b_add">Add block</button>
+        </div>
+        <div class="tag-help">Times are in your club's local time (this device's clock).</div>
+      </div>
+      <div class="card">
+        <h2>Upcoming blocks</h2>
+        <div id="blocksTable"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  // ============================ CONFIG ============================
+  var SUPABASE_URL = 'https://odrckirnjavfptlfygbo.supabase.co';
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo';
+  var LS_KEY = 'padeja_cm_refresh';
+
+  // ============================ STATE ============================
+  var S = { token:null, refresh:null, uid:null, clubs:[], clubId:null, settings:null,
+            courts:[], schedules:[], tab:'settings' };
+
+  // ============================ HELPERS ============================
+  function $(id){ return document.getElementById(id); }
+  function el(sel){ return document.querySelector(sel); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function money(p){ return '£' + (((p||0)/100).toFixed(2)); }
+  function pounds(v){ var n = parseFloat(v); return isNaN(n) ? 0 : Math.round(n*100); }
+  var DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function dowName(d){ return d==null||d==='' ? 'Every day' : DOW[d]; }
+  function hhmm(t){ return t ? String(t).slice(0,5) : ''; }
+
+  var toastT;
+  function toast(msg, bad){
+    var t = $('toast'); t.textContent = msg; t.className = 'toast show' + (bad?' bad':'');
+    clearTimeout(toastT); toastT = setTimeout(function(){ t.className = 'toast'; }, 2600);
+  }
+
+  // REST helper. authed = include the user bearer token (RLS as the user).
+  async function api(method, path, body, prefer){
+    var headers = { apikey: SUPABASE_KEY, 'Content-Type':'application/json',
+                    Authorization: 'Bearer ' + (S.token || SUPABASE_KEY) };
+    if(prefer) headers['Prefer'] = prefer;
+    var res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+      method: method, headers: headers, cache:'no-store',
+      body: body ? JSON.stringify(body) : undefined
+    });
+    if(!res.ok){
+      var txt = await res.text();
+      throw new Error((res.status) + ' ' + txt);
+    }
+    var ct = res.headers.get('content-type') || '';
+    return ct.indexOf('application/json') >= 0 ? res.json() : null;
+  }
+
+  // ============================ AUTH ============================
+  function parseJwt(t){ try{ return JSON.parse(atob(t.split('.')[1])); }catch(e){ return {}; } }
+
+  async function login(email, password){
+    var res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+      method:'POST', headers:{ apikey:SUPABASE_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ email: email, password: password })
+    });
+    var data = await res.json();
+    if(!res.ok) throw new Error(data.error_description || data.msg || data.error || 'Sign-in failed');
+    setSession(data.access_token, data.refresh_token);
+  }
+
+  async function refreshSession(refresh){
+    var res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method:'POST', headers:{ apikey:SUPABASE_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ refresh_token: refresh })
+    });
+    if(!res.ok) throw new Error('session expired');
+    var data = await res.json();
+    setSession(data.access_token, data.refresh_token);
+  }
+
+  function setSession(access, refresh){
+    S.token = access; S.refresh = refresh;
+    S.uid = parseJwt(access).sub;
+    try{ localStorage.setItem(LS_KEY, refresh); }catch(e){}
+  }
+  function clearSession(){
+    S.token = S.refresh = S.uid = null;
+    try{ localStorage.removeItem(LS_KEY); }catch(e){}
+  }
+
+  // ============================ DATA LOADING ============================
+  async function loadClubs(){
+    // clubs the signed-in user is a booking admin for (RLS lets them see their own rows)
+    var rows = await api('GET', 'court_booking_admins?select=club_id,clubs(id,name)&profile_id=eq.' + S.uid);
+    S.clubs = (rows||[]).map(function(r){ return { id: r.club_id, name: (r.clubs && r.clubs.name) || r.club_id }; });
+  }
+  async function loadClub(){
+    var cid = S.clubId;
+    var st = await api('GET', 'court_booking_settings?club_id=eq.' + cid + '&select=*');
+    S.settings = (st && st[0]) || null;
+    S.schedules = await api('GET', 'court_schedules?club_id=eq.' + cid + '&select=*&order=name') || [];
+    S.courts = await api('GET', 'courts?club_id=eq.' + cid + '&select=*&order=sort_order,name') || [];
+  }
+
+  // ============================ RENDER: SETTINGS ============================
+  function renderSettings(){
+    var club = S.clubs.find(function(c){ return c.id === S.clubId; });
+    $('settingsClubName').textContent = club ? club.name : '';
+    var b = $('settingsBody');
+    if(!S.settings){
+      b.innerHTML = '<div class="empty">This club isn\'t switched on for court booking yet. ' +
+        'Ask Padeja to enable it (that creates the settings row), then refresh.</div>';
+      return;
+    }
+    var s = S.settings;
+    b.innerHTML =
+      '<div class="row" style="margin-bottom:16px"><div class="inline"><span class="toggle"><input type="checkbox" id="set_enabled"' + (s.booking_enabled?' checked':'') + '><span class="slider"></span></span><div><b>Court booking enabled</b><div class="mini muted">Players can see and book this club\'s courts in the app.</div></div></div></div>' +
+      '<div class="row">' +
+        '<div class="field"><label>Timezone</label><input id="set_tz" value="' + esc(s.timezone||'') + '"></div>' +
+        '<div class="field sm"><label>Free-cancel window (hours)</label><input id="set_cancel" type="number" value="' + (s.cancellation_window_hours==null?'':s.cancellation_window_hours) + '" placeholder="—"></div>' +
+      '</div>' +
+      '<div class="row" style="margin-top:14px"><div class="inline"><span class="toggle"><input type="checkbox" id="set_autopub"' + (s.auto_go_public_24h?' checked':'') + '><span class="slider"></span></span><div><b>Auto-open private bookings 24h before</b><div class="mini muted">Empty places on a private booking open to the public a day before start.</div></div></div></div>' +
+      '<div style="margin-top:18px"><button class="btn sm" id="set_save">Save settings</button></div>' +
+      '<div class="tag-help">Padeja manages your fee and payout account separately.</div>';
+    $('set_save').onclick = saveSettings;
+  }
+  async function saveSettings(){
+    var patch = {
+      booking_enabled: $('set_enabled').checked,
+      timezone: $('set_tz').value.trim() || 'Europe/London',
+      auto_go_public_24h: $('set_autopub').checked,
+      cancellation_window_hours: $('set_cancel').value === '' ? null : parseInt($('set_cancel').value,10)
+    };
+    try{
+      await api('PATCH', 'court_booking_settings?club_id=eq.' + S.clubId, patch, 'return=representation');
+      S.settings = Object.assign(S.settings, patch);
+      toast('Settings saved');
+    }catch(e){ toast('Could not save: ' + e.message, true); }
+  }
+
+  // ============================ RENDER: COURTS ============================
+  function scheduleName(id){ var s = S.schedules.find(function(x){return x.id===id;}); return s ? s.name : '—'; }
+  function fillScheduleSelect(sel, selectedId){
+    sel.innerHTML = '<option value="">— none —</option>' + S.schedules.map(function(s){
+      return '<option value="'+s.id+'"'+(s.id===selectedId?' selected':'')+'>'+esc(s.name)+' ('+s.mode+')</option>';
+    }).join('');
+  }
+  function renderCourts(){
+    fillScheduleSelect($('c_schedule'), '');
+    var t = $('courtsTable');
+    if(!S.courts.length){ t.innerHTML = '<div class="empty">No courts yet. Add your first above.</div>'; return; }
+    var rows = S.courts.map(function(c){
+      return '<tr>'
+        + '<td><b>'+esc(c.name)+'</b>' + (c.sponsor_logo_url?' <span class="mini">· sponsor logo set</span>':'') + '</td>'
+        + '<td><span class="pill '+c.surface+'">'+c.surface+'</span></td>'
+        + '<td>'+esc(scheduleName(c.schedule_id))+'</td>'
+        + '<td>'+ (c.active?'<span class="pill on">active</span>':'<span class="pill off">off</span>') +'</td>'
+        + '<td style="text-align:right">'
+        +   '<button class="iconbtn" data-edit="'+c.id+'">Edit</button>'
+        +   '<button class="iconbtn del" data-del="'+c.id+'">Delete</button>'
+        + '</td></tr>';
+    }).join('');
+    t.innerHTML = '<table><thead><tr><th>Court</th><th>Surface</th><th>Schedule</th><th>Status</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
+    t.querySelectorAll('[data-del]').forEach(function(btn){ btn.onclick = function(){ deleteCourt(btn.getAttribute('data-del')); }; });
+    t.querySelectorAll('[data-edit]').forEach(function(btn){ btn.onclick = function(){ editCourt(btn.getAttribute('data-edit')); }; });
+  }
+  async function addCourt(){
+    var name = $('c_name').value.trim();
+    if(!name){ toast('Give the court a name', true); return; }
+    var body = { club_id:S.clubId, name:name, surface:$('c_surface').value,
+                 schedule_id: $('c_schedule').value || null, sponsor_logo_url: $('c_logo').value.trim() || null,
+                 sort_order: parseInt($('c_sort').value,10)||0 };
+    try{
+      var r = await api('POST','courts', body, 'return=representation');
+      S.courts.push(r[0]); S.courts.sort(function(a,b){return (a.sort_order-b.sort_order)|| a.name.localeCompare(b.name);});
+      $('c_name').value=''; $('c_logo').value=''; $('c_sort').value='0';
+      renderCourts(); toast('Court added');
+    }catch(e){ toast('Could not add court: ' + e.message, true); }
+  }
+  async function editCourt(id){
+    var c = S.courts.find(function(x){return x.id===id;}); if(!c) return;
+    var name = prompt('Court name:', c.name); if(name===null) return;
+    var active = confirm('OK = active / Cancel = turned off.\n\nShould "'+ (name.trim()||c.name) +'" be ACTIVE?');
+    var patch = { name: name.trim()||c.name, active: active };
+    try{
+      await api('PATCH','courts?id=eq.'+id, patch, 'return=representation');
+      Object.assign(c, patch); renderCourts(); toast('Court updated');
+    }catch(e){ toast('Could not update: ' + e.message, true); }
+  }
+  async function deleteCourt(id){
+    var c = S.courts.find(function(x){return x.id===id;});
+    if(!confirm('Delete court "'+(c?c.name:'')+'"? This can\'t be undone.')) return;
+    try{
+      await api('DELETE','courts?id=eq.'+id);
+      S.courts = S.courts.filter(function(x){return x.id!==id;}); renderCourts(); toast('Court deleted');
+    }catch(e){ toast('Could not delete (it may have bookings): ' + e.message, true); }
+  }
+
+  // ============================ RENDER: SCHEDULES ============================
+  function toggleOpenFields(){
+    var open = $('s_mode').value === 'open';
+    document.querySelectorAll('.openonly').forEach(function(n){ n.style.display = open ? '' : 'none'; });
+  }
+  function renderSchedules(){
+    var wrap = $('schedulesList');
+    if(!S.schedules.length){ wrap.innerHTML = '<div class="empty">No schedules yet. Add one above, then assign it to courts.</div>'; return; }
+    wrap.innerHTML = S.schedules.map(function(s){
+      return '<details data-sid="'+s.id+'"><summary>'+esc(s.name)+' <span class="pill '+s.mode+'">'+s.mode+'</span></summary>'
+        + '<div class="schedbody" id="sb_'+s.id+'"><div class="muted">Loading…</div></div>'
+        + '<div style="margin-top:12px"><button class="iconbtn del" data-delsched="'+s.id+'">Delete schedule</button></div>'
+        + '</details>';
+    }).join('');
+    wrap.querySelectorAll('details').forEach(function(d){
+      d.addEventListener('toggle', function(){ if(d.open) loadScheduleBody(d.getAttribute('data-sid')); });
+    });
+    wrap.querySelectorAll('[data-delsched]').forEach(function(b){ b.onclick = function(ev){ ev.preventDefault(); deleteSchedule(b.getAttribute('data-delsched')); }; });
+  }
+  async function loadScheduleBody(sid){
+    var s = S.schedules.find(function(x){return x.id===sid;}); if(!s) return;
+    var box = $('sb_'+sid);
+    try{
+      if(s.mode === 'fixed'){
+        var slots = await api('GET','schedule_slots?schedule_id=eq.'+sid+'&select=*&order=day_of_week,start_time') || [];
+        box.innerHTML = fixedEditor(sid, slots);
+        wireFixedEditor(sid);
+      } else {
+        var windows = await api('GET','schedule_windows?schedule_id=eq.'+sid+'&select=*&order=day_of_week,open_time') || [];
+        var prices  = await api('GET','schedule_open_prices?schedule_id=eq.'+sid+'&select=*&order=day_of_week,duration_min') || [];
+        box.innerHTML = openEditor(s, windows, prices);
+        wireOpenEditor(sid);
+      }
+    }catch(e){ box.innerHTML = '<div class="err">Could not load: '+esc(e.message)+'</div>'; }
+  }
+  function dowSelect(id){
+    return '<select id="'+id+'"><option value="">Every day</option>' +
+      DOW.map(function(d,i){ return '<option value="'+i+'">'+d+'</option>'; }).join('') + '</select>';
+  }
+  // ---- fixed-mode editor ----
+  function fixedEditor(sid, slots){
+    var rows = slots.length ? slots.map(function(sl){
+      return '<tr><td>'+dowName(sl.day_of_week)+'</td><td>'+hhmm(sl.start_time)+' – '+hhmm(sl.end_time)+'</td>'
+        + '<td>'+money(sl.price_cents)+'</td>'
+        + '<td style="text-align:right"><button class="iconbtn del" data-delslot="'+sl.id+'">Remove</button></td></tr>';
+    }).join('') : '<tr><td colspan="4" class="muted" style="padding:12px 10px">No slots yet.</td></tr>';
+    return '<div class="sectlabel">Fixed slots (whole-court price each)</div>'
+      + '<table><thead><tr><th>Day</th><th>Time</th><th>Price</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'
+      + '<div class="row" style="margin-top:12px">'
+      +   '<div class="field sm"><label>Day</label>'+dowSelect('fs_dow_'+sid)+'</div>'
+      +   '<div class="field sm"><label>Start</label><input id="fs_start_'+sid+'" type="time"></div>'
+      +   '<div class="field sm"><label>End</label><input id="fs_end_'+sid+'" type="time"></div>'
+      +   '<div class="field sm"><label>Price (£)</label><input id="fs_price_'+sid+'" type="number" step="0.01" placeholder="e.g. 24.00"></div>'
+      +   '<button class="btn sm line" data-addslot="'+sid+'">Add slot</button>'
+      + '</div>';
+  }
+  function wireFixedEditor(sid){
+    var box = $('sb_'+sid);
+    box.querySelector('[data-addslot]').onclick = async function(){
+      var body = { schedule_id:sid, club_id:S.clubId,
+        day_of_week: $('fs_dow_'+sid).value===''?null:parseInt($('fs_dow_'+sid).value,10),
+        start_time: $('fs_start_'+sid).value, end_time: $('fs_end_'+sid).value,
+        price_cents: pounds($('fs_price_'+sid).value) };
+      if(!body.start_time || !body.end_time){ toast('Set start and end times', true); return; }
+      try{ await api('POST','schedule_slots', body, 'return=minimal'); loadScheduleBody(sid); toast('Slot added'); }
+      catch(e){ toast('Could not add slot: '+e.message, true); }
+    };
+    box.querySelectorAll('[data-delslot]').forEach(function(b){ b.onclick = async function(){
+      try{ await api('DELETE','schedule_slots?id=eq.'+b.getAttribute('data-delslot')); loadScheduleBody(sid); }
+      catch(e){ toast('Could not remove: '+e.message, true); } }; });
+  }
+  // ---- open-mode editor ----
+  function openEditor(s, windows, prices){
+    var w = windows.length ? windows.map(function(x){
+      return '<tr><td>'+dowName(x.day_of_week)+'</td><td>'+hhmm(x.open_time)+' – '+hhmm(x.close_time)+'</td>'
+        + '<td style="text-align:right"><button class="iconbtn del" data-delwin="'+x.id+'">Remove</button></td></tr>';
+    }).join('') : '<tr><td colspan="3" class="muted" style="padding:12px 10px">No hours yet.</td></tr>';
+    var p = prices.length ? prices.map(function(x){
+      var band = (x.band_start||x.band_end) ? (hhmm(x.band_start)+'–'+hhmm(x.band_end)) : 'Any time';
+      return '<tr><td>'+dowName(x.day_of_week)+'</td><td>'+band+'</td><td>'+x.duration_min+' min</td><td>'+money(x.price_cents)+'</td>'
+        + '<td style="text-align:right"><button class="iconbtn del" data-delprice="'+x.id+'">Remove</button></td></tr>';
+    }).join('') : '<tr><td colspan="5" class="muted" style="padding:12px 10px">No prices yet.</td></tr>';
+    var sid = s.id;
+    return '<div class="mini muted">Starts every '+s.start_granularity_min+' min'
+      + (s.buffer_min? ' · '+s.buffer_min+' min buffer':'')
+      + (s.allowed_durations && s.allowed_durations.length? ' · durations: '+s.allowed_durations.join(', ')+' min':'')+'</div>'
+      + '<div class="sectlabel">Bookable hours</div>'
+      + '<table><thead><tr><th>Day</th><th>Open – Close</th><th></th></tr></thead><tbody>'+w+'</tbody></table>'
+      + '<div class="row" style="margin-top:12px">'
+      +   '<div class="field sm"><label>Day</label>'+dowSelect('ow_dow_'+sid)+'</div>'
+      +   '<div class="field sm"><label>Open</label><input id="ow_open_'+sid+'" type="time"></div>'
+      +   '<div class="field sm"><label>Close</label><input id="ow_close_'+sid+'" type="time"></div>'
+      +   '<button class="btn sm line" data-addwin="'+sid+'">Add hours</button>'
+      + '</div>'
+      + '<div class="sectlabel">Prices (whole court, by duration)</div>'
+      + '<table><thead><tr><th>Day</th><th>Start band</th><th>Duration</th><th>Price</th><th></th></tr></thead><tbody>'+p+'</tbody></table>'
+      + '<div class="row" style="margin-top:12px">'
+      +   '<div class="field sm"><label>Day</label>'+dowSelect('op_dow_'+sid)+'</div>'
+      +   '<div class="field sm"><label>Band start</label><input id="op_bs_'+sid+'" type="time"></div>'
+      +   '<div class="field sm"><label>Band end</label><input id="op_be_'+sid+'" type="time"></div>'
+      +   '<div class="field sm"><label>Duration (min)</label><input id="op_dur_'+sid+'" type="number" placeholder="60"></div>'
+      +   '<div class="field sm"><label>Price (£)</label><input id="op_price_'+sid+'" type="number" step="0.01"></div>'
+      +   '<button class="btn sm line" data-addprice="'+sid+'">Add price</button>'
+      + '</div>'
+      + '<div class="tag-help">Leave band blank for an all-day price. The player\'s price is read from the row matching their chosen duration + start time.</div>';
+  }
+  function wireOpenEditor(sid){
+    var box = $('sb_'+sid);
+    box.querySelector('[data-addwin]').onclick = async function(){
+      var body = { schedule_id:sid, club_id:S.clubId,
+        day_of_week: $('ow_dow_'+sid).value===''?null:parseInt($('ow_dow_'+sid).value,10),
+        open_time: $('ow_open_'+sid).value, close_time: $('ow_close_'+sid).value };
+      if(!body.open_time || !body.close_time){ toast('Set open and close times', true); return; }
+      try{ await api('POST','schedule_windows', body, 'return=minimal'); loadScheduleBody(sid); toast('Hours added'); }
+      catch(e){ toast('Could not add: '+e.message, true); }
+    };
+    box.querySelector('[data-addprice]').onclick = async function(){
+      var dur = parseInt($('op_dur_'+sid).value,10);
+      if(!dur){ toast('Set a duration', true); return; }
+      var body = { schedule_id:sid, club_id:S.clubId,
+        day_of_week: $('op_dow_'+sid).value===''?null:parseInt($('op_dow_'+sid).value,10),
+        band_start: $('op_bs_'+sid).value || null, band_end: $('op_be_'+sid).value || null,
+        duration_min: dur, price_cents: pounds($('op_price_'+sid).value) };
+      try{ await api('POST','schedule_open_prices', body, 'return=minimal'); loadScheduleBody(sid); toast('Price added'); }
+      catch(e){ toast('Could not add: '+e.message, true); }
+    };
+    box.querySelectorAll('[data-delwin]').forEach(function(b){ b.onclick = async function(){
+      try{ await api('DELETE','schedule_windows?id=eq.'+b.getAttribute('data-delwin')); loadScheduleBody(sid); }catch(e){ toast(e.message,true);} }; });
+    box.querySelectorAll('[data-delprice]').forEach(function(b){ b.onclick = async function(){
+      try{ await api('DELETE','schedule_open_prices?id=eq.'+b.getAttribute('data-delprice')); loadScheduleBody(sid); }catch(e){ toast(e.message,true);} }; });
+  }
+  async function addSchedule(){
+    var name = $('s_name').value.trim();
+    if(!name){ toast('Name the schedule', true); return; }
+    var mode = $('s_mode').value;
+    var body = { club_id:S.clubId, name:name, mode:mode };
+    if(mode==='open'){
+      body.start_granularity_min = parseInt($('s_gran').value,10)||30;
+      body.buffer_min = parseInt($('s_buffer').value,10)||0;
+      body.allowed_durations = ($('s_durs').value||'').split(',').map(function(x){return parseInt(x.trim(),10);}).filter(function(n){return !isNaN(n);});
+    }
+    try{
+      var r = await api('POST','court_schedules', body, 'return=representation');
+      S.schedules.push(r[0]); S.schedules.sort(function(a,b){return a.name.localeCompare(b.name);});
+      $('s_name').value=''; $('s_durs').value='';
+      renderSchedules(); toast('Schedule added');
+    }catch(e){ toast('Could not add schedule: '+e.message, true); }
+  }
+  async function deleteSchedule(sid){
+    var s = S.schedules.find(function(x){return x.id===sid;});
+    if(!confirm('Delete schedule "'+(s?s.name:'')+'"? Its slots/hours/prices go too. Courts using it will have no schedule.')) return;
+    try{
+      await api('DELETE','court_schedules?id=eq.'+sid);
+      S.schedules = S.schedules.filter(function(x){return x.id!==sid;});
+      S.courts.forEach(function(c){ if(c.schedule_id===sid) c.schedule_id=null; });
+      renderSchedules(); toast('Schedule deleted');
+    }catch(e){ toast('Could not delete: '+e.message, true); }
+  }
+
+  // ============================ RENDER: BLOCKS ============================
+  function fillCourtSelect(sel){
+    sel.innerHTML = S.courts.map(function(c){ return '<option value="'+c.id+'">'+esc(c.name)+'</option>'; }).join('');
+  }
+  async function renderBlocks(){
+    fillCourtSelect($('b_court'));
+    var t = $('blocksTable');
+    t.innerHTML = '<div class="muted">Loading…</div>';
+    try{
+      var nowIso = new Date().toISOString();
+      var rows = await api('GET','court_bookings?club_id=eq.'+S.clubId+'&type=eq.club_block&status=eq.active&end_at=gte.'+nowIso+'&select=*&order=start_at') || [];
+      if(!rows.length){ t.innerHTML = '<div class="empty">No upcoming blocks.</div>'; return; }
+      var courtName = {}; S.courts.forEach(function(c){ courtName[c.id]=c.name; });
+      t.innerHTML = '<table><thead><tr><th>Court</th><th>When</th><th>Label</th><th></th></tr></thead><tbody>'
+        + rows.map(function(r){
+            var st = new Date(r.start_at), en = new Date(r.end_at);
+            var when = st.toLocaleString([], {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})
+                     + ' – ' + en.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            return '<tr><td>'+esc(courtName[r.court_id]||'—')+'</td><td>'+when+'</td><td>'+esc(r.block_label||'')+'</td>'
+              + '<td style="text-align:right"><button class="iconbtn del" data-cancel="'+r.id+'">Remove</button></td></tr>';
+          }).join('') + '</tbody></table>';
+      t.querySelectorAll('[data-cancel]').forEach(function(b){ b.onclick = function(){ cancelBlock(b.getAttribute('data-cancel')); }; });
+    }catch(e){ t.innerHTML = '<div class="err">Could not load: '+esc(e.message)+'</div>'; }
+  }
+  async function addBlock(){
+    var court = $('b_court').value, date = $('b_date').value, start = $('b_start').value, end = $('b_end').value;
+    var label = $('b_label').value.trim();
+    if(!court){ toast('Pick a court', true); return; }
+    if(!date || !start || !end){ toast('Set date, start and end', true); return; }
+    var startAt = new Date(date + 'T' + start), endAt = new Date(date + 'T' + end);
+    if(endAt <= startAt){ toast('End must be after start', true); return; }
+    var body = { club_id:S.clubId, court_id:court, type:'club_block', status:'active',
+                 start_at:startAt.toISOString(), end_at:endAt.toISOString(),
+                 block_label: label || 'Reserved', created_by: S.uid };
+    try{
+      await api('POST','court_bookings', body, 'return=minimal');
+      $('b_label').value='';
+      renderBlocks(); toast('Block booking added');
+    }catch(e){
+      var msg = /exclusion|overlap|conflict|23P01/i.test(e.message) ? 'That court is already booked/blocked for that time.' : e.message;
+      toast('Could not add block: ' + msg, true);
+    }
+  }
+  async function cancelBlock(id){
+    if(!confirm('Remove this block and free the court?')) return;
+    try{ await api('PATCH','court_bookings?id=eq.'+id, { status:'cancelled' }, 'return=minimal'); renderBlocks(); toast('Block removed'); }
+    catch(e){ toast('Could not remove: '+e.message, true); }
+  }
+
+  // ============================ TABS / APP ============================
+  function showTab(name){
+    S.tab = name;
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-tab')===name); });
+    document.querySelectorAll('.tabpane').forEach(function(p){ p.classList.add('hidden'); });
+    $('tab-'+name).classList.remove('hidden');
+    if(name==='settings') renderSettings();
+    if(name==='courts') renderCourts();
+    if(name==='schedules'){ toggleOpenFields(); renderSchedules(); }
+    if(name==='blocks') renderBlocks();
+  }
+
+  function fillClubSelect(){
+    var sel = $('clubSelect');
+    sel.innerHTML = S.clubs.map(function(c){ return '<option value="'+c.id+'">'+esc(c.name)+'</option>'; }).join('');
+    sel.value = S.clubId;
+  }
+
+  async function enterApp(){
+    $('loginView').classList.add('hidden');
+    $('appView').classList.remove('hidden');
+    await loadClubs();
+    if(!S.clubs.length){
+      $('appView').innerHTML = '<div class="login"><h1>No clubs yet</h1><p>This account isn\'t set up to manage any club\'s court booking. Ask Padeja to add you as a booking admin, then sign in again.</p><button class="btn" onclick="location.reload()">Reload</button></div>';
+      return;
+    }
+    S.clubId = S.clubs[0].id;
+    fillClubSelect();
+    await loadClub();
+    showTab('settings');
+  }
+
+  // ============================ WIRING ============================
+  $('loginBtn').onclick = async function(){
+    $('loginErr').textContent = '';
+    var email = $('email').value.trim(), pw = $('password').value;
+    if(!email || !pw){ $('loginErr').textContent = 'Enter your email and password.'; return; }
+    $('loginBtn').textContent = 'Signing in…'; $('loginBtn').disabled = true;
+    try{ await login(email, pw); await enterApp(); }
+    catch(e){ $('loginErr').textContent = e.message; }
+    finally{ $('loginBtn').textContent = 'Sign in'; $('loginBtn').disabled = false; }
+  };
+  $('password').addEventListener('keydown', function(e){ if(e.key==='Enter') $('loginBtn').click(); });
+  $('logoutBtn').onclick = function(){ clearSession(); location.reload(); };
+  $('clubSelect').onchange = async function(){ S.clubId = this.value; await loadClub(); showTab(S.tab); };
+  document.querySelectorAll('.tab').forEach(function(t){ t.onclick = function(){ showTab(t.getAttribute('data-tab')); }; });
+  $('c_add').onclick = addCourt;
+  $('s_add').onclick = addSchedule;
+  $('s_mode').onchange = toggleOpenFields;
+  $('b_add').onclick = addBlock;
+
+  // ============================ DEMO MODE (#demo) ============================
+  // Lets you preview the UI with sample data and no backend (for review only).
+  function demoSeed(){
+    S.uid='demo'; S.clubs=[{id:'demo-club',name:'Example Padel Club'}]; S.clubId='demo-club';
+    S.settings={ club_id:'demo-club', booking_enabled:true, timezone:'Europe/London', auto_go_public_24h:true, cancellation_window_hours:24 };
+    S.schedules=[
+      {id:'sch1',club_id:'demo-club',name:'Courts 1–3 weekday',mode:'fixed',start_granularity_min:30,buffer_min:0,allowed_durations:[]},
+      {id:'sch2',club_id:'demo-club',name:'Courts 4–6 open play',mode:'open',start_granularity_min:30,buffer_min:0,allowed_durations:[60,90,120]}
+    ];
+    S.courts=[
+      {id:'c1',club_id:'demo-club',name:'Centre Court',surface:'covered',schedule_id:'sch1',sponsor_logo_url:'x',sort_order:0,active:true},
+      {id:'c2',club_id:'demo-club',name:'Court 2',surface:'covered',schedule_id:'sch1',sort_order:1,active:true},
+      {id:'c3',club_id:'demo-club',name:'Garden Court',surface:'outdoor',schedule_id:'sch2',sort_order:2,active:false}
+    ];
+    // stub network for the demo so expanding a schedule / blocks tab shows sample rows
+    window.__demo = {
+      'schedule_slots': [
+        {id:'sl1',schedule_id:'sch1',day_of_week:null,start_time:'07:00:00',end_time:'08:00:00',price_cents:2000},
+        {id:'sl2',schedule_id:'sch1',day_of_week:null,start_time:'18:00:00',end_time:'19:00:00',price_cents:2800}
+      ],
+      'schedule_windows':[{id:'w1',schedule_id:'sch2',day_of_week:null,open_time:'08:00:00',close_time:'22:00:00'}],
+      'schedule_open_prices':[
+        {id:'p1',schedule_id:'sch2',day_of_week:null,band_start:null,band_end:null,duration_min:60,price_cents:2400},
+        {id:'p2',schedule_id:'sch2',day_of_week:null,band_start:'17:00:00',band_end:'21:00:00',duration_min:60,price_cents:3000}
+      ],
+      'court_bookings':[]
+    };
+    var realApi = api;
+    api = async function(method, path){
+      if(method==='GET'){ var key = path.split('?')[0]; if(window.__demo[key]!==undefined) return window.__demo[key]; }
+      return []; // swallow writes in demo
+    };
+    $('loginView').classList.add('hidden'); $('appView').classList.remove('hidden');
+    fillClubSelect(); showTab('settings');
+  }
+
+  // ============================ BOOT ============================
+  (async function boot(){
+    if(location.hash === '#demo'){ demoSeed(); return; }
+    var refresh = null; try{ refresh = localStorage.getItem(LS_KEY); }catch(e){}
+    if(refresh){
+      try{ await refreshSession(refresh); await enterApp(); return; }
+      catch(e){ clearSession(); }
+    }
+    $('loginView').classList.remove('hidden');
+  })();
+})();
+</script>
+</body>
+</html>
