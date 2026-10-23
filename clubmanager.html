@@ -89,6 +89,16 @@
   .empty{color:var(--muted);font-size:14px;padding:16px 0;text-align:center}
   .muted{color:var(--muted)}
   .tag-help{font-size:12px;color:var(--muted);margin-top:4px}
+  .sumrow{display:flex;gap:10px;flex-wrap:wrap}
+  .sumcard{flex:1;min-width:140px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .sumcard .lbl{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+  .sumcard .val{font-size:22px;font-weight:900;margin-top:4px}
+  .sumcard .scap{font-size:11px;color:var(--muted);margin-top:2px}
+  .bk-row{display:flex;align-items:center;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:#0f2038;margin-bottom:8px}
+  .bk-time{font-weight:800;font-size:14px;white-space:nowrap}
+  .bk-players{font-size:12px;color:var(--muted);margin-top:3px}
+  .okpay{color:var(--good);font-weight:700}
+  .pendpay{color:var(--accent);font-weight:700}
   .hidden{display:none !important}
   .modal{position:fixed;inset:0;background:rgba(4,8,16,.72);display:flex;align-items:center;justify-content:center;z-index:40;padding:20px}
   .modalbox{background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:24px;width:480px;max-width:100%}
@@ -134,6 +144,7 @@
       <button class="tab on" data-tab="settings">Settings</button>
       <button class="tab" data-tab="courts">Courts</button>
       <button class="tab" data-tab="schedules">Schedules &amp; pricing</button>
+      <button class="tab" data-tab="bookings">Bookings</button>
       <button class="tab" data-tab="blocks">Block bookings</button>
     </div>
 
@@ -205,6 +216,18 @@
         <h2>Upcoming blocks</h2>
         <div id="blocksTable"></div>
       </div>
+    </section>
+
+    <!-- BOOKINGS -->
+    <section id="tab-bookings" class="tabpane hidden">
+      <div class="card">
+        <h2>Bookings &amp; occupancy</h2>
+        <div class="sub">Who's booked, how full you are, and the money for the day.</div>
+        <div class="row" style="margin-bottom:2px">
+          <div class="field sm"><label>Date</label><input id="bk_date" type="date"></div>
+        </div>
+      </div>
+      <div id="bookingsBody"></div>
     </section>
   </div>
 </div>
@@ -652,6 +675,43 @@
     catch(e){ toast('Could not remove: '+e.message, true); }
   }
 
+  // ============================ BOOKINGS ============================
+  var bkTz = 'Europe/London';
+  function hhmmLocal(iso){ try{ return new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:bkTz}); }catch(e){ return String(iso).slice(11,16); } }
+  function sumCard(lbl, val, cap){ return '<div class="sumcard"><div class="lbl">'+esc(lbl)+'</div><div class="val">'+esc(String(val))+'</div><div class="scap">'+esc(cap)+'</div></div>'; }
+  function renderBookingRow(b){
+    var t = hhmmLocal(b.start_at)+'\u2013'+hhmmLocal(b.end_at);
+    if(b.type==='club_block'){
+      return '<div class="bk-row"><div class="bk-time">'+t+'<div class="bk-players" style="font-weight:600">'+esc(b.court_name)+'</div></div><div style="flex:1"></div><span class="pill" style="background:rgba(240,165,55,.16);color:var(--accent)">'+esc(b.block_label||'Block')+'</span></div>';
+    }
+    var players = (b.players||[]).map(function(p){ var cls=p.payment_status==='paid'?'okpay':'pendpay'; return esc(p.name)+' <span class="'+cls+'">('+(p.payment_status==='paid'?'paid':'pending')+')</span>'; }).join(' \u00b7 ');
+    var vis = b.visibility==='public' ? 'Open match' : 'Private';
+    return '<div class="bk-row"><div class="bk-time">'+t+'<div class="bk-players" style="font-weight:600">'+esc(b.court_name)+'</div></div>'
+      +'<div style="flex:1"><div><b>'+esc(b.booker_name||'Member')+'</b> \u00b7 '+vis+' \u00b7 '+(b.players_filled||0)+'/4</div><div class="bk-players">'+players+'</div></div>'
+      +'<div style="text-align:right;font-weight:800;white-space:nowrap">'+money(b.price_cents)+'</div></div>';
+  }
+  async function renderBookings(){
+    var body = $('bookingsBody');
+    if(!$('bk_date').value){ $('bk_date').value = new Date().toISOString().slice(0,10); }
+    var date = $('bk_date').value;
+    body.innerHTML = '<div class="muted">Loading\u2026</div>';
+    try{
+      var ov = await api('POST','rpc/get_club_day_overview', { p_club_id:S.clubId, p_date:date });
+      if(!ov || ov.error){ body.innerHTML = '<div class="empty">'+esc((ov&&ov.error)||'No data for this club.')+'</div>'; return; }
+      bkTz = ov.timezone || bkTz;
+      var s = ov.summary || {};
+      var occPct = s.bookable_slots ? Math.round(100*(s.occupied_slots||0)/s.bookable_slots) : 0;
+      var cards = sumCard('Occupancy', (s.occupied_slots||0)+' / '+(s.bookable_slots||0), occPct+'% of slots booked')
+        + sumCard('Free slots', (s.free_slots||0), 'bookable slots still open')
+        + sumCard('Open spaces', (s.public_spaces_free||0), 'empty places in public matches')
+        + sumCard('Expected', money(s.expected_revenue_cents), 'value of booked courts')
+        + sumCard('Collected', money(s.collected_revenue_cents), 'paid so far');
+      var list = (ov.bookings||[]).map(renderBookingRow).join('') || '<div class="empty">No bookings on this day.</div>';
+      body.innerHTML = '<div class="card"><div class="sumrow">'+cards+'</div><div class="tag-help" style="margin-top:12px">Collected stays '+money(0)+' until card payment is switched on \u2014 bookings are recorded as \u201cpending\u201d for now.</div></div>'
+        + '<div class="card"><h2>Bookings</h2>'+list+'</div>';
+    }catch(e){ body.innerHTML = '<div class="card"><div class="err">Could not load: '+esc(e.message)+'</div></div>'; }
+  }
+
   // ============================ TABS / APP ============================
   function showTab(name){
     S.tab = name;
@@ -662,6 +722,7 @@
     if(name==='courts') renderCourts();
     if(name==='schedules'){ toggleOpenFields(); renderSchedules(); }
     if(name==='blocks') renderBlocks();
+    if(name==='bookings') renderBookings();
   }
 
   function fillClubSelect(){
@@ -702,6 +763,7 @@
   $('s_add').onclick = addSchedule;
   $('s_mode').onchange = toggleOpenFields;
   $('b_add').onclick = addBlock;
+  $('bk_date').onchange = renderBookings;
   $('e_save').onclick = saveCourtEdit;
   $('e_cancel').onclick = closeCourtModal;
   $('courtModal').addEventListener('click', function(ev){ if(ev.target === this) closeCourtModal(); });
@@ -731,11 +793,20 @@
         {id:'p1',schedule_id:'sch2',day_of_week:null,band_start:null,band_end:null,duration_min:60,price_cents:2400},
         {id:'p2',schedule_id:'sch2',day_of_week:null,band_start:'17:00:00',band_end:'21:00:00',duration_min:60,price_cents:3000}
       ],
-      'court_bookings':[]
+      'court_bookings':[],
+      'overview': {
+        date:'2026-10-23', timezone:'Europe/London',
+        summary:{ courts_total:3, courts_active:3, bookable_slots:6, occupied_slots:2, free_slots:4, player_spaces_filled:5, public_spaces_free:1, expected_revenue_cents:6400, collected_revenue_cents:3200 },
+        bookings:[
+          { id:'b1', court_name:'Centre Court', start_at:'2026-10-23T18:00:00+00:00', end_at:'2026-10-23T19:30:00+00:00', type:'booking', visibility:'public', pay_mode:'per_quarter', price_cents:3200, players_filled:3, booker_name:'Ant Hill', players:[{name:'Ant Hill',is_booker:true,payment_status:'paid'},{name:'Jack Woodford',is_booker:false,payment_status:'paid'},{name:'Sam Lee',is_booker:false,payment_status:'pending'}] },
+          { id:'b2', court_name:'Court 2', start_at:'2026-10-23T19:00:00+00:00', end_at:'2026-10-23T20:00:00+00:00', type:'club_block', visibility:'private', block_label:'Coaching', players:[] }
+        ]
+      }
     };
     var realApi = api;
     api = async function(method, path){
       if(method==='GET'){ var key = path.split('?')[0]; if(window.__demo[key]!==undefined) return window.__demo[key]; }
+      if(method==='POST' && path.indexOf('rpc/get_club_day_overview')===0) return window.__demo.overview;
       return []; // swallow writes in demo
     };
     $('loginView').classList.add('hidden'); $('appView').classList.remove('hidden');
