@@ -260,13 +260,21 @@
 
   // REST helper. authed = include the user bearer token (RLS as the user).
   async function api(method, path, body, prefer){
-    var headers = { apikey: SUPABASE_KEY, 'Content-Type':'application/json',
-                    Authorization: 'Bearer ' + (S.token || SUPABASE_KEY) };
-    if(prefer) headers['Prefer'] = prefer;
-    var res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
-      method: method, headers: headers, cache:'no-store',
-      body: body ? JSON.stringify(body) : undefined
-    });
+    function doFetch(){
+      var headers = { apikey: SUPABASE_KEY, 'Content-Type':'application/json',
+                      Authorization: 'Bearer ' + (S.token || SUPABASE_KEY) };
+      if(prefer) headers['Prefer'] = prefer;
+      return fetch(SUPABASE_URL + '/rest/v1/' + path, {
+        method: method, headers: headers, cache:'no-store',
+        body: body ? JSON.stringify(body) : undefined
+      });
+    }
+    var res = await doFetch();
+    // Access token expired → refresh once with the stored refresh token and retry.
+    if(res.status === 401 && S.refresh){
+      try { await refreshSession(S.refresh); res = await doFetch(); }
+      catch(e){ clearSession(); throw new Error('Your session expired — please sign in again.'); }
+    }
     if(!res.ok){
       var txt = await res.text();
       throw new Error((res.status) + ' ' + txt);
