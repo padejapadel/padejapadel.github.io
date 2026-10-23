@@ -90,6 +90,10 @@
   .muted{color:var(--muted)}
   .tag-help{font-size:12px;color:var(--muted);margin-top:4px}
   .hidden{display:none !important}
+  .modal{position:fixed;inset:0;background:rgba(4,8,16,.72);display:flex;align-items:center;justify-content:center;z-index:40;padding:20px}
+  .modalbox{background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:24px;width:480px;max-width:100%}
+  .modalbox h2{font-size:18px;font-weight:900;margin-bottom:16px}
+  .modalbox .field{margin-bottom:14px}
   .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--line2);
     color:var(--white);padding:12px 20px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);z-index:50;opacity:0;transition:opacity .25s}
   .toast.show{opacity:1}
@@ -202,6 +206,25 @@
         <div id="blocksTable"></div>
       </div>
     </section>
+  </div>
+</div>
+
+<!-- Edit-court modal -->
+<div class="modal hidden" id="courtModal">
+  <div class="modalbox">
+    <h2>Edit court</h2>
+    <div class="field"><label>Court name</label><input id="e_name"></div>
+    <div class="field"><label>Surface</label><select id="e_surface"><option value="covered">Covered (indoor)</option><option value="outdoor">Outdoor</option></select></div>
+    <div class="field"><label>Schedule</label><select id="e_schedule"></select></div>
+    <div class="field"><label>Sponsor logo URL (optional)</label><input id="e_logo" placeholder="https://…/logo.png"></div>
+    <div class="row">
+      <div class="field sm"><label>Order</label><input id="e_sort" type="number"></div>
+      <div class="field"><label>Status</label><div class="inline"><span class="toggle"><input type="checkbox" id="e_active"><span class="slider"></span></span><span class="muted">Active</span></div></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn sm" id="e_save">Save changes</button>
+      <button class="btn sm line" id="e_cancel">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -374,14 +397,34 @@
       renderCourts(); toast('Court added');
     }catch(e){ toast('Could not add court: ' + e.message, true); }
   }
-  async function editCourt(id){
+  var editingCourtId = null;
+  function editCourt(id){
     var c = S.courts.find(function(x){return x.id===id;}); if(!c) return;
-    var name = prompt('Court name:', c.name); if(name===null) return;
-    var active = confirm('OK = active / Cancel = turned off.\n\nShould "'+ (name.trim()||c.name) +'" be ACTIVE?');
-    var patch = { name: name.trim()||c.name, active: active };
+    editingCourtId = id;
+    $('e_name').value = c.name;
+    $('e_surface').value = c.surface;
+    fillScheduleSelect($('e_schedule'), c.schedule_id || '');
+    $('e_logo').value = c.sponsor_logo_url || '';
+    $('e_sort').value = (c.sort_order == null ? 0 : c.sort_order);
+    $('e_active').checked = !!c.active;
+    $('courtModal').classList.remove('hidden');
+  }
+  function closeCourtModal(){ $('courtModal').classList.add('hidden'); editingCourtId = null; }
+  async function saveCourtEdit(){
+    var c = S.courts.find(function(x){return x.id===editingCourtId;}); if(!c) return;
+    var patch = {
+      name: $('e_name').value.trim() || c.name,
+      surface: $('e_surface').value,
+      schedule_id: $('e_schedule').value || null,
+      sponsor_logo_url: $('e_logo').value.trim() || null,
+      sort_order: parseInt($('e_sort').value,10) || 0,
+      active: $('e_active').checked
+    };
     try{
-      await api('PATCH','courts?id=eq.'+id, patch, 'return=representation');
-      Object.assign(c, patch); renderCourts(); toast('Court updated');
+      await api('PATCH','courts?id=eq.'+editingCourtId, patch, 'return=representation');
+      Object.assign(c, patch);
+      S.courts.sort(function(a,b){ return (a.sort_order-b.sort_order) || a.name.localeCompare(b.name); });
+      closeCourtModal(); renderCourts(); toast('Court updated');
     }catch(e){ toast('Could not update: ' + e.message, true); }
   }
   async function deleteCourt(id){
@@ -651,6 +694,9 @@
   $('s_add').onclick = addSchedule;
   $('s_mode').onchange = toggleOpenFields;
   $('b_add').onclick = addBlock;
+  $('e_save').onclick = saveCourtEdit;
+  $('e_cancel').onclick = closeCourtModal;
+  $('courtModal').addEventListener('click', function(ev){ if(ev.target === this) closeCourtModal(); });
 
   // ============================ DEMO MODE (#demo) ============================
   // Lets you preview the UI with sample data and no backend (for review only).
