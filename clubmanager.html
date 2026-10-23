@@ -219,7 +219,7 @@
     <div class="field"><label>Sponsor logo URL (optional)</label><input id="e_logo" placeholder="https://…/logo.png"></div>
     <div class="row">
       <div class="field sm"><label>Order</label><input id="e_sort" type="number"></div>
-      <div class="field"><label>Status</label><div class="inline"><span class="toggle"><input type="checkbox" id="e_active"><span class="slider"></span></span><span class="muted">Active</span></div></div>
+      <div class="field"><label>Status</label><div class="inline"><label class="toggle"><input type="checkbox" id="e_active"><span class="slider"></span></label><span class="muted">Active</span></div></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:18px">
       <button class="btn sm" id="e_save">Save changes</button>
@@ -334,12 +334,12 @@
     }
     var s = S.settings;
     b.innerHTML =
-      '<div class="row" style="margin-bottom:16px"><div class="inline"><span class="toggle"><input type="checkbox" id="set_enabled"' + (s.booking_enabled?' checked':'') + '><span class="slider"></span></span><div><b>Court booking enabled</b><div class="mini muted">Players can see and book this club\'s courts in the app.</div></div></div></div>' +
+      '<div class="row" style="margin-bottom:16px"><div class="inline"><label class="toggle"><input type="checkbox" id="set_enabled"' + (s.booking_enabled?' checked':'') + '><span class="slider"></span></label><div><b>Court booking enabled</b><div class="mini muted">Players can see and book this club\'s courts in the app.</div></div></div></div>' +
       '<div class="row">' +
         '<div class="field"><label>Timezone</label><input id="set_tz" value="' + esc(s.timezone||'') + '"></div>' +
         '<div class="field sm"><label>Free-cancel window (hours)</label><input id="set_cancel" type="number" value="' + (s.cancellation_window_hours==null?'':s.cancellation_window_hours) + '" placeholder="—"></div>' +
       '</div>' +
-      '<div class="row" style="margin-top:14px"><div class="inline"><span class="toggle"><input type="checkbox" id="set_autopub"' + (s.auto_go_public_24h?' checked':'') + '><span class="slider"></span></span><div><b>Auto-open private bookings 24h before</b><div class="mini muted">Empty places on a private booking open to the public a day before start.</div></div></div></div>' +
+      '<div class="row" style="margin-top:14px"><div class="inline"><label class="toggle"><input type="checkbox" id="set_autopub"' + (s.auto_go_public_24h?' checked':'') + '><span class="slider"></span></label><div><b>Auto-open private bookings 24h before</b><div class="mini muted">Empty places on a private booking open to the public a day before start.</div></div></div></div>' +
       '<div style="margin-top:18px"><button class="btn sm" id="set_save">Save settings</button></div>' +
       '<div class="tag-help">Padeja manages your fee and payout account separately.</div>';
     $('set_save').onclick = saveSettings;
