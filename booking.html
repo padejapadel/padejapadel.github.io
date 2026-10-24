@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Padeja — Court booking</title>
+<meta property="og:title" content="Join my padel match on Padeja">
+<meta property="og:description" content="Tap to see the court, time and who's playing — then join an open spot.">
+<style>
+  :root{
+    --bg:#0B1220; --card:#121C2E; --line:#1E2B44; --brand:#4FB7FF; --green:#39D98A;
+    --orange:#F09537; --white:#EAF2FF; --sec:#8AA0BF; --net:#4FB7FF;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--white);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:460px;margin:0 auto;padding:20px 16px 48px;}
+  .logo{font-weight:800;font-size:18px;letter-spacing:.5px;color:var(--brand);text-align:center;margin-bottom:18px;}
+  h1{font-size:20px;margin:0 0 2px;}
+  .sub{color:var(--sec);font-size:13px;margin-bottom:16px;}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;}
+  .pill.open{background:rgba(57,217,138,.16);color:var(--green);}
+  .pill.full{background:rgba(138,160,191,.16);color:var(--sec);}
+  .court{display:flex;align-items:stretch;background:rgba(57,217,138,.08);
+    border:1px solid rgba(57,217,138,.30);border-radius:16px;padding:12px;margin:14px 0;}
+  .team{flex:1;display:flex;flex-direction:column;gap:8px;padding:0 6px;align-items:center;}
+  .team h2{font-size:11px;letter-spacing:.6px;color:var(--sec);margin:0 0 2px;font-weight:800;}
+  .net{width:2px;background:rgba(79,183,255,.5);border-radius:2px;margin:18px 2px 0;}
+  .cell{width:100%;min-height:104px;border-radius:12px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:5px;padding:8px 4px;text-align:center;}
+  .cell.filled{background:var(--card);border:1px solid var(--line);}
+  .cell.me{border-color:var(--brand);background:rgba(79,183,255,.14);}
+  .cell.free{background:rgba(57,217,138,.12);border:1px solid rgba(57,217,138,.4);color:var(--green);}
+  .av{width:42px;height:42px;border-radius:50%;object-fit:cover;background:rgba(79,183,255,.25);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:var(--white);}
+  .nm{font-size:13px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .rt{font-size:11px;font-weight:700;color:var(--green);}
+  .side{font-size:10px;color:var(--sec);}
+  .free .plus{font-size:24px;font-weight:700;line-height:1;}
+  .cta{display:block;text-align:center;text-decoration:none;font-weight:700;border-radius:12px;
+    padding:14px;margin-top:14px;}
+  .cta.primary{background:var(--brand);color:#06101F;}
+  .cta.ghost{background:var(--card);color:var(--white);border:1px solid var(--line);margin-top:10px;}
+  .meta{color:var(--sec);font-size:13px;margin-top:6px;}
+  .err{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--sec);}
+  .spin{width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--brand);
+    border-radius:50%;animation:s 1s linear infinite;margin:40px auto;}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">PADEJA</div>
+  <div id="app"><div class="spin"></div></div>
+</div>
+<script>
+const SUPABASE_URL = 'https://odrckirnjavfptlfygbo.supabase.co';
+const SUPABASE_KEY = '__ANON_KEY__';
+const TZ = 'Europe/London';
+const APPSTORE = 'https://apps.apple.com/app/padeja/id0';        // TODO: real App Store id
+const PLAYSTORE = 'https://play.google.com/store/apps/details?id=com.jackwoodford.padejafeedapp';
+
+const POS = [['TEAM 1',['t1_left','t1_right']],['TEAM 2',['t2_left','t2_right']]];
+const SIDE = {t1_left:'Left',t1_right:'Right',t2_left:'Left',t2_right:'Right'};
+
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function timeRange(a,b){
+  try{
+    const f=new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ});
+    const d=new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:TZ});
+    return d.format(new Date(a))+' · '+f.format(new Date(a))+'–'+f.format(new Date(b));
+  }catch(e){return '';}
+}
+function bookingId(){const u=new URLSearchParams(location.search);return u.get('b')||u.get('booking')||'';}
+
+async function load(){
+  const id=bookingId();
+  const app=document.getElementById('app');
+  if(!id){app.innerHTML='<div class="err">No booking specified.</div>';return;}
+  try{
+    const res=await fetch(SUPABASE_URL+'/rest/v1/rpc/get_court_booking_detail',{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({p_booking_id:id})
+    });
+    if(!res.ok){throw new Error('unavailable');}
+    const d=await res.json();
+    if(!d||d.error){throw new Error('unavailable');}
+    render(d);
+  }catch(e){
+    app.innerHTML='<div class="err">This match is private, full, or no longer available.<br><br>'
+      +'<a class="cta primary" href="'+PLAYSTORE+'">Get the Padeja app</a></div>';
+  }
+}
+
+function render(d){
+  const players=d.players||[];
+  const byPos={}; players.forEach(p=>{ if(p.position) byPos[p.position]=p; });
+  const free=(d.free_positions||[]).length;
+  const filled=d.players_filled||players.length;
+  const teamDivs=[];
+  POS.forEach(([title,spots])=>{
+    let cells='';
+    spots.forEach(pos=>{
+      const p=byPos[pos];
+      if(p){
+        const av=p.avatar_url
+          ? '<img class="av" src="'+esc(p.avatar_url)+'" alt="">'
+          : '<div class="av">'+esc((p.name||'P').slice(0,1).toUpperCase())+'</div>';
+        cells+='<div class="cell filled'+(p.is_me?' me':'')+'">'+av
+          +'<div class="nm">'+esc(p.name||'Player')+'</div>'
+          +(p.rating!=null?'<div class="rt">'+esc(Number(p.rating).toFixed(1))+'</div>':'')
+          +'<div class="side">'+SIDE[pos]+(p.is_booker?' · host':'')+'</div></div>';
+      }else{
+        cells+='<div class="cell free"><div class="plus">＋</div><div class="side" style="color:var(--green)">'+SIDE[pos]+'</div></div>';
+      }
+    });
+    teamDivs.push('<div class="team"><h2>'+title+'</h2>'+cells+'</div>');
+  });
+  const cols=teamDivs.join('<div class="net"></div>');
+  const lvl=(d.rating_bracket_min!=null&&d.rating_bracket_max!=null)
+    ? '<div class="meta">Level '+Number(d.rating_bracket_min).toFixed(1)+'–'+Number(d.rating_bracket_max).toFixed(1)+' only</div>' : '';
+  document.getElementById('app').innerHTML=
+    '<h1>'+esc(d.court_name||'Court')+' · '+esc(d.club_name||'')+'</h1>'
+    +'<div class="sub">'+esc(timeRange(d.start_at,d.end_at))+'</div>'
+    +'<span class="pill '+(free>0?'open':'full')+'">'+(free>0?(free+' spot'+(free===1?'':'s')+' left'):'Full')+'</span>'
+    +'<div class="court">'+cols+'</div>'
+    +lvl
+    +(free>0
+        ? '<a class="cta primary" href="'+PLAYSTORE+'">Join in the Padeja app</a>'
+          +'<a class="cta ghost" href="'+APPSTORE+'">Get it on iPhone</a>'
+        : '<a class="cta ghost" href="'+PLAYSTORE+'">Open in the Padeja app</a>');
+}
+load();
+</script>
+</body>
+</html>
