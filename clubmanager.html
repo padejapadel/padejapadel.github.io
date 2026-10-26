@@ -146,6 +146,7 @@
       <button class="tab" data-tab="schedules">Schedules &amp; pricing</button>
       <button class="tab" data-tab="bookings">Bookings</button>
       <button class="tab" data-tab="blocks">Block bookings</button>
+      <button class="tab" data-tab="activities">Activities</button>
     </div>
 
     <!-- SETTINGS -->
@@ -218,6 +219,41 @@
       </div>
     </section>
 
+    <!-- ACTIVITIES -->
+    <section id="tab-activities" class="tabpane hidden">
+      <div class="card">
+        <h2>Create an activity</h2>
+        <div class="sub">Coaching, a clinic or a social session on one of your courts. It reserves the court (so it can't be double-booked) and players can see &amp; join it in the app. Set a price, or £0 for free. Make it a one-off or a weekly series.</div>
+        <div class="row">
+          <div class="field"><label>Court</label><select id="a_court"></select></div>
+          <div class="field"><label>Title</label><input id="a_title" placeholder="e.g. Monday Night Clinic"></div>
+          <div class="field"><label>Coach (optional)</label><input id="a_coach" placeholder="e.g. Coach Carl"></div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <div class="field sm"><label>Capacity</label><input id="a_cap" type="number" value="6"></div>
+          <div class="field sm"><label>Price (£)</label><input id="a_price" type="number" step="0.01" placeholder="0.00"></div>
+          <div class="field sm"><label>Duration (min)</label><input id="a_dur" type="number" value="60"></div>
+          <div class="field sm"><label>Level min (optional)</label><input id="a_lmin" type="number" step="0.1" placeholder="—"></div>
+          <div class="field sm"><label>Level max (optional)</label><input id="a_lmax" type="number" step="0.1" placeholder="—"></div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <div class="field sm"><label>When</label><select id="a_mode"><option value="oneoff">One-off</option><option value="series">Weekly series</option></select></div>
+          <div class="field sm act-oneoff"><label>Date</label><input id="a_date" type="date"></div>
+          <div class="field sm act-oneoff"><label>Start</label><input id="a_start" type="time"></div>
+          <div class="field sm act-series"><label>Weekday</label><select id="a_dow"><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option></select></div>
+          <div class="field sm act-series"><label>Start</label><input id="a_stime" type="time"></div>
+          <div class="field sm act-series"><label>From</label><input id="a_sdate" type="date"></div>
+          <div class="field sm act-series"><label>Until</label><input id="a_edate" type="date"></div>
+          <button class="btn sm alt" id="a_add">Create</button>
+        </div>
+        <div class="tag-help">Times are in your club's local time. A weekly series creates one booking per week and automatically skips any week the court is already taken (you'll be told which).</div>
+      </div>
+      <div class="card">
+        <h2>Upcoming activities</h2>
+        <div id="activitiesTable"></div>
+      </div>
+    </section>
+
     <!-- BOOKINGS -->
     <section id="tab-bookings" class="tabpane hidden">
       <div class="card">
@@ -247,6 +283,28 @@
     <div style="display:flex;gap:10px;margin-top:18px">
       <button class="btn sm" id="e_save">Save changes</button>
       <button class="btn sm line" id="e_cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit-activity modal -->
+<div class="modal hidden" id="actModal">
+  <div class="modalbox">
+    <h2>Edit activity</h2>
+    <div class="field"><label>Title</label><input id="ea_title"></div>
+    <div class="field"><label>Coach (optional)</label><input id="ea_coach"></div>
+    <div class="row">
+      <div class="field sm"><label>Capacity</label><input id="ea_cap" type="number"></div>
+      <div class="field sm"><label>Price (£)</label><input id="ea_price" type="number" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="row">
+      <div class="field sm"><label>Level min</label><input id="ea_lmin" type="number" step="0.1" placeholder="—"></div>
+      <div class="field sm"><label>Level max</label><input id="ea_lmax" type="number" step="0.1" placeholder="—"></div>
+    </div>
+    <div class="tag-help">Changes apply to future, un-started occasions of this activity.</div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn sm" id="ea_save">Save changes</button>
+      <button class="btn sm line" id="ea_cancel">Cancel</button>
     </div>
   </div>
 </div>
@@ -712,6 +770,130 @@
     }catch(e){ body.innerHTML = '<div class="card"><div class="err">Could not load: '+esc(e.message)+'</div></div>'; }
   }
 
+  // ============================ RENDER: ACTIVITIES ============================
+  var ACT = []; // last-loaded activity occasions (for the edit modal)
+  function toggleActivityMode(){
+    var series = $('a_mode').value === 'series';
+    document.querySelectorAll('.act-series').forEach(function(n){ n.style.display = series ? '' : 'none'; });
+    document.querySelectorAll('.act-oneoff').forEach(function(n){ n.style.display = series ? 'none' : ''; });
+  }
+  function numOrNull(v){ v=(v==null?'':String(v)).trim(); if(v==='') return null; var n=parseFloat(v); return isNaN(n)?null:n; }
+  function actWhen(iso, iso2){
+    var st = new Date(iso), en = new Date(iso2);
+    return st.toLocaleString([], {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})
+         + '–' + en.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+  async function renderActivities(){
+    fillCourtSelect($('a_court'));
+    toggleActivityMode();
+    var t = $('activitiesTable');
+    t.innerHTML = '<div class="muted">Loading…</div>';
+    try{
+      var fromIso = new Date().toISOString();
+      var toIso = new Date(Date.now() + 90*86400000).toISOString();
+      var rows = await api('POST','rpc/get_club_activities_admin', { p_club_id:S.clubId, p_from:fromIso, p_to:toIso }) || [];
+      ACT = rows;
+      if(!rows.length){ t.innerHTML = '<div class="empty">No upcoming activities. Create one above.</div>'; return; }
+      t.innerHTML = '<table><thead><tr><th>When</th><th>Activity</th><th>Court</th><th>Spots</th><th>Price</th><th></th></tr></thead><tbody>'
+        + rows.map(function(r){
+            var cancelled = r.status === 'cancelled';
+            var coach = r.coach_name ? ' <span class="mini">· '+esc(r.coach_name)+'</span>' : '';
+            var lvl = (r.rating_bracket_min!=null||r.rating_bracket_max!=null)
+              ? ' <span class="mini">· level '+(r.rating_bracket_min!=null?r.rating_bracket_min:'')+'–'+(r.rating_bracket_max!=null?r.rating_bracket_max:'')+'</span>' : '';
+            var ser = r.is_series ? ' <span class="pill fixed">series</span>' : '';
+            var enrolees = (r.enrolees||[]).map(function(e){ return esc(e.name)+(e.payment_status==='paid'?'':' (unpaid)'); }).join(', ');
+            var spots = (r.enrolled||0)+' / '+r.capacity;
+            var actions = cancelled ? '<span class="pill off">cancelled</span>'
+              : '<button class="iconbtn" data-aedit="'+r.booking_id+'">Edit</button>'
+                + '<button class="iconbtn del" data-acancel="'+r.booking_id+'">Cancel</button>'
+                + (r.is_series ? '<button class="iconbtn del" data-aseries="'+r.activity_id+'">Cancel series</button>' : '');
+            return '<tr'+(cancelled?' style="opacity:.5"':'')+'><td>'+actWhen(r.start_at, r.end_at)+'</td>'
+              + '<td><b>'+esc(r.title)+'</b>'+coach+ser+lvl+(enrolees?'<div class="mini">'+enrolees+'</div>':'')+'</td>'
+              + '<td>'+esc(r.court_name||'—')+'</td>'
+              + '<td>'+spots+'</td>'
+              + '<td>'+(r.price_cents?money(r.price_cents):'Free')+'</td>'
+              + '<td style="text-align:right;white-space:nowrap">'+actions+'</td></tr>';
+          }).join('') + '</tbody></table>';
+      t.querySelectorAll('[data-aedit]').forEach(function(b){ b.onclick=function(){ editActivity(b.getAttribute('data-aedit')); }; });
+      t.querySelectorAll('[data-acancel]').forEach(function(b){ b.onclick=function(){ cancelActivityOccasion(b.getAttribute('data-acancel')); }; });
+      t.querySelectorAll('[data-aseries]').forEach(function(b){ b.onclick=function(){ cancelActivitySeries(b.getAttribute('data-aseries')); }; });
+    }catch(e){ t.innerHTML = '<div class="err">Could not load: '+esc(e.message)+'</div>'; }
+  }
+  async function addActivity(){
+    var court = $('a_court').value, title = $('a_title').value.trim();
+    if(!court){ toast('Pick a court', true); return; }
+    if(!title){ toast('Give the activity a title', true); return; }
+    var cap = parseInt($('a_cap').value,10);
+    if(!cap || cap<1){ toast('Set a capacity of at least 1', true); return; }
+    var dur = parseInt($('a_dur').value,10);
+    if(!dur || dur<1){ toast('Set a duration', true); return; }
+    var common = { p_club_id:S.clubId, p_court_id:court, p_title:title,
+      p_description:null, p_coach_name:($('a_coach').value.trim()||null), p_coach_profile:null,
+      p_capacity:cap, p_price_cents:pounds($('a_price').value), p_duration_min:dur,
+      p_rating_min:numOrNull($('a_lmin').value), p_rating_max:numOrNull($('a_lmax').value) };
+    $('a_add').disabled = true;
+    try{
+      if($('a_mode').value === 'series'){
+        if(!$('a_stime').value || !$('a_sdate').value || !$('a_edate').value){ toast('Set the time and date range', true); return; }
+        var body = Object.assign({}, common, {
+          p_recur_dow: parseInt($('a_dow').value,10),
+          p_recur_start_time: $('a_stime').value,
+          p_recur_start_date: $('a_sdate').value,
+          p_recur_end_date: $('a_edate').value });
+        var res = await api('POST','rpc/create_activity_series', body);
+        var created = (res && res.created)||0, skipped = (res && res.skipped)||[];
+        renderActivities();
+        if(skipped.length) toast('Created '+created+' — skipped '+skipped.length+' (court busy): '+skipped.join(', '));
+        else toast('Created '+created+' weekly session'+(created===1?'':'s'));
+      } else {
+        if(!$('a_date').value || !$('a_start').value){ toast('Set the date and start time', true); return; }
+        var startAt = new Date($('a_date').value + 'T' + $('a_start').value);
+        var body2 = Object.assign({}, common, { p_start_at: startAt.toISOString() });
+        await api('POST','rpc/create_activity', body2);
+        renderActivities();
+        toast('Activity created');
+      }
+      $('a_title').value=''; $('a_coach').value='';
+    }catch(e){
+      var msg = /exclusion|overlap|already booked|23P01/i.test(e.message) ? 'That court is already booked for that time.' : e.message;
+      toast('Could not create: '+msg, true);
+    }finally{ $('a_add').disabled = false; }
+  }
+  var editingActId = null;
+  function editActivity(bookingId){
+    var r = ACT.find(function(x){ return x.booking_id===bookingId; }); if(!r) return;
+    editingActId = r.activity_id;
+    $('ea_title').value = r.title || '';
+    $('ea_coach').value = r.coach_name || '';
+    $('ea_cap').value = r.capacity;
+    $('ea_price').value = (r.price_cents ? (r.price_cents/100).toFixed(2) : '');
+    $('ea_lmin').value = (r.rating_bracket_min!=null ? r.rating_bracket_min : '');
+    $('ea_lmax').value = (r.rating_bracket_max!=null ? r.rating_bracket_max : '');
+    $('actModal').classList.remove('hidden');
+  }
+  function closeActModal(){ $('actModal').classList.add('hidden'); editingActId=null; }
+  async function saveActivityEdit(){
+    if(!editingActId) return;
+    var cap = parseInt($('ea_cap').value,10);
+    if(!cap || cap<1){ toast('Capacity must be at least 1', true); return; }
+    var body = { p_activity_id:editingActId, p_title:($('ea_title').value.trim()||null),
+      p_description:null, p_coach_name:($('ea_coach').value.trim()||null), p_coach_profile:null,
+      p_capacity:cap, p_price_cents:pounds($('ea_price').value),
+      p_rating_min:numOrNull($('ea_lmin').value), p_rating_max:numOrNull($('ea_lmax').value) };
+    try{ await api('POST','rpc/update_activity', body); closeActModal(); renderActivities(); toast('Activity updated'); }
+    catch(e){ toast('Could not update: '+e.message, true); }
+  }
+  async function cancelActivityOccasion(bookingId){
+    if(!confirm('Cancel this activity? Anyone who paid is refunded to their club credit.')) return;
+    try{ await api('POST','rpc/cancel_activity_occasion', { p_booking_id:bookingId }); renderActivities(); toast('Activity cancelled'); }
+    catch(e){ toast('Could not cancel: '+e.message, true); }
+  }
+  async function cancelActivitySeries(activityId){
+    if(!confirm('Cancel the WHOLE series (all future sessions)? Paid players are refunded to club credit.')) return;
+    try{ var r = await api('POST','rpc/cancel_activity_series', { p_activity_id:activityId }); renderActivities(); toast('Series cancelled ('+((r&&r.cancelled)||0)+' sessions)'); }
+    catch(e){ toast('Could not cancel series: '+e.message, true); }
+  }
+
   // ============================ TABS / APP ============================
   function showTab(name){
     S.tab = name;
@@ -723,6 +905,7 @@
     if(name==='schedules'){ toggleOpenFields(); renderSchedules(); }
     if(name==='blocks') renderBlocks();
     if(name==='bookings') renderBookings();
+    if(name==='activities') renderActivities();
   }
 
   function fillClubSelect(){
@@ -767,6 +950,11 @@
   $('e_save').onclick = saveCourtEdit;
   $('e_cancel').onclick = closeCourtModal;
   $('courtModal').addEventListener('click', function(ev){ if(ev.target === this) closeCourtModal(); });
+  $('a_add').onclick = addActivity;
+  $('a_mode').onchange = toggleActivityMode;
+  $('ea_save').onclick = saveActivityEdit;
+  $('ea_cancel').onclick = closeActModal;
+  $('actModal').addEventListener('click', function(ev){ if(ev.target === this) closeActModal(); });
 
   // ============================ DEMO MODE (#demo) ============================
   // Lets you preview the UI with sample data and no backend (for review only).
@@ -794,6 +982,10 @@
         {id:'p2',schedule_id:'sch2',day_of_week:null,band_start:'17:00:00',band_end:'21:00:00',duration_min:60,price_cents:3000}
       ],
       'court_bookings':[],
+      'activities': [
+        { booking_id:'ab1', activity_id:'aa1', title:'Monday Night Clinic', coach_name:'Coach Carl', court_name:'Centre Court', start_at:'2026-11-02T19:00:00+00:00', end_at:'2026-11-02T20:00:00+00:00', status:'active', capacity:8, price_cents:1200, rating_bracket_min:null, rating_bracket_max:null, is_series:true, enrolled:5, enrolees:[{name:'Ant Hill',payment_status:'paid'},{name:'Sam Lee',payment_status:'paid'},{name:'Jo Fox',payment_status:'pending'}] },
+        { booking_id:'ab2', activity_id:'aa2', title:'Beginners Coaching', coach_name:'Coach Dee', court_name:'Garden Court', start_at:'2026-11-04T10:00:00+00:00', end_at:'2026-11-04T11:30:00+00:00', status:'active', capacity:6, price_cents:0, rating_bracket_min:1, rating_bracket_max:2.5, is_series:false, enrolled:2, enrolees:[{name:'Pat Kim',payment_status:'paid'}] }
+      ],
       'overview': {
         date:'2026-10-23', timezone:'Europe/London',
         summary:{ courts_total:3, courts_active:3, bookable_slots:6, occupied_slots:2, free_slots:4, player_spaces_filled:5, public_spaces_free:1, expected_revenue_cents:6400, collected_revenue_cents:3200 },
@@ -807,6 +999,7 @@
     api = async function(method, path){
       if(method==='GET'){ var key = path.split('?')[0]; if(window.__demo[key]!==undefined) return window.__demo[key]; }
       if(method==='POST' && path.indexOf('rpc/get_club_day_overview')===0) return window.__demo.overview;
+      if(method==='POST' && path.indexOf('rpc/get_club_activities_admin')===0) return window.__demo.activities;
       return []; // swallow writes in demo
     };
     $('loginView').classList.add('hidden'); $('appView').classList.remove('hidden');
