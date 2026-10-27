@@ -212,7 +212,7 @@
           <div class="field"><label>Label</label><input id="b_label" placeholder="e.g. Coaching"></div>
           <button class="btn sm alt" id="b_add">Add block</button>
         </div>
-        <div class="tag-help">Times are in your club's local time (this device's clock).</div>
+        <div class="tag-help">Times are in your club's local time.</div>
       </div>
       <div class="card">
         <h2>Upcoming blocks</h2>
@@ -388,6 +388,18 @@
   function el(sel){ return document.querySelector(sel); }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   function money(p){ return '£' + (((p||0)/100).toFixed(2)); }
+  function clubTz(){ return (S.settings && S.settings.timezone) || 'Europe/London'; }
+  // Interpret a wall-clock date 'YYYY-MM-DD' + time 'HH:MM' as local time in `tz`; return the UTC ISO.
+  function zonedIso(dateStr, timeStr, tz){
+    var d = String(dateStr).split('-').map(Number), t = String(timeStr).split(':').map(Number);
+    var asUtc = Date.UTC(d[0], (d[1]||1)-1, d[2]||1, t[0]||0, t[1]||0, 0);
+    var dtf = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour12:false,
+      year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    var o = {}; dtf.formatToParts(new Date(asUtc)).forEach(function(x){ o[x.type]=x.value; });
+    var hh = (o.hour === '24') ? 0 : +o.hour;
+    var asTz = Date.UTC(+o.year, +o.month-1, +o.day, hh, +o.minute, +o.second);
+    return new Date(asUtc - (asTz - asUtc)).toISOString();
+  }
   function pounds(v){ var n = parseFloat(v); return isNaN(n) ? 0 : Math.round(n*100); }
   var DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   function dowName(d){ return d==null||d==='' ? 'Every day' : DOW[d]; }
@@ -760,8 +772,8 @@
       t.innerHTML = '<table><thead><tr><th>Court</th><th>When</th><th>Label</th><th></th></tr></thead><tbody>'
         + rows.map(function(r){
             var st = new Date(r.start_at), en = new Date(r.end_at);
-            var when = st.toLocaleString([], {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})
-                     + ' – ' + en.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            var when = st.toLocaleString([], {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', timeZone:clubTz()})
+                     + ' – ' + en.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', timeZone:clubTz()});
             return '<tr><td>'+esc(courtName[r.court_id]||'—')+'</td><td>'+when+'</td><td>'+esc(r.block_label||'')+'</td>'
               + '<td style="text-align:right"><button class="iconbtn del" data-cancel="'+r.id+'">Remove</button></td></tr>';
           }).join('') + '</tbody></table>';
@@ -773,10 +785,10 @@
     var label = $('b_label').value.trim();
     if(!court){ toast('Pick a court', true); return; }
     if(!date || !start || !end){ toast('Set date, start and end', true); return; }
-    var startAt = new Date(date + 'T' + start), endAt = new Date(date + 'T' + end);
-    if(endAt <= startAt){ toast('End must be after start', true); return; }
+    var startIso = zonedIso(date, start, clubTz()), endIso = zonedIso(date, end, clubTz());
+    if(new Date(endIso) <= new Date(startIso)){ toast('End must be after start', true); return; }
     var body = { club_id:S.clubId, court_id:court, type:'club_block', status:'active',
-                 start_at:startAt.toISOString(), end_at:endAt.toISOString(),
+                 start_at:startIso, end_at:endIso,
                  block_label: label || 'Reserved', created_by: S.uid };
     try{
       await api('POST','court_bookings', body, 'return=minimal');
@@ -840,8 +852,8 @@
   function numOrNull(v){ v=(v==null?'':String(v)).trim(); if(v==='') return null; var n=parseFloat(v); return isNaN(n)?null:n; }
   function actWhen(iso, iso2){
     var st = new Date(iso), en = new Date(iso2);
-    return st.toLocaleString([], {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})
-         + '–' + en.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    return st.toLocaleString([], {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', timeZone:clubTz()})
+         + '–' + en.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', timeZone:clubTz()});
   }
   async function renderActivities(){
     fillCourtSelect($('a_court'));
@@ -907,8 +919,8 @@
         else toast('Created '+created+' weekly session'+(created===1?'':'s'));
       } else {
         if(!$('a_date').value || !$('a_start').value){ toast('Set the date and start time', true); return; }
-        var startAt = new Date($('a_date').value + 'T' + $('a_start').value);
-        var body2 = Object.assign({}, common, { p_start_at: startAt.toISOString() });
+        var startIso = zonedIso($('a_date').value, $('a_start').value, clubTz());
+        var body2 = Object.assign({}, common, { p_start_at: startIso });
         await api('POST','rpc/create_activity', body2);
         renderActivities();
         toast('Activity created');
