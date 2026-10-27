@@ -147,6 +147,7 @@
       <button class="tab" data-tab="bookings">Bookings</button>
       <button class="tab" data-tab="blocks">Block bookings</button>
       <button class="tab" data-tab="activities">Activities</button>
+      <button class="tab" data-tab="memberships">Memberships</button>
     </div>
 
     <!-- SETTINGS -->
@@ -254,6 +255,43 @@
       </div>
     </section>
 
+    <!-- MEMBERSHIPS -->
+    <section id="tab-memberships" class="tabpane hidden">
+      <div class="card">
+        <h2>Create a membership plan</h2>
+        <div class="sub">A paid membership players buy in the app. Members get cheaper court bookings and can book further ahead than the public. Bought as a one-off per period (monthly/yearly); they renew when it lapses.</div>
+        <div class="row">
+          <div class="field"><label>Plan name</label><input id="m_name" placeholder="e.g. Gold Membership"></div>
+          <div class="field sm"><label>Price (&pound;)</label><input id="m_price" type="number" step="0.01" placeholder="0.00"></div>
+          <div class="field sm"><label>Period</label><select id="m_period"><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <div class="field sm"><label>Member discount</label><select id="m_dtype"><option value="percent">% off</option><option value="amount_off">&pound; off per booking</option><option value="price_per_hour">&pound;/hour member rate</option><option value="flat">&pound; flat per booking</option></select></div>
+          <div class="field sm"><label><span id="m_dlabel">Discount (%)</span></label><input id="m_dval" type="number" step="0.01" placeholder="0"></div>
+          <div class="field sm"><label>Book ahead (days)</label><input id="m_ahead" type="number" placeholder="&mdash;"></div>
+          <div class="field sm"><label>Visibility</label><select id="m_vis"><option value="public">Public (joinable in app)</option><option value="club_added">Club-added only</option></select></div>
+          <button class="btn sm alt" id="m_add">Create plan</button>
+        </div>
+        <div class="tag-help">Price &amp; period lock once the plan is created, so existing members aren't surprised. The discount is one simple rule for now.</div>
+      </div>
+      <div class="card">
+        <h2>Advance booking window</h2>
+        <div class="sub">How many days ahead the <b>public</b> can book. Members can book up to their plan's "book ahead" days. Leave blank for no limit (members then get no extra window).</div>
+        <div class="row">
+          <div class="field sm"><label>Public book-ahead (days)</label><input id="m_pubahead" type="number" placeholder="no limit"></div>
+          <button class="btn sm alt" id="m_pubsave">Save window</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Plans</h2>
+        <div id="plansTable"></div>
+      </div>
+      <div class="card">
+        <h2>Members</h2>
+        <div id="membersTable"></div>
+      </div>
+    </section>
+
     <!-- BOOKINGS -->
     <section id="tab-bookings" class="tabpane hidden">
       <div class="card">
@@ -305,6 +343,28 @@
     <div style="display:flex;gap:10px;margin-top:18px">
       <button class="btn sm" id="ea_save">Save changes</button>
       <button class="btn sm line" id="ea_cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="planModal">
+  <div class="modalbox">
+    <h2>Edit plan</h2>
+    <div class="field"><label>Plan name</label><input id="ep_name"></div>
+    <div class="field"><label>Description (optional)</label><input id="ep_desc"></div>
+    <div class="row">
+      <div class="field sm"><label>Member discount</label><select id="ep_dtype"><option value="percent">% off</option><option value="amount_off">&pound; off per booking</option><option value="price_per_hour">&pound;/hour member rate</option><option value="flat">&pound; flat per booking</option></select></div>
+      <div class="field sm"><label><span id="ep_dlabel">Discount (%)</span></label><input id="ep_dval" type="number" step="0.01"></div>
+    </div>
+    <div class="row">
+      <div class="field sm"><label>Book ahead (days)</label><input id="ep_ahead" type="number" placeholder="&mdash;"></div>
+      <div class="field sm"><label>Visibility</label><select id="ep_vis"><option value="public">Public</option><option value="club_added">Club-added only</option></select></div>
+    </div>
+    <div class="row" style="margin-top:10px"><div class="inline"><label class="toggle"><input type="checkbox" id="ep_active"><span class="slider"></span></label><div><b>Active</b><div class="mini muted">Inactive plans can't be bought; existing members keep theirs.</div></div></div></div>
+    <div class="tag-help">Price &amp; period can't be changed after creation.</div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn sm" id="ep_save">Save changes</button>
+      <button class="btn sm line" id="ep_cancel">Cancel</button>
     </div>
   </div>
 </div>
@@ -894,6 +954,105 @@
     catch(e){ toast('Could not cancel series: '+e.message, true); }
   }
 
+  // ============================ MEMBERSHIPS ============================
+  var PLANS = [];
+  function discLabel(t){ return t==='percent'?'Discount (%)': t==='amount_off'?'£ off per booking': t==='price_per_hour'?'£ / hour (member)':'£ flat per booking'; }
+  function discValToInput(t,v){ return t==='percent'? (v==null?'':v) : (v? (v/100).toFixed(2):''); }
+  function discInputToVal(t,raw){ return t==='percent'? (parseInt(raw,10)||0) : pounds(raw); }
+  function discDisplay(t,v){ return t==='percent'? (v+'% off') : t==='amount_off'? (money(v)+' off') : t==='price_per_hour'? (money(v)+'/hr') : (money(v)+' flat'); }
+  function renderMemberships(){
+    if(S.settings) $('m_pubahead').value = (S.settings.public_booking_ahead_days==null?'':S.settings.public_booking_ahead_days);
+    $('m_dlabel').textContent = discLabel($('m_dtype').value);
+    renderPlans(); renderMembers();
+  }
+  async function renderPlans(){
+    var t = $('plansTable'); t.innerHTML = '<div class="muted">Loading…</div>';
+    try{
+      var rows = await api('POST','rpc/get_club_membership_plans_admin', { p_club_id:S.clubId }) || [];
+      PLANS = rows;
+      if(!rows.length){ t.innerHTML = '<div class="empty">No plans yet. Create one above.</div>'; return; }
+      t.innerHTML = '<table><thead><tr><th>Plan</th><th>Price</th><th>Member perk</th><th>Book ahead</th><th>Members</th><th></th></tr></thead><tbody>'
+        + rows.map(function(r){
+            var vis = r.visibility==='club_added' ? ' <span class="pill off">club-added</span>' : '';
+            var inactive = r.active ? '' : ' <span class="pill off">inactive</span>';
+            var ahead = (r.member_booking_ahead_days==null?'—':r.member_booking_ahead_days+'d');
+            return '<tr'+(r.active?'':' style="opacity:.55"')+'>'
+              + '<td><b>'+esc(r.name)+'</b>'+vis+inactive+(r.description?'<div class="mini">'+esc(r.description)+'</div>':'')+'</td>'
+              + '<td>'+money(r.price_cents)+'<div class="mini">'+esc(r.period)+'</div></td>'
+              + '<td>'+discDisplay(r.discount_type, r.discount_value)+'</td>'
+              + '<td>'+ahead+'</td>'
+              + '<td>'+(r.active_members||0)+'</td>'
+              + '<td style="text-align:right;white-space:nowrap"><button class="iconbtn" data-pedit="'+r.plan_id+'">Edit</button></td></tr>';
+          }).join('') + '</tbody></table>';
+      t.querySelectorAll('[data-pedit]').forEach(function(b){ b.onclick=function(){ editPlan(b.getAttribute('data-pedit')); }; });
+    }catch(e){ t.innerHTML = '<div class="err">Could not load: '+esc(e.message)+'</div>'; }
+  }
+  async function renderMembers(){
+    var t = $('membersTable'); t.innerHTML = '<div class="muted">Loading…</div>';
+    try{
+      var rows = await api('POST','rpc/get_club_members_admin', { p_club_id:S.clubId }) || [];
+      if(!rows.length){ t.innerHTML = '<div class="empty">No members yet.</div>'; return; }
+      t.innerHTML = '<table><thead><tr><th>Member</th><th>Plan</th><th>Status</th><th>Renews/ends</th><th>Paid</th></tr></thead><tbody>'
+        + rows.map(function(r){
+            var st = r.status==='active' ? '<span class="pill fixed">active</span>' : '<span class="pill off">'+esc(r.status)+'</span>';
+            return '<tr><td>'+esc(r.name||'—')+'</td><td>'+esc(r.plan_name||'—')+'</td><td>'+st+'</td><td>'+(r.current_period_end? new Date(r.current_period_end).toLocaleDateString() : '—')+'</td><td>'+money(r.amount_paid_cents)+'</td></tr>';
+          }).join('') + '</tbody></table>';
+    }catch(e){ t.innerHTML = '<div class="err">Could not load: '+esc(e.message)+'</div>'; }
+  }
+  async function addPlan(){
+    var name = $('m_name').value.trim();
+    if(!name){ toast('Give the plan a name', true); return; }
+    var dtype = $('m_dtype').value;
+    var dval = discInputToVal(dtype, $('m_dval').value);
+    if(dtype==='percent' && (dval<0 || dval>100)){ toast('Percentage must be 0–100', true); return; }
+    var body = { p_club_id:S.clubId, p_name:name, p_description:null,
+      p_price_cents: pounds($('m_price').value), p_period: $('m_period').value,
+      p_discount_type: dtype, p_discount_value: dval,
+      p_member_booking_ahead_days: ($('m_ahead').value===''?null:parseInt($('m_ahead').value,10)),
+      p_visibility: $('m_vis').value };
+    $('m_add').disabled = true;
+    try{ await api('POST','rpc/create_membership_plan', body); $('m_name').value=''; $('m_dval').value=''; renderPlans(); toast('Plan created'); }
+    catch(e){ toast('Could not create: '+e.message, true); }
+    finally{ $('m_add').disabled = false; }
+  }
+  var editingPlanId = null;
+  function editPlan(id){
+    var r = PLANS.find(function(x){ return x.plan_id===id; }); if(!r) return;
+    editingPlanId = id;
+    $('ep_name').value = r.name || '';
+    $('ep_desc').value = r.description || '';
+    $('ep_dtype').value = r.discount_type;
+    $('ep_dlabel').textContent = discLabel(r.discount_type);
+    $('ep_dval').value = discValToInput(r.discount_type, r.discount_value);
+    $('ep_ahead').value = (r.member_booking_ahead_days==null?'':r.member_booking_ahead_days);
+    $('ep_vis').value = r.visibility;
+    $('ep_active').checked = !!r.active;
+    $('planModal').classList.remove('hidden');
+  }
+  function closePlanModal(){ $('planModal').classList.add('hidden'); editingPlanId=null; }
+  async function savePlanEdit(){
+    if(!editingPlanId) return;
+    var name = $('ep_name').value.trim();
+    if(!name){ toast('A plan needs a name', true); return; }
+    var dtype = $('ep_dtype').value;
+    var dval = discInputToVal(dtype, $('ep_dval').value);
+    if(dtype==='percent' && (dval<0 || dval>100)){ toast('Percentage must be 0–100', true); return; }
+    var body = { p_plan_id:editingPlanId, p_name:name, p_description:($('ep_desc').value.trim()||null),
+      p_discount_type: dtype, p_discount_value: dval,
+      p_member_booking_ahead_days: ($('ep_ahead').value===''?null:parseInt($('ep_ahead').value,10)),
+      p_visibility: $('ep_vis').value, p_active: $('ep_active').checked };
+    try{ await api('POST','rpc/update_membership_plan', body); closePlanModal(); renderPlans(); toast('Plan updated'); }
+    catch(e){ toast('Could not update: '+e.message, true); }
+  }
+  async function savePublicAhead(){
+    var v = $('m_pubahead').value;
+    var days = v==='' ? null : parseInt(v,10);
+    try{ await api('POST','rpc/set_public_booking_ahead_days', { p_club_id:S.clubId, p_days:days });
+      if(S.settings) S.settings.public_booking_ahead_days = days;
+      toast('Advance window saved'); }
+    catch(e){ toast('Could not save: '+e.message, true); }
+  }
+
   // ============================ TABS / APP ============================
   function showTab(name){
     S.tab = name;
@@ -906,6 +1065,7 @@
     if(name==='blocks') renderBlocks();
     if(name==='bookings') renderBookings();
     if(name==='activities') renderActivities();
+    if(name==='memberships') renderMemberships();
   }
 
   function fillClubSelect(){
@@ -955,6 +1115,13 @@
   $('ea_save').onclick = saveActivityEdit;
   $('ea_cancel').onclick = closeActModal;
   $('actModal').addEventListener('click', function(ev){ if(ev.target === this) closeActModal(); });
+  $('m_add').onclick = addPlan;
+  $('m_pubsave').onclick = savePublicAhead;
+  $('m_dtype').onchange = function(){ $('m_dlabel').textContent = discLabel(this.value); };
+  $('ep_dtype').onchange = function(){ $('ep_dlabel').textContent = discLabel(this.value); };
+  $('ep_save').onclick = savePlanEdit;
+  $('ep_cancel').onclick = closePlanModal;
+  $('planModal').addEventListener('click', function(ev){ if(ev.target === this) closePlanModal(); });
 
   // ============================ DEMO MODE (#demo) ============================
   // Lets you preview the UI with sample data and no backend (for review only).
