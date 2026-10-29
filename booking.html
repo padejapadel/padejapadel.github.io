@@ -55,10 +55,26 @@
 </div>
 <script>
 const SUPABASE_URL = 'https://odrckirnjavfptlfygbo.supabase.co';
-const SUPABASE_KEY = '__ANON_KEY__';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo';
 const TZ = 'Europe/London';
-const APPSTORE = 'https://apps.apple.com/app/padeja/id0';        // TODO: real App Store id
+const APPSTORE = 'https://apps.apple.com/gb/app/padeja/id6780805905';
 const PLAYSTORE = 'https://play.google.com/store/apps/details?id=com.jackwoodford.padejafeedapp';
+// Send each visitor to the right store for their device.
+const UA = navigator.userAgent || '';
+const IS_IOS = /iPad|iPhone|iPod/.test(UA) || (/Macintosh/.test(UA) && (navigator.maxTouchPoints||0) > 1);
+const STORE = IS_IOS ? APPSTORE : PLAYSTORE;
+const STORE_LABEL = IS_IOS ? 'Get the app on the App Store' : 'Get the app on Google Play';
+// Try to open this match in the Padeja app; if the app isn't installed, the
+// page stays visible and we send them to the right store instead. (The <a> href
+// is the store, so it still works with JS off.)
+function openApp(){
+  var id=bookingId();
+  if(!id){ window.location.href=STORE; return false; }
+  var t=Date.now();
+  setTimeout(function(){ if(!document.hidden && Date.now()-t < 2000){ window.location.href=STORE; } }, 1100);
+  window.location.href='padejafeed://booking?b='+encodeURIComponent(id);
+  return false;
+}
 
 const POS = [['TEAM 1',['t1_left','t1_right']],['TEAM 2',['t2_left','t2_right']]];
 const SIDE = {t1_left:'Left',t1_right:'Right',t2_left:'Left',t2_right:'Right'};
@@ -72,6 +88,11 @@ function timeRange(a,b){
   }catch(e){return '';}
 }
 function bookingId(){const u=new URLSearchParams(location.search);return u.get('b')||u.get('booking')||'';}
+function subSlot(){const u=new URLSearchParams(location.search);return u.get('sub');}
+function subCTA(id,slot){
+  return '<a class="cta primary" href="padejafeed://substitute?b='+encodeURIComponent(id)+'&slot='+encodeURIComponent(slot)+'">Take this place in the Padeja app</a>'
+    +'<a class="cta ghost" href="'+STORE+'">'+STORE_LABEL+'</a>';
+}
 
 async function load(){
   const id=bookingId();
@@ -88,8 +109,13 @@ async function load(){
     if(!d||d.error){throw new Error('unavailable');}
     render(d);
   }catch(e){
-    app.innerHTML='<div class="err">This match is private, full, or no longer available.<br><br>'
-      +'<a class="cta primary" href="'+PLAYSTORE+'">Get the Padeja app</a></div>';
+    const slot=subSlot();
+    if(slot){
+      app.innerHTML='<h1>A place is up for grabs</h1><div class="sub">Someone can\'t make their court — open the Padeja app to take their place.</div>'+subCTA(id,slot);
+    }else{
+      app.innerHTML='<div class="err">This match is private, full, or no longer available.<br><br>'
+        +'<a class="cta primary" href="'+STORE+'">Get the Padeja app</a></div>';
+    }
   }
 }
 
@@ -126,10 +152,13 @@ function render(d){
     +'<span class="pill '+(free>0?'open':'full')+'">'+(free>0?(free+' spot'+(free===1?'':'s')+' left'):'Full')+'</span>'
     +'<div class="court">'+cols+'</div>'
     +lvl
-    +(free>0
-        ? '<a class="cta primary" href="'+PLAYSTORE+'">Join in the Padeja app</a>'
-          +'<a class="cta ghost" href="'+APPSTORE+'">Get it on iPhone</a>'
-        : '<a class="cta ghost" href="'+PLAYSTORE+'">Open in the Padeja app</a>');
+    +(subSlot()
+        ? '<div class="meta" style="color:var(--green);margin-top:10px">Someone can\'t make it — take their place:</div>'+subCTA(bookingId(),subSlot())
+        : free>0
+        ? '<a class="cta primary" href="'+STORE+'" onclick="return openApp()">Join in the Padeja app</a>'
+          +'<a class="cta ghost" href="'+STORE+'">'+STORE_LABEL+'</a>'
+        : '<a class="cta primary" href="'+STORE+'" onclick="return openApp()">Open in the Padeja app</a>'
+          +'<a class="cta ghost" href="'+STORE+'">'+STORE_LABEL+'</a>');
 }
 load();
 </script>
