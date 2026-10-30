@@ -97,6 +97,9 @@
   .bk-row{display:flex;align-items:center;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:#0f2038;margin-bottom:8px}
   .bk-time{font-weight:800;font-size:14px;white-space:nowrap}
   .bk-players{font-size:12px;color:var(--muted);margin-top:3px}
+  .bk-dayhdr{font-weight:800;color:var(--white);font-size:15px;margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--line2)}
+  .bk-daygroup:first-child .bk-dayhdr{border-top:none;padding-top:0;margin-top:2px}
+  .bk-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
   .okpay{color:var(--good);font-weight:700}
   .pendpay{color:var(--accent);font-weight:700}
   .hidden{display:none !important}
@@ -312,9 +315,13 @@
     <section id="tab-bookings" class="tabpane hidden">
       <div class="card">
         <h2>Bookings &amp; occupancy</h2>
-        <div class="sub">Who's booked, how full you are, and the money for the day.</div>
-        <div class="row" style="margin-bottom:2px">
+        <div class="sub">Who's booked, how full you are, and the money &mdash; by day, week or month.</div>
+        <div class="bk-controls">
+          <div class="field sm"><label>View</label><select id="bk_view"><option value="day">Day</option><option value="week">Week</option><option value="month">Month</option></select></div>
           <div class="field sm"><label>Date</label><input id="bk_date" type="date"></div>
+          <button class="btn sm line" id="bk_prev">&lsaquo; Prev</button>
+          <button class="btn sm line" id="bk_next">Next &rsaquo;</button>
+          <div id="bk_rangelabel" class="muted" style="font-weight:700;padding-bottom:12px;margin-left:auto"></div>
         </div>
       </div>
       <div id="bookingsBody"></div>
@@ -851,25 +858,81 @@
       +'<div style="flex:1"><div><b>'+esc(b.booker_name||'Member')+'</b> \u00b7 '+vis+' \u00b7 '+(b.players_filled||0)+'/4</div><div class="bk-players">'+players+'</div></div>'
       +'<div style="text-align:right;font-weight:800;white-space:nowrap">'+money(b.price_cents)+'</div></div>';
   }
+  // Build YYYY-MM-DD from a local Date; parse one back at local noon (DST-safe).
+  function bkYmd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function bkParse(str){ var a=String(str).split('-'); return new Date(+a[0], (+a[1]||1)-1, +a[2]||1, 12, 0, 0); }
+  function bkRange(view, anchorStr){
+    var a = bkParse(anchorStr), dates = [];
+    if(view==='week'){
+      var dow = (a.getDay()+6)%7;                 // Monday = 0
+      var start = new Date(a); start.setDate(a.getDate()-dow);
+      for(var i=0;i<7;i++){ var d=new Date(start); d.setDate(start.getDate()+i); dates.push(bkYmd(d)); }
+    } else if(view==='month'){
+      var y=a.getFullYear(), m=a.getMonth(), last=new Date(y, m+1, 0).getDate();
+      for(var j=1;j<=last;j++){ dates.push(bkYmd(new Date(y, m, j, 12))); }
+    } else { dates.push(bkYmd(a)); }
+    return dates;
+  }
+  function bkRangeLabel(view, dates){
+    function pretty(sx){ return bkParse(sx).toLocaleDateString([], {weekday:'short', day:'numeric', month:'short'}); }
+    if(view==='week'){ return 'Week: '+pretty(dates[0])+' \u2013 '+pretty(dates[dates.length-1]); }
+    if(view==='month'){ return bkParse(dates[0]).toLocaleDateString([], {month:'long', year:'numeric'}); }
+    return bkParse(dates[0]).toLocaleDateString([], {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  }
+  function bkShift(dir){
+    var v=$('bk_view').value, a=bkParse($('bk_date').value);
+    if(v==='week') a.setDate(a.getDate()+7*dir);
+    else if(v==='month') a.setMonth(a.getMonth()+dir);
+    else a.setDate(a.getDate()+dir);
+    $('bk_date').value = bkYmd(a); renderBookings();
+  }
+
   async function renderBookings(){
     var body = $('bookingsBody');
-    if(!$('bk_date').value){ $('bk_date').value = new Date().toISOString().slice(0,10); }
-    var date = $('bk_date').value;
+    if(!$('bk_date').value){ $('bk_date').value = bkYmd(new Date()); }
+    var view = ($('bk_view') ? $('bk_view').value : 'day');
+    var dates = bkRange(view, $('bk_date').value);
+    if($('bk_rangelabel')) $('bk_rangelabel').textContent = bkRangeLabel(view, dates);
     body.innerHTML = '<div class="muted">Loading\u2026</div>';
     try{
-      var ov = await api('POST','rpc/get_club_day_overview', { p_club_id:S.clubId, p_date:date });
-      if(!ov || ov.error){ body.innerHTML = '<div class="empty">'+esc((ov&&ov.error)||'No data for this club.')+'</div>'; return; }
-      bkTz = ov.timezone || bkTz;
-      var s = ov.summary || {};
-      var occPct = s.bookable_slots ? Math.round(100*(s.occupied_slots||0)/s.bookable_slots) : 0;
-      var cards = sumCard('Occupancy', (s.occupied_slots||0)+' / '+(s.bookable_slots||0), occPct+'% of slots booked')
-        + sumCard('Free slots', (s.free_slots||0), 'bookable slots still open')
-        + sumCard('Open spaces', (s.public_spaces_free||0), 'empty places in public matches')
-        + sumCard('Expected', money(s.expected_revenue_cents), 'value of booked courts')
-        + sumCard('Collected', money(s.collected_revenue_cents), 'paid so far');
-      var list = (ov.bookings||[]).map(renderBookingRow).join('') || '<div class="empty">No bookings on this day.</div>';
+      var results = await Promise.all(dates.map(function(dt){
+        return api('POST','rpc/get_club_day_overview', { p_club_id:S.clubId, p_date:dt })
+                 .then(function(ov){ return {date:dt, ov:ov}; })
+                 .catch(function(){ return {date:dt, ov:null}; });
+      }));
+      var sum={occupied_slots:0, bookable_slots:0, free_slots:0, public_spaces_free:0, expected_revenue_cents:0, collected_revenue_cents:0};
+      var groups=[], total=0, tzSet=false, anyData=false;
+      results.forEach(function(r){
+        var ov=r.ov; if(!ov || ov.error) return;
+        anyData=true;
+        if(!tzSet && ov.timezone){ bkTz=ov.timezone; tzSet=true; }
+        var s=ov.summary||{};
+        sum.occupied_slots+=s.occupied_slots||0; sum.bookable_slots+=s.bookable_slots||0;
+        sum.free_slots+=s.free_slots||0; sum.public_spaces_free+=s.public_spaces_free||0;
+        sum.expected_revenue_cents+=s.expected_revenue_cents||0; sum.collected_revenue_cents+=s.collected_revenue_cents||0;
+        var bks=ov.bookings||[]; total+=bks.length;
+        if(bks.length) groups.push({date:r.date, bookings:bks});
+      });
+      if(!anyData){ body.innerHTML = '<div class="card"><div class="empty">No data for this club.</div></div>'; return; }
+      var occPct = sum.bookable_slots ? Math.round(100*sum.occupied_slots/sum.bookable_slots) : 0;
+      var cards = sumCard('Occupancy', sum.occupied_slots+' / '+sum.bookable_slots, occPct+'% of slots booked')
+        + sumCard('Free slots', sum.free_slots, 'bookable slots still open')
+        + sumCard('Open spaces', sum.public_spaces_free, 'empty places in public matches')
+        + sumCard('Expected', money(sum.expected_revenue_cents), 'value of booked courts')
+        + sumCard('Collected', money(sum.collected_revenue_cents), 'paid so far');
+      var listHtml;
+      if(view==='day'){
+        listHtml = (groups[0] ? groups[0].bookings.map(renderBookingRow).join('') : '') || '<div class="empty">No bookings on this day.</div>';
+      } else {
+        listHtml = groups.length ? groups.map(function(g){
+          var hd = bkParse(g.date).toLocaleDateString([], {weekday:'long', day:'numeric', month:'short'});
+          return '<div class="bk-daygroup"><div class="bk-dayhdr">'+esc(hd)+' <span class="mini">\u00b7 '+g.bookings.length+' booking'+(g.bookings.length===1?'':'s')+'</span></div>'
+               + g.bookings.map(renderBookingRow).join('') + '</div>';
+        }).join('') : '<div class="empty">No bookings in this '+view+'.</div>';
+      }
+      var heading = (view==='day') ? 'Bookings' : 'Bookings ('+total+')';
       body.innerHTML = '<div class="card"><div class="sumrow">'+cards+'</div><div class="tag-help" style="margin-top:12px">Collected stays '+money(0)+' until card payment is switched on \u2014 bookings are recorded as \u201cpending\u201d for now.</div></div>'
-        + '<div class="card"><h2>Bookings</h2>'+list+'</div>';
+        + '<div class="card"><h2>'+heading+'</h2>'+listHtml+'</div>';
     }catch(e){ body.innerHTML = '<div class="card"><div class="err">Could not load: '+esc(e.message)+'</div></div>'; }
   }
 
@@ -1179,6 +1242,9 @@
   $('s_mode').onchange = toggleOpenFields;
   $('b_add').onclick = addBlock;
   $('bk_date').onchange = renderBookings;
+  $('bk_view').onchange = renderBookings;
+  $('bk_prev').onclick = function(){ bkShift(-1); };
+  $('bk_next').onclick = function(){ bkShift(1); };
   $('e_save').onclick = saveCourtEdit;
   $('e_cancel').onclick = closeCourtModal;
   $('courtModal').addEventListener('click', function(ev){ if(ev.target === this) closeCourtModal(); });
