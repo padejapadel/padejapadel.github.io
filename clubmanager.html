@@ -293,6 +293,12 @@
         </div>
       </div>
       <div class="card">
+        <h2>Membership terms &amp; conditions</h2>
+        <div class="sub">Paste your membership T&amp;Cs here. Players must read and accept them before they can buy a membership. Leave blank for none. Every acceptance is recorded with the date and a copy of the terms at that moment.</div>
+        <div class="field"><label>Terms &amp; conditions</label><textarea id="m_terms" rows="10" placeholder="Paste your membership terms &amp; conditions here…" style="width:100%;background:var(--card);color:var(--white);border:1px solid var(--line2);border-radius:10px;padding:12px 14px;font-size:15px;font-family:inherit;min-height:180px;resize:vertical"></textarea></div>
+        <button class="btn sm alt" id="m_terms_save" style="margin-top:12px">Save terms</button>
+      </div>
+      <div class="card">
         <h2>Plans</h2>
         <div id="plansTable"></div>
       </div>
@@ -1020,6 +1026,7 @@
   function discDisplay(t,v){ return t==='percent'? (v+'% off') : t==='amount_off'? (money(v)+' off') : t==='price_per_hour'? (money(v)+'/hr') : (money(v)+' flat'); }
   function renderMemberships(){
     if(S.settings) $('m_pubahead').value = (S.settings.public_booking_ahead_days==null?'':S.settings.public_booking_ahead_days);
+    if(S.settings) $('m_terms').value = (S.settings.membership_terms||'');
     $('m_dlabel').textContent = discLabel($('m_dtype').value);
     renderPlans(); renderMembers();
   }
@@ -1110,6 +1117,13 @@
       toast('Advance window saved'); }
     catch(e){ toast('Could not save: '+e.message, true); }
   }
+  async function saveTerms(){
+    var txt = $('m_terms').value;
+    try{ await api('PATCH', 'court_booking_settings?club_id=eq.' + S.clubId, { membership_terms: (txt.trim()===''?null:txt) }, 'return=representation');
+      if(S.settings) S.settings.membership_terms = (txt.trim()===''?null:txt);
+      toast('Terms saved'); }
+    catch(e){ toast('Could not save: '+e.message, true); }
+  }
 
   // ============================ TABS / APP ============================
   function showTab(name){
@@ -1175,6 +1189,7 @@
   $('actModal').addEventListener('click', function(ev){ if(ev.target === this) closeActModal(); });
   $('m_add').onclick = addPlan;
   $('m_pubsave').onclick = savePublicAhead;
+  $('m_terms_save').onclick = saveTerms;
   $('m_dtype').onchange = function(){ $('m_dlabel').textContent = discLabel(this.value); };
   $('ep_dtype').onchange = function(){ $('ep_dlabel').textContent = discLabel(this.value); };
   $('ep_save').onclick = savePlanEdit;
