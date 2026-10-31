@@ -539,20 +539,29 @@
         '<div class="field sm"><label>Free-cancel window (hours)</label><input id="set_cancel" type="number" value="' + (s.cancellation_window_hours==null?'':s.cancellation_window_hours) + '" placeholder="—"></div>' +
       '</div>' +
       '<div class="row" style="margin-top:14px"><div class="inline"><label class="toggle"><input type="checkbox" id="set_autopub"' + (s.auto_go_public_24h?' checked':'') + '><span class="slider"></span></label><div><b>Auto-open private bookings 24h before</b><div class="mini muted">Empty places on a private booking open to the public a day before start.</div></div></div></div>' +
+      '<div class="row" style="margin-top:16px"><div class="field"><label>Club logo</label>' +
+        (s.club_logo_url ? '<img src="'+esc(s.club_logo_url)+'" alt="logo" style="height:48px;width:48px;object-fit:cover;border-radius:8px;border:1px solid var(--line2);margin-bottom:8px;display:block">' : '') +
+        '<input id="set_logo" placeholder="https://\u2026/logo.png" value="'+esc(s.club_logo_url||'')+'"><div class="mini muted" style="margin-top:4px">Shows next to your club name in the app\u2019s club picker.</div></div>' +
+        '<div class="field"><label>\u2026or upload a logo</label><input id="set_logo_file" type="file" accept="image/*"></div></div>' +
       '<div style="margin-top:18px"><button class="btn sm" id="set_save">Save settings</button></div>' +
       '<div class="tag-help">Padeja manages your fee and payout account separately.</div>';
     $('set_save').onclick = saveSettings;
   }
   async function saveSettings(){
-    var patch = {
-      booking_enabled: $('set_enabled').checked,
-      timezone: $('set_tz').value.trim() || 'Europe/London',
-      auto_go_public_24h: $('set_autopub').checked,
-      cancellation_window_hours: $('set_cancel').value === '' ? null : parseInt($('set_cancel').value,10)
-    };
     try{
+      var logoUrl = $('set_logo') ? ($('set_logo').value.trim() || null) : ((S.settings && S.settings.club_logo_url) || null);
+      var _lf = $('set_logo_file') && $('set_logo_file').files[0];
+      if(_lf){ logoUrl = await uploadActivityImage(_lf); }
+      var patch = {
+        booking_enabled: $('set_enabled').checked,
+        timezone: $('set_tz').value.trim() || 'Europe/London',
+        auto_go_public_24h: $('set_autopub').checked,
+        cancellation_window_hours: $('set_cancel').value === '' ? null : parseInt($('set_cancel').value,10),
+        club_logo_url: logoUrl
+      };
       await api('PATCH', 'court_booking_settings?club_id=eq.' + S.clubId, patch, 'return=representation');
       S.settings = Object.assign(S.settings, patch);
+      renderSettings();
       toast('Settings saved');
     }catch(e){ toast('Could not save: ' + e.message, true); }
   }
