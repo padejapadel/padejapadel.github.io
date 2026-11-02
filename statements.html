@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Padeja · Statements</title>
+<style>
+  :root{
+    --navy:#0D1B2A; --navy2:#13263b; --orange:#F09537; --ink:#0D1B2A; --muted:#5b6b7b;
+    --line:#e3e8ee; --card:#ffffff; --bg:#f4f6f9; --good:#1f9d57; --bad:#c0392b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  header .brand{font-weight:800;font-size:18px;letter-spacing:.2px}
+  header .brand span{color:var(--orange)}
+  header .who{font-size:13px;color:#c7d2de}
+  header button{background:transparent;border:1px solid #395066;color:#c7d2de;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px}
+  header button:hover{border-color:var(--orange);color:#fff}
+  .wrap{max-width:1040px;margin:0 auto;padding:20px 16px 60px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+  h2{font-size:17px;margin:0 0 12px}
+  h3{font-size:14px;margin:18px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  input[type=text],input[type=email],input[type=number],input[type=password],input[type=date],select{
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-size:15px;background:#fff;color:var(--ink)}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:150px}
+  .btn{background:var(--orange);color:#3a2300;border:none;border-radius:10px;padding:10px 16px;font-weight:700;font-size:15px;cursor:pointer}
+  .btn:hover{filter:brightness(1.05)}
+  .btn.sec{background:#eef2f6;color:var(--ink);font-weight:600}
+  .btn:disabled{opacity:.5;cursor:default}
+  .tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+  .tabs button{background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer;font-weight:600;color:var(--muted)}
+  .tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+  td.num,th.num{text-align:right;white-space:nowrap}
+  tr.tot td{font-weight:800;border-top:2px solid var(--ink);border-bottom:none}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:4px 0 6px}
+  .tile{background:#f7f9fb;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .tile .k{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .tile .v{font-size:20px;font-weight:800;margin-top:3px}
+  .tile.accent{background:#fff6ec;border-color:#f6d9b4}
+  .muted{color:var(--muted)}
+  .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:#eef2f6;color:var(--muted)}
+  .warn{background:#fff4e5;border:1px solid #f3c98a;color:#7a4b00;border-radius:10px;padding:10px 12px;font-size:13px;margin:10px 0}
+  .ok{color:var(--good);font-weight:700}
+  .loginwrap{max-width:380px;margin:9vh auto;padding:0 16px}
+  .loginwrap .card{padding:24px}
+  .err{color:var(--bad);font-size:13px;margin-top:8px;min-height:16px}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;font-size:14px;z-index:50}
+  .toast.show{opacity:1}
+  .toast.bad{background:var(--bad)}
+  .exempt-grid{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;max-width:420px;margin-top:6px}
+  .exempt-grid .lbl{font-size:14px}
+  .hide{display:none}
+  .foot{font-size:12px;color:var(--muted);margin-top:10px}
+  @media print{
+    header,.tabs,.noprint{display:none!important}
+    body{background:#fff}
+    .card{border:none;padding:0;margin:0 0 14px}
+    .wrap{max-width:none;padding:0}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login" class="loginwrap">
+  <div class="card">
+    <div style="font-weight:800;font-size:20px;margin-bottom:4px">Padeja <span style="color:var(--orange)">Statements</span></div>
+    <div class="muted" style="font-size:13px;margin-bottom:14px">Sign in with your Padeja account to view your statements and settings.</div>
+    <label>Email</label>
+    <input id="email" type="email" autocomplete="username" placeholder="you@club.com">
+    <label>Password</label>
+    <input id="password" type="password" autocomplete="current-password" placeholder="••••••••">
+    <div style="margin-top:14px"><button class="btn" id="loginBtn" style="width:100%">Sign in</button></div>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hide">
+  <header>
+    <div class="brand">Padeja <span>Statements</span></div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="who" id="who"></span>
+      <button id="signout">Sign out</button>
+    </div>
+  </header>
+  <div class="wrap">
+    <div class="tabs">
+      <button id="tabStatements" class="on" onclick="setTab('statements')">Statements</button>
+      <button id="tabSettings" onclick="setTab('settings')">Settings</button>
+    </div>
+
+    <!-- ===== STATEMENTS TAB ===== -->
+    <div id="paneStatements">
+      <div class="card noprint">
+        <h2>Weekly statement</h2>
+        <div class="row">
+          <div><label>From</label><input id="from" type="date"></div>
+          <div><label>To</label><input id="to" type="date"></div>
+          <div style="display:flex;align-items:flex-end"><button class="btn" id="genBtn" style="width:100%">Generate</button></div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn sec" onclick="quickRange('lastweek')">Last week</button>
+          <button class="btn sec" onclick="quickRange('thisweek')">This week</button>
+          <button class="btn sec" onclick="quickRange('lastmonth')">Last month</button>
+          <button class="btn sec" onclick="quickRange('thismonth')">This month</button>
+        </div>
+      </div>
+
+      <div id="stmt" class="hide">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+            <div>
+              <h2 id="stmtTitle" style="margin:0">Statement</h2>
+              <div class="muted" id="stmtSub" style="font-size:13px"></div>
+            </div>
+            <div class="noprint" style="display:flex;gap:6px">
+              <button class="btn sec" onclick="downloadCsv()">Download CSV</button>
+              <button class="btn sec" onclick="window.print()">Download PDF</button>
+            </div>
+          </div>
+          <div id="vatWarn"></div>
+          <div class="tiles" id="tiles"></div>
+          <div class="foot" id="feeNote"></div>
+        </div>
+
+        <div class="card" id="byCompCard">
+          <h2>By competition</h2>
+          <div id="byComp"></div>
+        </div>
+
+        <div class="card">
+          <h2>All payments</h2>
+          <div style="overflow-x:auto">
+            <table id="linesTbl"><thead></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </div>
+      <div id="stmtEmpty" class="card hide"><div class="muted">No income found for that period.</div></div>
+    </div>
+
+    <!-- ===== SETTINGS TAB ===== -->
+    <div id="paneSettings" class="hide">
+      <div class="card">
+        <h2>VAT details</h2>
+        <div class="muted" style="font-size:13px;margin-bottom:6px">
+          If your club is VAT registered, your statements will show the VAT element of each sale.
+          The rate and any exemptions are your accountant's call — enter what they confirm.
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:10px">
+          <input type="checkbox" id="vatReg" style="width:auto"> We are VAT registered
+        </label>
+        <div id="vatFields" class="hide">
+          <div class="row" style="margin-top:6px">
+            <div><label>VAT number</label><input id="vatNo" type="text" placeholder="GB123456789"></div>
+            <div><label>Default VAT rate (%)</label><input id="vatRate" type="number" step="0.5" min="0" max="100" value="20"></div>
+          </div>
+          <h3>Mark any income types that are exempt / zero-rated</h3>
+          <div class="exempt-grid" id="exemptGrid"></div>
+        </div>
+        <div style="margin-top:16px"><button class="btn" id="saveVat">Save VAT details</button></div>
+      </div>
+
+      <div class="card">
+        <h2>Automated email delivery</h2>
+        <div class="muted" style="font-size:13px;margin-bottom:6px">
+          Have your statement emailed automatically. Point it at whichever address your accounts team uses.
+        </div>
+        <div class="row">
+          <div><label>Delivery email</label><input id="delEmail" type="email" placeholder="accounts@yourclub.com"></div>
+          <div><label>How often</label>
+            <select id="delFreq">
+              <option value="off">Off (don't email)</option>
+              <option value="weekly">Weekly (every Monday, previous week)</option>
+              <option value="fortnightly">Fortnightly</option>
+              <option value="monthly">Monthly (1st, previous month)</option>
+            </select>
+          </div>
+        </div>
+        <div class="foot" id="lastSent"></div>
+        <div style="margin-top:16px"><button class="btn" id="saveDel">Save delivery settings</button></div>
+      </div>
+
+      <div class="card">
+        <h2>Account</h2>
+        <div id="acctInfo" class="muted" style="font-size:13.5px"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+// ============================ CONFIG (same project as the apps) ============================
+var SUPABASE_URL = 'https://odrckirnjavfptlfygbo.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo';
+var LS_KEY = 'padeja_stmt_refresh';
+
+var S = { token:null, refresh:null, uid:null, settings:null, lastStmt:null };
+var INCOME_TYPES = [
+  ['entry_fee','Competition entry fees'],
+  ['court_booking','Court bookings'],
+  ['membership','Memberships'],
+  ['activity','Activities / coaching'],
+  ['store','Store sales'],
+  ['wallet_topup','Wallet top-ups']
+];
+
+// ============================ HELPERS ============================
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function money(p){ var n=(p==null?null:p); if(n==null) return '—'; return '£' + (n/100).toFixed(2); }
+function pct(bps){ return bps==null?'':(bps/100)+'%'; }
+var toastT;
+function toast(msg, bad){ var t=$('toast'); t.textContent=msg; t.className='toast show'+(bad?' bad':''); clearTimeout(toastT); toastT=setTimeout(function(){t.className='toast';},2600); }
+function parseJwt(t){ try{ return JSON.parse(atob(t.split('.')[1])); }catch(e){ return {}; } }
+function ymd(d){ return d.toISOString().slice(0,10); }
+
+// REST + RPC helper (bearer = signed-in user, so SECURITY DEFINER sees auth.uid()).
+async function api(method, path, body){
+  function doFetch(){
+    return fetch(SUPABASE_URL + '/rest/v1/' + path, {
+      method:method, cache:'no-store',
+      headers:{ apikey:SUPABASE_KEY, 'Content-Type':'application/json',
+                Authorization:'Bearer ' + (S.token || SUPABASE_KEY) },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  }
+  var res = await doFetch();
+  if(res.status === 401 && S.refresh){
+    try{ await refreshSession(S.refresh); res = await doFetch(); }
+    catch(e){ clearSession(); showLogin(); throw new Error('Your session expired — please sign in again.'); }
+  }
+  if(!res.ok){ throw new Error(res.status + ' ' + (await res.text())); }
+  var ct = res.headers.get('content-type')||'';
+  return ct.indexOf('application/json')>=0 ? res.json() : null;
+}
+function rpc(fn, args){ return api('POST', 'rpc/' + fn, args||{}); }
+
+// ============================ AUTH ============================
+async function login(email, password){
+  var res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+    method:'POST', headers:{ apikey:SUPABASE_KEY, 'Content-Type':'application/json' },
+    body: JSON.stringify({ email:email, password:password })
+  });
+  var data = await res.json();
+  if(!res.ok) throw new Error(data.error_description || data.msg || data.error || 'Sign-in failed');
+  setSession(data.access_token, data.refresh_token);
+}
+async function refreshSession(refresh){
+  var res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+    method:'POST', headers:{ apikey:SUPABASE_KEY, 'Content-Type':'application/json' },
+    body: JSON.stringify({ refresh_token:refresh })
+  });
+  if(!res.ok) throw new Error('session expired');
+  var data = await res.json();
+  setSession(data.access_token, data.refresh_token);
+}
+function setSession(a,r){ S.token=a; S.refresh=r; S.uid=parseJwt(a).sub; try{localStorage.setItem(LS_KEY,r);}catch(e){} }
+function clearSession(){ S.token=S.refresh=S.uid=null; try{localStorage.removeItem(LS_KEY);}catch(e){} }
+function showLogin(){ $('app').classList.add('hide'); $('login').classList.remove('hide'); }
+
+// ============================ TABS ============================
+function setTab(t){
+  $('paneStatements').classList.toggle('hide', t!=='statements');
+  $('paneSettings').classList.toggle('hide', t!=='settings');
+  $('tabStatements').classList.toggle('on', t==='statements');
+  $('tabSettings').classList.toggle('on', t==='settings');
+}
+
+// ============================ SETTINGS ============================
+function buildExemptGrid(){
+  var g = $('exemptGrid'); g.innerHTML='';
+  INCOME_TYPES.forEach(function(it){
+    var lbl=document.createElement('div'); lbl.className='lbl'; lbl.textContent=it[1];
+    var box=document.createElement('input'); box.type='checkbox'; box.id='ex_'+it[0]; box.style.width='auto';
+    g.appendChild(lbl); g.appendChild(box);
+  });
+}
+async function loadSettings(){
+  var s = await rpc('get_statement_settings', { p_account_id: S.uid });
+  S.settings = s;
+  $('who').textContent = s.display_name || '';
+  // VAT
+  $('vatReg').checked = !!s.vat_registered;
+  $('vatFields').classList.toggle('hide', !s.vat_registered);
+  $('vatNo').value = s.vat_number || '';
+  var treatByType = {}; (s.vat_treatments||[]).forEach(function(t){ treatByType[t.income_type]=t; });
+  // default rate = first non-exempt standard rate found, else 20
+  var def = null;
+  (s.vat_treatments||[]).forEach(function(t){ if(t.treatment!=='exempt' && t.treatment!=='zero' && t.treatment!=='outside_scope' && def==null) def=t.rate_bps; });
+  $('vatRate').value = def!=null ? (def/100) : 20;
+  INCOME_TYPES.forEach(function(it){
+    var t = treatByType[it[0]];
+    var ex = t && (t.treatment==='exempt'||t.treatment==='zero'||t.treatment==='outside_scope');
+    var box = $('ex_'+it[0]); if(box) box.checked = !!ex;
+  });
+  // Delivery
+  $('delEmail').value = s.delivery_email || '';
+  $('delFreq').value = s.frequency || 'off';
+  $('lastSent').textContent = s.last_sent_at ? ('Last sent: ' + new Date(s.last_sent_at).toLocaleString('en-GB')) : 'Not sent yet.';
+  // Account
+  $('acctInfo').innerHTML =
+    'Signed in as <b>'+esc(s.display_name||'')+'</b>.<br>'+
+    'Stripe payout account: ' + (s.stripe_connected ? '<span class="ok">connected</span>' : 'not connected') + '.';
+}
+async function saveVat(){
+  var reg = $('vatReg').checked;
+  try{
+    await rpc('set_club_vat_registered', { p_account_id:S.uid, p_registered:reg, p_vat_number: $('vatNo').value || null });
+    if(reg){
+      var rateBps = Math.round(parseFloat($('vatRate').value||'0')*100);
+      for(var i=0;i<INCOME_TYPES.length;i++){
+        var it = INCOME_TYPES[i][0];
+        var ex = $('ex_'+it).checked;
+        await rpc('set_club_vat_treatment', { p_account_id:S.uid, p_income_type:it,
+                   p_treatment: ex?'exempt':'standard', p_rate_bps: ex?0:rateBps });
+      }
+    }
+    toast('VAT details saved'); await loadSettings();
+  }catch(e){ toast('Could not save VAT details', true); }
+}
+async function saveDelivery(){
+  try{
+    await rpc('set_statement_delivery', { p_account_id:S.uid, p_email: $('delEmail').value||null, p_frequency: $('delFreq').value });
+    toast('Delivery settings saved'); await loadSettings();
+  }catch(e){ toast(String(e.message||e).indexOf('valid delivery email')>=0 ? 'Enter a valid email to turn delivery on' : 'Could not save', true); }
+}
+
+// ============================ STATEMENT ============================
+function quickRange(which){
+  var now=new Date(); var from, to;
+  var day=(now.getDay()+6)%7; // 0=Mon
+  if(which==='thisweek'){ from=new Date(now); from.setDate(now.getDate()-day); to=new Date(from); to.setDate(from.getDate()+6); }
+  else if(which==='lastweek'){ to=new Date(now); to.setDate(now.getDate()-day-1); from=new Date(to); from.setDate(to.getDate()-6); }
+  else if(which==='thismonth'){ from=new Date(now.getFullYear(),now.getMonth(),1); to=new Date(now.getFullYear(),now.getMonth()+1,0); }
+  else if(which==='lastmonth'){ from=new Date(now.getFullYear(),now.getMonth()-1,1); to=new Date(now.getFullYear(),now.getMonth(),0); }
+  $('from').value=ymd(from); $('to').value=ymd(to);
+  generate();
+}
+async function generate(){
+  var from=$('from').value, to=$('to').value;
+  if(!from||!to){ toast('Pick a from and to date', true); return; }
+  $('genBtn').disabled=true;
+  try{
+    var s = await rpc('get_club_statement', { p_account_id:S.uid, p_from:from, p_to:to });
+    S.lastStmt = s; renderStatement(s);
+  }catch(e){ toast('Could not load the statement', true); }
+  $('genBtn').disabled=false;
+}
+function renderStatement(s){
+  var t = s.totals || {};
+  var has = (t.count||0) > 0;
+  $('stmt').classList.toggle('hide', !has);
+  $('stmtEmpty').classList.toggle('hide', has);
+  if(!has) return;
+  $('stmtTitle').textContent = (s.display_name||'Statement') + ' — ' + s.from + ' to ' + s.to;
+  $('stmtSub').textContent = 'Generated ' + new Date(s.generated_at).toLocaleString('en-GB') + ' · all amounts GBP, VAT-inclusive';
+
+  // VAT warning
+  var w='';
+  if(s.vat_registered && (t.vat_unconfigured_lines||0)>0){
+    w = '<div class="warn">'+t.vat_unconfigured_lines+' payment(s) totalling '+money(t.vat_unconfigured_gross_cents)+
+        ' have an income type with no VAT rate set yet — set them under <b>Settings → VAT details</b> for a complete VAT breakdown.</div>';
+  }
+  $('vatWarn').innerHTML = w;
+
+  // Tiles
+  var tiles = [
+    ['Gross taken', money(t.gross_cents), ''],
+    s.vat_registered ? ['VAT element', money(t.vat_cents), ''] : null,
+    s.vat_registered ? ['Net of VAT', money(t.net_of_vat_cents), ''] : null,
+    ['Padeja fee', money(t.padeja_fee_cents), ''],
+    ['Net received', money(t.net_payout_cents), 'accent']
+  ].filter(Boolean);
+  $('tiles').innerHTML = tiles.map(function(x){
+    return '<div class="tile '+x[2]+'"><div class="k">'+x[0]+'</div><div class="v">'+x[1]+'</div></div>';
+  }).join('');
+  $('feeNote').textContent = 'Padeja fee is estimated from the fee rule (entry fees 15%, min £3; store 1.5%); final figures reconcile to your Stripe payouts. Net received = gross − Padeja fee.';
+
+  // By competition
+  var bc = s.by_competition||[];
+  $('byCompCard').style.display = bc.length? '' : 'none';
+  if(bc.length){
+    var vcol = s.vat_registered;
+    var h='<div style="overflow-x:auto"><table><thead><tr><th>Competition</th><th class="num">Payments</th><th class="num">Gross</th>'+
+          (vcol?'<th class="num">VAT</th><th class="num">Net of VAT</th>':'')+
+          '<th class="num">Padeja fee</th><th class="num">Net received</th></tr></thead><tbody>';
+    bc.forEach(function(c){
+      h+='<tr><td>'+esc(c.competition||'—')+'</td><td class="num">'+c.count+'</td><td class="num">'+money(c.gross_cents)+'</td>'+
+         (vcol?'<td class="num">'+money(c.vat_cents)+'</td><td class="num">'+money(c.net_of_vat_cents)+'</td>':'')+
+         '<td class="num">'+money(c.padeja_fee_cents)+'</td><td class="num">'+money(c.net_payout_cents)+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+    $('byComp').innerHTML=h;
+  }
+
+  // Lines
+  var vcol = s.vat_registered;
+  var thead = '<tr><th>Date</th><th>Type</th><th>Description</th><th>Competition</th><th>Who</th>'+
+              '<th class="num">Gross</th>'+(vcol?'<th class="num">VAT</th><th class="num">Net of VAT</th>':'')+
+              '<th class="num">Padeja fee</th><th class="num">Net received</th></tr>';
+  var srcLabel = {entry_fee:'Entry fee',court_booking:'Court',membership:'Membership',activity:'Activity',store:'Store',wallet_topup:'Wallet'};
+  var body='';
+  (s.lines||[]).forEach(function(l){
+    body+='<tr><td>'+esc(l.date)+'</td><td><span class="pill">'+esc(srcLabel[l.source]||l.source)+'</span></td>'+
+      '<td>'+esc(l.description||'')+'</td><td>'+esc(l.competition||'')+'</td><td>'+esc(l.counterparty||'')+'</td>'+
+      '<td class="num">'+money(l.gross_cents)+'</td>'+
+      (vcol?'<td class="num">'+(l.vat_cents==null?'<span class="muted">n/a</span>':money(l.vat_cents))+'</td><td class="num">'+money(l.net_of_vat_cents)+'</td>':'')+
+      '<td class="num">'+money(l.padeja_fee_cents)+'</td><td class="num">'+money(l.net_payout_cents)+'</td></tr>';
+  });
+  // totals row
+  body+='<tr class="tot"><td colspan="5">Total ('+t.count+')</td><td class="num">'+money(t.gross_cents)+'</td>'+
+        (vcol?'<td class="num">'+money(t.vat_cents)+'</td><td class="num">'+money(t.net_of_vat_cents)+'</td>':'')+
+        '<td class="num">'+money(t.padeja_fee_cents)+'</td><td class="num">'+money(t.net_payout_cents)+'</td></tr>';
+  var tbl=$('linesTbl'); tbl.querySelector('thead').innerHTML=thead; tbl.querySelector('tbody').innerHTML=body;
+}
+
+function downloadCsv(){
+  var s=S.lastStmt; if(!s){return;}
+  var vcol = s.vat_registered;
+  var head=['Date','Type','Description','Competition','Who','Gross','VAT treatment','VAT rate','VAT','Net of VAT','Padeja fee','Net received'];
+  function cell(v){ v=(v==null?'':String(v)); return '"'+v.replace(/"/g,'""')+'"'; }
+  function gbp(p){ return p==null?'':(p/100).toFixed(2); }
+  var rows=[head.map(cell).join(',')];
+  (s.lines||[]).forEach(function(l){
+    rows.push([l.date,(l.source||''),l.description||'',l.competition||'',l.counterparty||'',
+      gbp(l.gross_cents), l.vat_treatment||'', l.vat_rate_bps==null?'':(l.vat_rate_bps/100)+'%',
+      gbp(l.vat_cents), gbp(l.net_of_vat_cents), gbp(l.padeja_fee_cents), gbp(l.net_payout_cents)].map(cell).join(','));
+  });
+  var t=s.totals||{};
+  rows.push([]); rows.push(['Totals','','','','',gbp(t.gross_cents),'','',gbp(t.vat_cents),gbp(t.net_of_vat_cents),gbp(t.padeja_fee_cents),gbp(t.net_payout_cents)].map(cell).join(','));
+  var blob=new Blob([rows.join('\r\n')],{type:'text/csv'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='padeja-statement-'+s.from+'_to_'+s.to+'.csv'; a.click();
+}
+
+// ============================ BOOT ============================
+async function enterApp(){
+  $('login').classList.add('hide'); $('app').classList.remove('hide');
+  buildExemptGrid();
+  await loadSettings();
+  quickRange('lastweek');
+}
+$('vatReg').addEventListener('change', function(){ $('vatFields').classList.toggle('hide', !this.checked); });
+$('saveVat').addEventListener('click', saveVat);
+$('saveDel').addEventListener('click', saveDelivery);
+$('genBtn').addEventListener('click', generate);
+$('signout').addEventListener('click', function(){ clearSession(); location.reload(); });
+$('loginBtn').addEventListener('click', async function(){
+  $('loginErr').textContent='';
+  try{ await login($('email').value.trim(), $('password').value); await enterApp(); }
+  catch(e){ $('loginErr').textContent = String(e.message||e); }
+});
+$('password').addEventListener('keydown', function(e){ if(e.key==='Enter') $('loginBtn').click(); });
+
+(async function(){
+  var r=null; try{ r=localStorage.getItem(LS_KEY); }catch(e){}
+  if(r){ try{ await refreshSession(r); await enterApp(); return; }catch(e){ clearSession(); } }
+  showLogin();
+})();
+</script>
+</body>
+</html>
