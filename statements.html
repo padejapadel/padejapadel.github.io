@@ -501,7 +501,12 @@ async function reconcile(){
       body: JSON.stringify({ account_id: acct(), from:from, to:to })
     });
     var data = await res.json();
-    if(!res.ok || data.error){ $('recOut').innerHTML=''; S.lastRec=null; toast(data.error||'Could not reconcile', true); $('recBtn').disabled=false; return; }
+    if(!res.ok || data.error){
+      S.lastRec=null;
+      $('recOut').innerHTML='<div class="card"><div class="warn" style="margin:0"><b>'+esc(data.error||'Could not reconcile')+'</b>'+
+        (data.detail?('<br><span style="font-size:12px;word-break:break-word">'+esc(data.detail)+'</span>'):'')+'</div></div>';
+      toast(data.error||'Could not reconcile', true); $('recBtn').disabled=false; return;
+    }
     S.lastRec = data; renderPayouts(data);
   }catch(e){ $('recOut').innerHTML=''; toast('Could not reach the reconciliation service', true); }
   $('recBtn').disabled=false;
