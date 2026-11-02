@@ -103,6 +103,7 @@
     </div>
     <div class="tabs">
       <button id="tabStatements" class="on" onclick="setTab('statements')">Statements</button>
+      <button id="tabPayouts" onclick="setTab('payouts')">Payouts (bank reconcile)</button>
       <button id="tabSettings" onclick="setTab('settings')">Settings</button>
     </div>
 
@@ -153,6 +154,25 @@
         </div>
       </div>
       <div id="stmtEmpty" class="card hide"><div class="muted">No income found for that period.</div></div>
+    </div>
+
+    <!-- ===== PAYOUTS TAB ===== -->
+    <div id="panePayouts" class="hide">
+      <div class="card noprint">
+        <h2>Reconcile to Stripe payouts</h2>
+        <div class="muted" style="font-size:13px;margin-bottom:8px">Filter by the date money reached the bank (the Stripe payout / arrival date — what your accountant sees). Each payout is broken down into the registrations inside it, so every bank line ties out.</div>
+        <div class="row">
+          <div><label>Payout from</label><input id="pFrom" type="date"></div>
+          <div><label>Payout to</label><input id="pTo" type="date"></div>
+          <div style="display:flex;align-items:flex-end"><button class="btn" id="recBtn" style="width:100%">Reconcile</button></div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn sec" onclick="pQuick('thismonth')">This month</button>
+          <button class="btn sec" onclick="pQuick('lastmonth')">Last month</button>
+        </div>
+      </div>
+      <div id="recOut"></div>
+      <div id="recEmpty" class="card hide"><div class="muted">No Stripe payouts arrived in that date range.</div></div>
     </div>
 
     <!-- ===== SETTINGS TAB ===== -->
@@ -215,8 +235,11 @@ var SUPABASE_URL = 'https://odrckirnjavfptlfygbo.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo';
 var LS_KEY = 'padeja_stmt_refresh';
 
-var S = { token:null, refresh:null, uid:null, settings:null, lastStmt:null, viewAs:null, isAdmin:false };
+var S = { token:null, refresh:null, uid:null, settings:null, lastStmt:null, lastRec:null, viewAs:null, isAdmin:false };
 function acct(){ return S.viewAs || S.uid; }   // the account being viewed (admins can override)
+var FUNCS = SUPABASE_URL + '/functions/v1';
+var SRC = {entry_fee:'Entry fee',court_booking:'Court',membership:'Membership',activity:'Activity',store:'Store',wallet_topup:'Wallet',transfer:'Transfer',payment:'Payment',other:'Other'};
+function srcShort(s){ return SRC[s]||s; }
 var INCOME_TYPES = [
   ['entry_fee','Competition entry fees'],
   ['court_booking','Court bookings'],
@@ -282,10 +305,10 @@ function showLogin(){ $('app').classList.add('hide'); $('login').classList.remov
 
 // ============================ TABS ============================
 function setTab(t){
-  $('paneStatements').classList.toggle('hide', t!=='statements');
-  $('paneSettings').classList.toggle('hide', t!=='settings');
-  $('tabStatements').classList.toggle('on', t==='statements');
-  $('tabSettings').classList.toggle('on', t==='settings');
+  ['Statements','Payouts','Settings'].forEach(function(x){
+    $('pane'+x).classList.toggle('hide', x.toLowerCase()!==t);
+    $('tab'+x).classList.toggle('on', x.toLowerCase()===t);
+  });
 }
 
 // ============================ SETTINGS ============================
@@ -459,6 +482,71 @@ function downloadCsv(){
   a.download='padeja-statement-'+s.from+'_to_'+s.to+'.csv'; a.click();
 }
 
+// ============================ PAYOUT RECONCILIATION ============================
+function pQuick(which){
+  var now=new Date(), from, to;
+  if(which==='thismonth'){ from=new Date(now.getFullYear(),now.getMonth(),1); to=new Date(now.getFullYear(),now.getMonth()+1,0); }
+  else { from=new Date(now.getFullYear(),now.getMonth()-1,1); to=new Date(now.getFullYear(),now.getMonth(),0); }
+  $('pFrom').value=ymd(from); $('pTo').value=ymd(to); reconcile();
+}
+async function reconcile(){
+  var from=$('pFrom').value, to=$('pTo').value;
+  if(!from||!to){ toast('Pick a payout date range', true); return; }
+  $('recBtn').disabled=true;
+  $('recOut').innerHTML='<div class="card"><div class="muted">Loading payouts from Stripe…</div></div>';
+  try{
+    var res = await fetch(FUNCS + '/club-statement-reconcile', {
+      method:'POST',
+      headers:{ apikey:SUPABASE_KEY, 'Content-Type':'application/json', Authorization:'Bearer '+(S.token||SUPABASE_KEY) },
+      body: JSON.stringify({ account_id: acct(), from:from, to:to })
+    });
+    var data = await res.json();
+    if(!res.ok || data.error){ $('recOut').innerHTML=''; S.lastRec=null; toast(data.error||'Could not reconcile', true); $('recBtn').disabled=false; return; }
+    S.lastRec = data; renderPayouts(data);
+  }catch(e){ $('recOut').innerHTML=''; toast('Could not reach the reconciliation service', true); }
+  $('recBtn').disabled=false;
+}
+function renderPayouts(d){
+  var pos = d.payouts||[];
+  $('recEmpty').classList.toggle('hide', pos.length>0);
+  if(!pos.length){ $('recOut').innerHTML=''; return; }
+  var t=d.totals||{};
+  var html='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'+
+    '<div><h2 style="margin:0">Stripe payouts — '+esc(d.from)+' to '+esc(d.to)+'</h2>'+
+    '<div class="muted" style="font-size:13px">'+t.payouts+' payout(s) · bank total '+money(t.payout_amount_cents)+
+    (t.unmatched_cents?(' · '+money(t.unmatched_cents)+' unmatched'):'')+'</div></div>'+
+    '<button class="btn sec noprint" onclick="downloadRecCsv()">Download CSV</button></div></div>';
+  pos.forEach(function(p){
+    html += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">'+
+      '<div><b>'+esc(p.arrival_date)+'</b> · '+money(p.amount_cents)+' <span class="pill">'+esc(p.status)+'</span></div>'+
+      '<div class="muted" style="font-size:12px">'+esc(p.stripe_payout_id)+'</div></div>'+
+      '<div style="overflow-x:auto"><table><thead><tr><th>Paid</th><th>Type</th><th>Competition / detail</th><th>Who</th><th class="num">Gross</th><th class="num">Net in payout</th></tr></thead><tbody>';
+    (p.lines||[]).forEach(function(l){
+      html += '<tr><td>'+esc(l.paid_date||'')+'</td><td><span class="pill">'+esc(srcShort(l.source))+'</span></td>'+
+        '<td>'+esc(l.competition||l.description||'')+'</td><td>'+esc(l.counterparty||'')+'</td>'+
+        '<td class="num">'+(l.gross_cents==null?'—':money(l.gross_cents))+'</td><td class="num">'+money(l.net_cents)+'</td></tr>';
+    });
+    html += '<tr class="tot"><td colspan="5">Payout total</td><td class="num">'+money(p.amount_cents)+'</td></tr></tbody></table></div>';
+    if(p.unmatched_cents) html += '<div class="muted" style="font-size:12px;margin-top:6px">Includes '+money(p.unmatched_cents)+' not tied to a Padeja record (e.g. a refund or adjustment).</div>';
+    html += '</div>';
+  });
+  $('recOut').innerHTML = html;
+}
+function downloadRecCsv(){
+  var d=S.lastRec; if(!d){return;}
+  function cell(v){ v=(v==null?'':String(v)); return '"'+v.replace(/"/g,'""')+'"'; }
+  function gbp(p){ return p==null?'':(p/100).toFixed(2); }
+  var rows=[['Payout date','Payout ID','Payout total','Paid date','Type','Competition / detail','Who','Gross','Net in payout'].map(cell).join(',')];
+  (d.payouts||[]).forEach(function(p){
+    (p.lines||[]).forEach(function(l){
+      rows.push([p.arrival_date,p.stripe_payout_id,gbp(p.amount_cents),l.paid_date||'',l.source||'',l.competition||l.description||'',l.counterparty||'',gbp(l.gross_cents),gbp(l.net_cents)].map(cell).join(','));
+    });
+  });
+  var blob=new Blob([rows.join('\r\n')],{type:'text/csv'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='padeja-payouts-'+d.from+'_to_'+d.to+'.csv'; a.click();
+}
+
 // ============================ BOOT ============================
 async function enterApp(){
   $('login').classList.add('hide'); $('app').classList.remove('hide');
@@ -470,6 +558,7 @@ $('vatReg').addEventListener('change', function(){ $('vatFields').classList.togg
 $('saveVat').addEventListener('click', saveVat);
 $('saveDel').addEventListener('click', saveDelivery);
 $('genBtn').addEventListener('click', generate);
+$('recBtn').addEventListener('click', reconcile);
 $('signout').addEventListener('click', function(){ clearSession(); location.reload(); });
 $('viewAsBtn').addEventListener('click', async function(){
   S.viewAs = ($('viewAsId').value.trim()) || null;
