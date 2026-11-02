@@ -91,16 +91,11 @@
     </div>
   </header>
   <div class="wrap">
-    <div id="adminBar" class="card hide" style="background:#0f1f30;border-color:#1d3144;color:#dbe6f0;padding:12px 16px">
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <span style="font-weight:800;color:var(--orange)">Admin</span>
-        <input id="viewAsId" type="text" placeholder="Account ID to view (e.g. Beaulieu's)" style="flex:1;min-width:220px;background:#0b1826;border-color:#24415a;color:#fff">
-        <button class="btn" id="viewAsBtn">View account</button>
-        <span id="viewingAs" style="font-size:13px;color:#9fb4c8"></span>
-        <button class="btn sec" id="viewSelf" style="display:none">Back to my account</button>
-      </div>
-      <div style="font-size:12px;color:#7f98ad;margin-top:6px">Find an account's ID with the SQL at the bottom of migration 285, then paste it here to view/test that club's statement.</div>
+    <div id="acctBar" class="card hide" style="padding:12px 16px">
+      <label style="margin:0 10px 0 0;display:inline">Club</label>
+      <select id="acctSel" style="width:auto;min-width:240px;display:inline-block"></select>
     </div>
+    <div id="noAccess" class="card hide"><div class="muted">No statements are available for your login. If you're an accountant, ask the club to grant you access.</div></div>
     <div class="tabs">
       <button id="tabStatements" class="on" onclick="setTab('statements')">Statements</button>
       <button id="tabPayouts" onclick="setTab('payouts')">Payouts (bank reconcile)</button>
@@ -235,8 +230,8 @@ var SUPABASE_URL = 'https://odrckirnjavfptlfygbo.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kcmNraXJuamF2ZnB0bGZ5Z2JvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzY3MzQsImV4cCI6MjA5NTExMjczNH0.rjoAQhEaTw6Sp-nGrQmYYvLdVKD7ewrKwG1PmMbyYgo';
 var LS_KEY = 'padeja_stmt_refresh';
 
-var S = { token:null, refresh:null, uid:null, settings:null, lastStmt:null, lastRec:null, viewAs:null, isAdmin:false };
-function acct(){ return S.viewAs || S.uid; }   // the account being viewed (admins can override)
+var S = { token:null, refresh:null, uid:null, settings:null, lastStmt:null, lastRec:null, account:null, accounts:[], canEdit:false };
+function acct(){ return S.account || S.uid; }   // the account currently being viewed
 var FUNCS = SUPABASE_URL + '/functions/v1';
 var SRC = {entry_fee:'Entry fee',court_booking:'Court',membership:'Membership',activity:'Activity',store:'Store',wallet_topup:'Wallet',transfer:'Transfer',payment:'Payment',other:'Other'};
 function srcShort(s){ return SRC[s]||s; }
@@ -323,11 +318,11 @@ function buildExemptGrid(){
 async function loadSettings(){
   var s = await rpc('get_statement_settings', { p_account_id: acct() });
   S.settings = s;
-  S.isAdmin = !!s.is_super_admin;
-  $('adminBar').classList.toggle('hide', !S.isAdmin);
-  $('viewingAs').textContent = S.viewAs ? ('Viewing: ' + (s.display_name || S.viewAs)) : '';
-  $('viewSelf').style.display = S.viewAs ? '' : 'none';
-  $('who').textContent = (s.display_name || '') + (S.viewAs ? ' · admin view' : '');
+  S.canEdit = !!s.can_edit;
+  $('who').textContent = s.display_name || '';
+  // Settings (VAT + delivery) are editable only by the club itself — hide the tab for a read-only viewer.
+  $('tabSettings').classList.toggle('hide', !S.canEdit);
+  if(!S.canEdit && !$('paneSettings').classList.contains('hide')) setTab('statements');
   // VAT
   $('vatReg').checked = !!s.vat_registered;
   $('vatFields').classList.toggle('hide', !s.vat_registered);
@@ -556,6 +551,19 @@ function downloadRecCsv(){
 async function enterApp(){
   $('login').classList.add('hide'); $('app').classList.remove('hide');
   buildExemptGrid();
+  S.accounts = await rpc('get_my_statement_accounts', {}) || [];
+  if(!S.accounts.length){
+    $('noAccess').classList.remove('hide');
+    document.querySelector('.tabs').classList.add('hide');
+    $('paneStatements').classList.add('hide'); $('panePayouts').classList.add('hide'); $('paneSettings').classList.add('hide');
+    $('who').textContent=''; return;
+  }
+  if(S.accounts.length>1){
+    $('acctBar').classList.remove('hide');
+    $('acctSel').innerHTML = S.accounts.map(function(a){ return '<option value="'+esc(a.account_id)+'">'+esc(a.display_name)+'</option>'; }).join('');
+  }
+  S.account = S.accounts[0].account_id;
+  $('acctSel').value = S.account;
   await loadSettings();
   quickRange('lastweek');
 }
@@ -565,14 +573,9 @@ $('saveDel').addEventListener('click', saveDelivery);
 $('genBtn').addEventListener('click', generate);
 $('recBtn').addEventListener('click', reconcile);
 $('signout').addEventListener('click', function(){ clearSession(); location.reload(); });
-$('viewAsBtn').addEventListener('click', async function(){
-  S.viewAs = ($('viewAsId').value.trim()) || null;
-  try{ await loadSettings(); await generate(); }
-  catch(e){ toast('Could not view that account — check the ID and your admin access', true); }
-});
-$('viewSelf').addEventListener('click', async function(){
-  S.viewAs = null; $('viewAsId').value='';
-  try{ await loadSettings(); await generate(); }catch(e){}
+$('acctSel').addEventListener('change', async function(){
+  S.account = this.value;
+  try{ await loadSettings(); await generate(); }catch(e){ toast('Could not load that club', true); }
 });
 $('loginBtn').addEventListener('click', async function(){
   $('loginErr').textContent='';
