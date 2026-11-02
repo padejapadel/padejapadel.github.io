@@ -432,11 +432,11 @@ function renderStatement(s){
     var vcol = s.vat_registered;
     var h='<div style="overflow-x:auto"><table><thead><tr><th>Competition</th><th class="num">Payments</th><th class="num">Gross</th>'+
           (vcol?'<th class="num">VAT</th><th class="num">Net of VAT</th>':'')+
-          '<th class="num">Padeja fee</th><th class="num">Net received</th></tr></thead><tbody>';
+          '<th class="num">Padeja fee</th><th class="num">Padeja VAT</th><th class="num">Net received</th></tr></thead><tbody>';
     bc.forEach(function(c){
       h+='<tr><td>'+esc(c.competition||'—')+'</td><td class="num">'+c.count+'</td><td class="num">'+money(c.gross_cents)+'</td>'+
          (vcol?'<td class="num">'+money(c.vat_cents)+'</td><td class="num">'+money(c.net_of_vat_cents)+'</td>':'')+
-         '<td class="num">'+money(c.padeja_fee_cents)+'</td><td class="num">'+money(c.net_payout_cents)+'</td></tr>';
+         '<td class="num">'+money(c.padeja_fee_cents)+'</td><td class="num muted">N/A</td><td class="num">'+money(c.net_payout_cents)+'</td></tr>';
     });
     h+='</tbody></table></div>';
     $('byComp').innerHTML=h;
@@ -446,7 +446,7 @@ function renderStatement(s){
   var vcol = s.vat_registered;
   var thead = '<tr><th>Date</th><th>Type</th><th>Description</th><th>Competition</th><th>Who</th>'+
               '<th class="num">Gross</th>'+(vcol?'<th class="num">VAT</th><th class="num">Net of VAT</th>':'')+
-              '<th class="num">Padeja fee</th><th class="num">Net received</th></tr>';
+              '<th class="num">Padeja fee</th><th class="num">Padeja VAT</th><th class="num">Net received</th></tr>';
   var srcLabel = {entry_fee:'Entry fee',court_booking:'Court',membership:'Membership',activity:'Activity',store:'Store',wallet_topup:'Wallet'};
   var body='';
   (s.lines||[]).forEach(function(l){
@@ -454,29 +454,29 @@ function renderStatement(s){
       '<td>'+esc(l.description||'')+'</td><td>'+esc(l.competition||'')+'</td><td>'+esc(l.counterparty||'')+'</td>'+
       '<td class="num">'+money(l.gross_cents)+'</td>'+
       (vcol?'<td class="num">'+(l.vat_cents==null?'<span class="muted">n/a</span>':money(l.vat_cents))+'</td><td class="num">'+money(l.net_of_vat_cents)+'</td>':'')+
-      '<td class="num">'+money(l.padeja_fee_cents)+'</td><td class="num">'+money(l.net_payout_cents)+'</td></tr>';
+      '<td class="num">'+money(l.padeja_fee_cents)+'</td><td class="num muted">N/A</td><td class="num">'+money(l.net_payout_cents)+'</td></tr>';
   });
   // totals row
   body+='<tr class="tot"><td colspan="5">Total ('+t.count+')</td><td class="num">'+money(t.gross_cents)+'</td>'+
         (vcol?'<td class="num">'+money(t.vat_cents)+'</td><td class="num">'+money(t.net_of_vat_cents)+'</td>':'')+
-        '<td class="num">'+money(t.padeja_fee_cents)+'</td><td class="num">'+money(t.net_payout_cents)+'</td></tr>';
+        '<td class="num">'+money(t.padeja_fee_cents)+'</td><td class="num">N/A</td><td class="num">'+money(t.net_payout_cents)+'</td></tr>';
   var tbl=$('linesTbl'); tbl.querySelector('thead').innerHTML=thead; tbl.querySelector('tbody').innerHTML=body;
 }
 
 function downloadCsv(){
   var s=S.lastStmt; if(!s){return;}
   var vcol = s.vat_registered;
-  var head=['Date','Type','Description','Competition','Who','Gross','VAT treatment','VAT rate','VAT','Net of VAT','Padeja fee','Net received'];
+  var head=['Date','Type','Description','Competition','Who','Gross','VAT treatment','VAT rate','VAT','Net of VAT','Padeja fee','Padeja VAT','Net received'];
   function cell(v){ v=(v==null?'':String(v)); return '"'+v.replace(/"/g,'""')+'"'; }
   function gbp(p){ return p==null?'':(p/100).toFixed(2); }
   var rows=[head.map(cell).join(',')];
   (s.lines||[]).forEach(function(l){
     rows.push([l.date,(l.source||''),l.description||'',l.competition||'',l.counterparty||'',
       gbp(l.gross_cents), l.vat_treatment||'', l.vat_rate_bps==null?'':(l.vat_rate_bps/100)+'%',
-      gbp(l.vat_cents), gbp(l.net_of_vat_cents), gbp(l.padeja_fee_cents), gbp(l.net_payout_cents)].map(cell).join(','));
+      gbp(l.vat_cents), gbp(l.net_of_vat_cents), gbp(l.padeja_fee_cents), 'N/A', gbp(l.net_payout_cents)].map(cell).join(','));
   });
   var t=s.totals||{};
-  rows.push([]); rows.push(['Totals','','','','',gbp(t.gross_cents),'','',gbp(t.vat_cents),gbp(t.net_of_vat_cents),gbp(t.padeja_fee_cents),gbp(t.net_payout_cents)].map(cell).join(','));
+  rows.push([]); rows.push(['Totals','','','','',gbp(t.gross_cents),'','',gbp(t.vat_cents),gbp(t.net_of_vat_cents),gbp(t.padeja_fee_cents),'N/A',gbp(t.net_payout_cents)].map(cell).join(','));
   var blob=new Blob([rows.join('\r\n')],{type:'text/csv'});
   var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download='padeja-statement-'+s.from+'_to_'+s.to+'.csv'; a.click();
