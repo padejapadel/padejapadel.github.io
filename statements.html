@@ -423,7 +423,7 @@ function renderStatement(s){
   $('tiles').innerHTML = tiles.map(function(x){
     return '<div class="tile '+x[2]+'"><div class="k">'+x[0]+'</div><div class="v">'+x[1]+'</div></div>';
   }).join('');
-  $('feeNote').textContent = 'Padeja fee is estimated from the fee rule (entry fees 15%, min £3; store 1.5%); final figures reconcile to your Stripe payouts. Net received = gross − Padeja fee.';
+  $('feeNote').textContent = 'Padeja fee is estimated from the fee rule (entry fees 15%, minimum £3 per person; store 1.5%); final figures reconcile to your Stripe payouts. Net received = gross − Padeja fee.';
 
   // By competition
   var bc = s.by_competition||[];
