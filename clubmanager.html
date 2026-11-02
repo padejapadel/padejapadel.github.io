@@ -94,6 +94,12 @@
   .tag-help{font-size:12px;color:var(--muted);margin-top:4px}
   .sumrow{display:flex;gap:10px;flex-wrap:wrap}
   .sumcard{flex:1;min-width:140px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .chart{display:flex;align-items:flex-end;gap:4px;height:130px;margin:14px 0 30px;padding-top:18px}
+  .chart .bar{flex:1;min-width:5px;background:var(--brand);border-radius:4px 4px 0 0;min-height:2px;position:relative;opacity:.88}
+  .chart .bar.hot{background:var(--accent);opacity:1}
+  .chart .bar .cap{position:absolute;bottom:-20px;left:-6px;right:-6px;text-align:center;font-size:10px;color:var(--muted);white-space:nowrap}
+  .chart .bar .amt{position:absolute;top:-15px;left:-10px;right:-10px;text-align:center;font-size:10px;color:var(--white);font-weight:800;opacity:0;transition:opacity .1s}
+  .chart .bar:hover .amt{opacity:1}
   .sumcard .lbl{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
   .sumcard .val{font-size:22px;font-weight:900;margin-top:4px}
   .sumcard .scap{font-size:11px;color:var(--muted);margin-top:2px}
@@ -154,6 +160,7 @@
       <button class="tab" data-tab="blocks">Block bookings</button>
       <button class="tab" data-tab="activities">Activities</button>
       <button class="tab" data-tab="memberships">Memberships</button>
+      <button class="tab" data-tab="reports">Reports</button>
     </div>
 
     <!-- SETTINGS -->
@@ -329,6 +336,19 @@
         </div>
       </div>
       <div id="bookingsBody"></div>
+    </section>
+
+    <section id="tab-reports" class="tabpane hidden">
+      <div class="card">
+        <h2>Reports</h2>
+        <div class="sub">Revenue, occupancy, memberships and customers over a date range.</div>
+        <div class="bk-controls">
+          <div class="field sm"><label>From</label><input id="rp_from" type="date"></div>
+          <div class="field sm"><label>To</label><input id="rp_to" type="date"></div>
+          <button class="btn sm" id="rp_go">Update</button>
+        </div>
+      </div>
+      <div id="reportsBody"></div>
     </section>
   </div>
 </div>
@@ -1205,6 +1225,93 @@
     catch(e){ toast('Could not save: '+e.message, true); }
   }
 
+  // ============================ RENDER: REPORTS ============================
+  var DOW_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function rpYmd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function barChart(items){
+    var max = Math.max.apply(null, items.map(function(i){return i.value||0;}).concat([1]));
+    return '<div class="chart">' + items.map(function(i){
+      var h = Math.max(2, Math.round(100*(i.value||0)/max));
+      return '<div class="bar'+(i.hot?' hot':'')+'" style="height:'+h+'%" title="'+esc(i.title||'')+'">'
+           + '<span class="amt">'+esc(i.amt!=null?i.amt:String(i.value||0))+'</span>'
+           + (i.label ? '<span class="cap">'+esc(i.label)+'</span>' : '') + '</div>';
+    }).join('') + '</div>';
+  }
+  async function renderReports(){
+    var body = $('reportsBody');
+    if(!$('rp_from').value || !$('rp_to').value){
+      $('rp_from').value = rpYmd(new Date(Date.now()-29*86400000));
+      $('rp_to').value   = rpYmd(new Date());
+    }
+    body.innerHTML = '<div class="muted">Loading…</div>';
+    try{
+      var rep = await api('POST','rpc/get_club_report', { p_club_id:S.clubId, p_from:$('rp_from').value, p_to:$('rp_to').value });
+      if(!rep || rep.error){ body.innerHTML = '<div class="card"><div class="empty">'+esc((rep&&rep.error)||'No data.')+'</div></div>'; return; }
+
+      var rv = rep.revenue||{}, rt = rv.totals||{};
+      var revTiles = sumCard('Total collected', money(rt.grand_collected_cents), 'all income in range')
+        + sumCard('Court bookings', money(rt.court_collected_cents), 'of '+money(rt.court_expected_cents)+' expected')
+        + sumCard('Activities', money(rt.activity_collected_cents), 'class / coaching income')
+        + sumCard('Memberships', money(rt.membership_collected_cents), 'membership payments')
+        + sumCard('Wallet top-ups', money(rt.wallet_topups_cents), 'credit loaded by players');
+      var days = rv.by_day||[];
+      var dayBars = days.map(function(d){
+        var tot = (d.court_cents||0)+(d.activity_cents||0)+(d.membership_cents||0)+(d.wallet_cents||0);
+        var dd = bkParse(d.date);
+        return { value:tot, amt:money(tot), label:(days.length<=31?String(dd.getDate()):''),
+                 title: dd.toLocaleDateString([], {day:'numeric',month:'short'})+' · '+money(tot) };
+      });
+      var revChart = days.length ? '<div class="sub" style="margin-top:14px">Collected per day</div>'+barChart(dayBars) : '';
+
+      var oc = rep.occupancy||{}, os = oc.summary||{};
+      var occTiles = sumCard('Occupancy', (os.occupancy_pct||0)+'%', (os.occupied_slots||0)+' of '+(os.bookable_slots||0)+' slots')
+        + sumCard('Free slots', os.free_slots||0, 'unbooked fixed slots in range');
+      var hrs = (oc.by_hour||[]);
+      var maxHr = Math.max.apply(null, hrs.map(function(h){return h.count;}).concat([0]));
+      var hourBars = hrs.filter(function(h){return h.hour>=6 && h.hour<=23;}).map(function(h){
+        return { value:h.count, amt:String(h.count), hot:(h.count===maxHr&&maxHr>0),
+                 label:(h.hour%3===0?(h.hour+':00'):''), title:h.hour+':00 · '+h.count+' bookings' };
+      });
+      var dows = (oc.by_dow||[]);
+      var maxDow = Math.max.apply(null, dows.map(function(d){return d.count;}).concat([0]));
+      var dowBars = [1,2,3,4,5,6,0].map(function(ix){
+        var d = null; for(var k=0;k<dows.length;k++){ if(dows[k].dow===ix){ d=dows[k]; break; } } d = d||{count:0};
+        return { value:d.count, amt:String(d.count), hot:(d.count===maxDow&&maxDow>0),
+                 label:DOW_LABELS[ix], title:DOW_LABELS[ix]+' · '+d.count };
+      });
+
+      var mb = rep.memberships||{};
+      var memTiles = sumCard('Active members', mb.active||0, 'current paid members')
+        + sumCard('New in range', mb.new_in_range||0, 'joined this period')
+        + sumCard('Renewals due', mb.renewals_due_30d||0, 'expire within 30 days')
+        + sumCard('Expired', mb.expired||0, 'lapsed memberships');
+      var plans = mb.plans||[];
+      var planRows = plans.length ? '<table><thead><tr><th>Plan</th><th>Price</th><th>Active</th></tr></thead><tbody>'
+        + plans.map(function(p){ return '<tr><td>'+esc(p.name)+' <span class="mini">· '+esc(p.period)+'</span></td><td>'+money(p.price_cents)+'</td><td>'+(p.active_members||0)+'</td></tr>'; }).join('')
+        + '</tbody></table>' : '<div class="empty">No membership plans yet.</div>';
+
+      var cu = rep.customers||{};
+      var custTiles = sumCard('Players', cu.distinct_players||0, 'distinct players in range')
+        + sumCard('New players', cu.new_players||0, 'first-ever booking here')
+        + sumCard('Returning', cu.returning_players||0, 'booked here before');
+      var top = cu.top||[];
+      var topRows = top.length ? '<table><thead><tr><th>Player</th><th>Bookings</th><th>Spend</th></tr></thead><tbody>'
+        + top.map(function(t){ return '<tr><td>'+esc(t.name)+'</td><td>'+t.bookings+'</td><td>'+money(t.spend_cents)+'</td></tr>'; }).join('')
+        + '</tbody></table>' : '<div class="empty">No bookings in range.</div>';
+
+      body.innerHTML =
+        '<div class="card"><h2>Revenue</h2><div class="sub">Money collected in the selected range, by source.</div>'
+          + '<div class="sumrow">'+revTiles+'</div>'+revChart
+          + '<div class="tag-help">Court &amp; activity income stays '+money(0)+' until card payments are switched on for the club.</div></div>'
+      + '<div class="card"><h2>Occupancy &amp; busy times</h2><div class="sub">How full your fixed-slot courts were, and when players book.</div>'
+          + '<div class="sumrow">'+occTiles+'</div>'
+          + '<div class="sub" style="margin-top:18px">Busiest hours (club time)</div>'+(hourBars.length?barChart(hourBars):'<div class="empty">No bookings in range.</div>')
+          + '<div class="sub" style="margin-top:14px">Busiest days</div>'+barChart(dowBars)+'</div>'
+      + '<div class="card"><h2>Memberships</h2><div class="sumrow">'+memTiles+'</div><div style="margin-top:14px">'+planRows+'</div></div>'
+      + '<div class="card"><h2>Customers</h2><div class="sumrow">'+custTiles+'</div><div class="sub" style="margin-top:14px">Top bookers</div>'+topRows+'</div>';
+    }catch(e){ body.innerHTML = '<div class="card"><div class="err">Could not load: '+esc(e.message)+'</div></div>'; }
+  }
+
   // ============================ TABS / APP ============================
   function showTab(name){
     S.tab = name;
@@ -1218,6 +1325,7 @@
     if(name==='bookings') renderBookings();
     if(name==='activities') renderActivities();
     if(name==='memberships') renderMemberships();
+    if(name==='reports') renderReports();
   }
 
   function fillClubSelect(){
@@ -1262,6 +1370,9 @@
   $('bk_view').onchange = renderBookings;
   $('bk_prev').onclick = function(){ bkShift(-1); };
   $('bk_next').onclick = function(){ bkShift(1); };
+  $('rp_go').onclick = renderReports;
+  $('rp_from').onchange = renderReports;
+  $('rp_to').onchange = renderReports;
   $('e_save').onclick = saveCourtEdit;
   $('e_cancel').onclick = closeCourtModal;
   $('courtModal').addEventListener('click', function(ev){ if(ev.target === this) closeCourtModal(); });
@@ -1318,11 +1429,24 @@
         ]
       }
     };
+    window.__demo.report = {
+      from:'2026-10-01', to:'2026-10-31', timezone:'Europe/London',
+      revenue:{ totals:{court_collected_cents:44000,court_expected_cents:52000,activity_collected_cents:15000,membership_collected_cents:30000,wallet_topups_cents:20000,grand_collected_cents:109000},
+        by_day:[{date:'2026-10-03',court_cents:0,activity_cents:0,membership_cents:5000,wallet_cents:0},{date:'2026-10-05',court_cents:2400,activity_cents:0,membership_cents:0,wallet_cents:0},{date:'2026-10-08',court_cents:3200,activity_cents:1500,membership_cents:0,wallet_cents:0},{date:'2026-10-12',court_cents:2000,activity_cents:0,membership_cents:0,wallet_cents:10000},{date:'2026-10-18',court_cents:4800,activity_cents:1500,membership_cents:0,wallet_cents:0},{date:'2026-10-24',court_cents:3200,activity_cents:0,membership_cents:0,wallet_cents:0}] },
+      occupancy:{ summary:{bookable_slots:124,occupied_slots:41,free_slots:83,occupancy_pct:33.1},
+        by_hour:[{hour:7,count:2},{hour:8,count:3},{hour:9,count:4},{hour:10,count:5},{hour:11,count:3},{hour:12,count:2},{hour:13,count:2},{hour:14,count:3},{hour:15,count:4},{hour:16,count:5},{hour:17,count:7},{hour:18,count:9},{hour:19,count:11},{hour:20,count:8},{hour:21,count:4},{hour:22,count:1}],
+        by_dow:[{dow:0,count:6},{dow:1,count:5},{dow:2,count:6},{dow:3,count:7},{dow:4,count:5},{dow:5,count:4},{dow:6,count:8}] },
+      memberships:{ active:24, expired:3, cancelled:1, new_in_range:5, renewals_due_30d:4, membership_collected_cents:30000,
+        plans:[{name:'Gold',period:'yearly',price_cents:12000,active_members:14},{name:'Monthly',period:'monthly',price_cents:1500,active_members:10}] },
+      customers:{ distinct_players:38, new_players:9, returning_players:29,
+        top:[{name:'Pat One',bookings:12,spend_cents:28800},{name:'Pam Two',bookings:9,spend_cents:21600},{name:'Pete Three',bookings:7,spend_cents:16800}] }
+    };
     var realApi = api;
     api = async function(method, path){
       if(method==='GET'){ var key = path.split('?')[0]; if(window.__demo[key]!==undefined) return window.__demo[key]; }
       if(method==='POST' && path.indexOf('rpc/get_club_day_overview')===0) return window.__demo.overview;
       if(method==='POST' && path.indexOf('rpc/get_club_activities_admin')===0) return window.__demo.activities;
+      if(method==='POST' && path.indexOf('rpc/get_club_report')===0) return window.__demo.report;
       return []; // swallow writes in demo
     };
     $('loginView').classList.add('hidden'); $('appView').classList.remove('hidden');
