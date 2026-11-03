@@ -559,6 +559,7 @@
         '<div class="field sm"><label>Free-cancel window (hours)</label><input id="set_cancel" type="number" value="' + (s.cancellation_window_hours==null?'':s.cancellation_window_hours) + '" placeholder="—"></div>' +
       '</div>' +
       '<div class="row" style="margin-top:14px"><div class="inline"><label class="toggle"><input type="checkbox" id="set_autopub"' + (s.auto_go_public_24h?' checked':'') + '><span class="slider"></span></label><div><b>Auto-open private bookings 24h before</b><div class="mini muted">Empty places on a private booking open to the public a day before start.</div></div></div></div>' +
+      '<div class="row" style="margin-top:14px"><div class="inline"><label class="toggle"><input type="checkbox" id="set_bands"' + (s.use_price_bands?' checked':'') + '><span class="slider"></span></label><div><b>Variable member pricing (price bands)</b><div class="mini muted">Price your fixed slots with explicit <b>member</b> and <b>public</b> prices <b>per player</b>, varying by day and time (set them in Schedules &amp; pricing). Replaces the single membership % discount for court bookings. Leave off to keep the simple % discount.</div></div></div></div>' +
       '<div class="row" style="margin-top:16px"><div class="field"><label>Club logo</label>' +
         (s.club_logo_url ? '<img src="'+esc(s.club_logo_url)+'" alt="logo" style="height:48px;width:48px;object-fit:cover;border-radius:8px;border:1px solid var(--line2);margin-bottom:8px;display:block">' : '') +
         '<input id="set_logo" placeholder="https://\u2026/logo.png" value="'+esc(s.club_logo_url||'')+'"><div class="mini muted" style="margin-top:4px">Shows next to your club name in the app\u2019s club picker.</div></div>' +
@@ -576,6 +577,7 @@
         booking_enabled: $('set_enabled').checked,
         timezone: $('set_tz').value.trim() || 'Europe/London',
         auto_go_public_24h: $('set_autopub').checked,
+        use_price_bands: $('set_bands') ? $('set_bands').checked : (S.settings && S.settings.use_price_bands) || false,
         cancellation_window_hours: $('set_cancel').value === '' ? null : parseInt($('set_cancel').value,10),
         club_logo_url: logoUrl
       };
@@ -697,7 +699,11 @@
     try{
       if(s.mode === 'fixed'){
         var slots = await api('GET','schedule_slots?schedule_id=eq.'+sid+'&select=*&order=day_of_week,start_time') || [];
-        box.innerHTML = fixedEditor(sid, slots);
+        var bands = [];
+        if(S.settings && S.settings.use_price_bands){
+          bands = await api('GET','schedule_price_bands?schedule_id=eq.'+sid+'&select=*&order=day_of_week.asc.nullsfirst,band_start.asc') || [];
+        }
+        box.innerHTML = fixedEditor(sid, slots, bands);
         wireFixedEditor(sid);
       } else {
         var windows = await api('GET','schedule_windows?schedule_id=eq.'+sid+'&select=*&order=day_of_week,open_time') || [];
@@ -712,20 +718,48 @@
       DOW.map(function(d,i){ return '<option value="'+i+'">'+d+'</option>'; }).join('') + '</select>';
   }
   // ---- fixed-mode editor ----
-  function fixedEditor(sid, slots){
+  function fixedEditor(sid, slots, bands){
+    var bandsOn = !!(S.settings && S.settings.use_price_bands);
     var rows = slots.length ? slots.map(function(sl){
       return '<tr><td>'+dowName(sl.day_of_week)+'</td><td>'+hhmm(sl.start_time)+' – '+hhmm(sl.end_time)+'</td>'
         + '<td>'+money(sl.price_cents)+'</td>'
         + '<td style="text-align:right"><button class="iconbtn del" data-delslot="'+sl.id+'">Remove</button></td></tr>';
     }).join('') : '<tr><td colspan="4" class="muted" style="padding:12px 10px">No slots yet.</td></tr>';
-    return '<div class="sectlabel">Fixed slots (whole-court price each)</div>'
-      + '<table><thead><tr><th>Day</th><th>Time</th><th>Price</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'
+    var out = '<div class="sectlabel">Fixed slots (bookable times)</div>'
+      + (bandsOn ? '<div class="mini muted" style="margin:-4px 0 8px">Variable member pricing is on. These slots set the <b>bookable times</b>; the £ here is only a fallback — the actual price comes from the <b>price bands</b> below.</div>' : '')
+      + '<table><thead><tr><th>Day</th><th>Time</th><th>'+(bandsOn?'Fallback £':'Price')+'</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'
       + '<div class="row" style="margin-top:12px">'
       +   '<div class="field sm"><label>Day</label>'+dowSelect('fs_dow_'+sid)+'</div>'
       +   '<div class="field sm"><label>Start</label><input id="fs_start_'+sid+'" type="time"></div>'
       +   '<div class="field sm"><label>End</label><input id="fs_end_'+sid+'" type="time"></div>'
       +   '<div class="field sm"><label>Price (£)</label><input id="fs_price_'+sid+'" type="number" step="0.01" placeholder="e.g. 24.00"></div>'
       +   '<button class="btn sm line" data-addslot="'+sid+'">Add slot</button>'
+      + '</div>';
+    if(bandsOn){ out += bandsEditor(sid, bands||[]); }
+    return out;
+  }
+  // ---- member/public price bands (per player) ----
+  function bandsEditor(sid, bands){
+    var rows = bands.length ? bands.map(function(bd){
+      var pub = money(bd.public_price_cents);
+      var mem = bd.member_price_cents==null ? '<span class="muted">= public</span>' : money(bd.member_price_cents);
+      var wcPub = money((bd.public_price_cents||0)*4);
+      var wcMem = money(((bd.member_price_cents==null?bd.public_price_cents:bd.member_price_cents)||0)*4);
+      return '<tr><td>'+dowName(bd.day_of_week)+'</td><td>'+hhmm(bd.band_start)+' – '+hhmm(bd.band_end)+'</td>'
+        + '<td>'+pub+'</td><td>'+mem+'</td>'
+        + '<td class="mini muted">pub '+wcPub+' · mem '+wcMem+'</td>'
+        + '<td style="text-align:right"><button class="iconbtn del" data-delband="'+bd.id+'">Remove</button></td></tr>';
+    }).join('') : '<tr><td colspan="6" class="muted" style="padding:12px 10px">No price bands yet — add one below. Any slot with no band covering it won\'t show a price until you add one.</td></tr>';
+    return '<div class="sectlabel" style="margin-top:22px">Price bands — member &amp; public, per player</div>'
+      + '<div class="mini muted" style="margin:-4px 0 8px">Enter the price <b>per player</b>. Each band covers every slot that starts inside its time window on the chosen day. A member is priced at the member rate on their own place; non-members pay the public rate. Whole court = per player × 4.</div>'
+      + '<table><thead><tr><th>Day</th><th>Time window</th><th>Public (pp)</th><th>Member (pp)</th><th>Whole court</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'
+      + '<div class="row" style="margin-top:12px">'
+      +   '<div class="field sm"><label>Day</label>'+dowSelect('bd_dow_'+sid)+'</div>'
+      +   '<div class="field sm"><label>From</label><input id="bd_start_'+sid+'" type="time"></div>'
+      +   '<div class="field sm"><label>To</label><input id="bd_end_'+sid+'" type="time"></div>'
+      +   '<div class="field sm"><label>Public £ (pp)</label><input id="bd_pub_'+sid+'" type="number" step="0.01" placeholder="e.g. 13.50"></div>'
+      +   '<div class="field sm"><label>Member £ (pp)</label><input id="bd_mem_'+sid+'" type="number" step="0.01" placeholder="blank = public"></div>'
+      +   '<button class="btn sm line" data-addband="'+sid+'">Add band</button>'
       + '</div>';
   }
   function wireFixedEditor(sid){
@@ -741,6 +775,27 @@
     };
     box.querySelectorAll('[data-delslot]').forEach(function(b){ b.onclick = async function(){
       try{ await api('DELETE','schedule_slots?id=eq.'+b.getAttribute('data-delslot')); loadScheduleBody(sid); }
+      catch(e){ toast('Could not remove: '+e.message, true); } }; });
+    var addBand = box.querySelector('[data-addband]');
+    if(addBand){
+      addBand.onclick = async function(){
+        var start = $('bd_start_'+sid).value, end = $('bd_end_'+sid).value;
+        var pubV = $('bd_pub_'+sid).value, memV = $('bd_mem_'+sid).value;
+        if(!start || !end){ toast('Set a from and to time', true); return; }
+        if(end <= start){ toast('"To" must be after "From"', true); return; }
+        if(pubV==='' || isNaN(parseFloat(pubV))){ toast('Set the public price per player', true); return; }
+        var body = { schedule_id:sid, club_id:S.clubId,
+          day_of_week: $('bd_dow_'+sid).value===''?null:parseInt($('bd_dow_'+sid).value,10),
+          band_start: start, band_end: end,
+          public_price_cents: pounds(pubV),
+          member_price_cents: memV==='' ? null : pounds(memV),
+          priority: 0 };
+        try{ await api('POST','schedule_price_bands', body, 'return=minimal'); loadScheduleBody(sid); toast('Band added'); }
+        catch(e){ toast('Could not add band: '+e.message, true); }
+      };
+    }
+    box.querySelectorAll('[data-delband]').forEach(function(b){ b.onclick = async function(){
+      try{ await api('DELETE','schedule_price_bands?id=eq.'+b.getAttribute('data-delband')); loadScheduleBody(sid); }
       catch(e){ toast('Could not remove: '+e.message, true); } }; });
   }
   // ---- open-mode editor ----
