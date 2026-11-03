@@ -739,22 +739,56 @@
     return out;
   }
   // ---- member/public price bands (per player) ----
+  function bandDaySelect(id){
+    return '<select id="'+id+'">'
+      + '<option value="">Every day</option>'
+      + '<option value="wd">Weekdays (Mon–Fri)</option>'
+      + '<option value="we">Weekend (Sat–Sun)</option>'
+      + '<option value="" disabled>──────────</option>'
+      + DOW.map(function(d,i){ return '<option value="'+i+'">'+d+'</option>'; }).join('')
+      + '</select>';
+  }
+  // expand a day-select value to the list of day_of_week values it covers
+  function bandDays(v){
+    if(v==='' || v==null) return [null];
+    if(v==='wd') return [1,2,3,4,5];
+    if(v==='we') return [0,6];
+    return [parseInt(v,10)];
+  }
   function bandsEditor(sid, bands){
-    var rows = bands.length ? bands.map(function(bd){
+    // group bands sharing the same window+prices across exactly Mon–Fri or Sat–Sun into one row
+    function sig(b){ return b.band_start+'|'+b.band_end+'|'+b.public_price_cents+'|'+(b.member_price_cents==null?'':b.member_price_cents); }
+    var bySig = {};
+    bands.forEach(function(b){ var k=sig(b); (bySig[k]=bySig[k]||[]).push(b); });
+    var display = [];
+    Object.keys(bySig).forEach(function(k){
+      var grp = bySig[k], set = {};
+      grp.forEach(function(b){ set[b.day_of_week==null?'n':b.day_of_week] = true; });
+      var isWd = grp.length===5 && [1,2,3,4,5].every(function(d){return set[d];});
+      var isWe = grp.length===2 && set[0] && set[6];
+      if(isWd || isWe){
+        display.push({ label:(isWd?'Weekdays (Mon–Fri)':'Weekend (Sat–Sun)'), b:grp[0], ids:grp.map(function(x){return x.id;}) });
+      } else {
+        grp.forEach(function(b){ display.push({ label:dowName(b.day_of_week), b:b, ids:[b.id] }); });
+      }
+    });
+    display.sort(function(a,b){ return String(a.b.band_start).localeCompare(String(b.b.band_start)) || String(a.label).localeCompare(String(b.label)); });
+    var rows = display.length ? display.map(function(r){
+      var bd = r.b;
       var pub = money(bd.public_price_cents);
       var mem = bd.member_price_cents==null ? '<span class="muted">= public</span>' : money(bd.member_price_cents);
       var wcPub = money((bd.public_price_cents||0)*4);
       var wcMem = money(((bd.member_price_cents==null?bd.public_price_cents:bd.member_price_cents)||0)*4);
-      return '<tr><td>'+dowName(bd.day_of_week)+'</td><td>'+hhmm(bd.band_start)+' – '+hhmm(bd.band_end)+'</td>'
+      return '<tr><td>'+r.label+'</td><td>'+hhmm(bd.band_start)+' – '+hhmm(bd.band_end)+'</td>'
         + '<td>'+pub+'</td><td>'+mem+'</td>'
         + '<td class="mini muted">pub '+wcPub+' · mem '+wcMem+'</td>'
-        + '<td style="text-align:right"><button class="iconbtn del" data-delband="'+bd.id+'">Remove</button></td></tr>';
+        + '<td style="text-align:right"><button class="iconbtn del" data-delband="'+r.ids.join(',')+'">Remove</button></td></tr>';
     }).join('') : '<tr><td colspan="6" class="muted" style="padding:12px 10px">No price bands yet — add one below. Any slot with no band covering it won\'t show a price until you add one.</td></tr>';
     return '<div class="sectlabel" style="margin-top:22px">Price bands — member &amp; public, per player</div>'
-      + '<div class="mini muted" style="margin:-4px 0 8px">Enter the price <b>per player</b>. Each band covers every slot that starts inside its time window on the chosen day. A member is priced at the member rate on their own place; non-members pay the public rate. Whole court = per player × 4.</div>'
+      + '<div class="mini muted" style="margin:-4px 0 8px">Enter the price <b>per player</b>. Each band covers every slot that starts inside its time window on the chosen day(s). Pick <b>Weekdays</b> or <b>Weekend</b> to set one price for the whole group in one go. A member is priced at the member rate on their own place; non-members pay the public rate. Whole court = per player × 4.</div>'
       + '<table><thead><tr><th>Day</th><th>Time window</th><th>Public (pp)</th><th>Member (pp)</th><th>Whole court</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'
       + '<div class="row" style="margin-top:12px">'
-      +   '<div class="field sm"><label>Day</label>'+dowSelect('bd_dow_'+sid)+'</div>'
+      +   '<div class="field sm"><label>Day</label>'+bandDaySelect('bd_dow_'+sid)+'</div>'
       +   '<div class="field sm"><label>From</label><input id="bd_start_'+sid+'" type="time"></div>'
       +   '<div class="field sm"><label>To</label><input id="bd_end_'+sid+'" type="time"></div>'
       +   '<div class="field sm"><label>Public £ (pp)</label><input id="bd_pub_'+sid+'" type="number" step="0.01" placeholder="e.g. 13.50"></div>'
@@ -784,18 +818,20 @@
         if(!start || !end){ toast('Set a from and to time', true); return; }
         if(end <= start){ toast('"To" must be after "From"', true); return; }
         if(pubV==='' || isNaN(parseFloat(pubV))){ toast('Set the public price per player', true); return; }
-        var body = { schedule_id:sid, club_id:S.clubId,
-          day_of_week: $('bd_dow_'+sid).value===''?null:parseInt($('bd_dow_'+sid).value,10),
-          band_start: start, band_end: end,
+        var days = bandDays($('bd_dow_'+sid).value);
+        var payload = days.map(function(d){ return { schedule_id:sid, club_id:S.clubId,
+          day_of_week: d, band_start: start, band_end: end,
           public_price_cents: pounds(pubV),
           member_price_cents: memV==='' ? null : pounds(memV),
-          priority: 0 };
-        try{ await api('POST','schedule_price_bands', body, 'return=minimal'); loadScheduleBody(sid); toast('Band added'); }
+          priority: 0 }; });
+        try{ await api('POST','schedule_price_bands', payload, 'return=minimal'); loadScheduleBody(sid); toast(payload.length>1?'Bands added':'Band added'); }
         catch(e){ toast('Could not add band: '+e.message, true); }
       };
     }
     box.querySelectorAll('[data-delband]').forEach(function(b){ b.onclick = async function(){
-      try{ await api('DELETE','schedule_price_bands?id=eq.'+b.getAttribute('data-delband')); loadScheduleBody(sid); }
+      var ids = b.getAttribute('data-delband');
+      var q = ids.indexOf(',')>=0 ? 'id=in.('+ids+')' : 'id=eq.'+ids;
+      try{ await api('DELETE','schedule_price_bands?'+q); loadScheduleBody(sid); }
       catch(e){ toast('Could not remove: '+e.message, true); } }; });
   }
   // ---- open-mode editor ----
