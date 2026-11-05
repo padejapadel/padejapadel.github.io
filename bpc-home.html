@@ -2589,7 +2589,8 @@ var qrcode = function() {
     var group=document.getElementById('enterGroup'), panel=document.getElementById('enterComps');
     if(!group||!panel) return;
     function isFutureOrToday(d){ if(!d) return true; try{ var t=new Date(String(d)+'T00:00:00'); var n=new Date(); n.setHours(0,0,0,0); return t>=n; }catch(e){ return true; } }
-    var open=(comps||[]).filter(function(c){ return c.registration_code && (c.registration_status||'open')==='open' && isFutureOrToday(c.start_date); });
+    var DONE={finished:1,cancelled:1,completed:1};
+    var open=(comps||[]).filter(function(c){ return c.registration_code && isFutureOrToday(c.start_date) && !DONE[c.status]; });
     if(!open.length){ group.style.display='none'; return; }
     var cards=open.slice(0,6).map(function(c){
       var url="https://app.padeja.com/join-league.html?code="+encodeURIComponent(c.registration_code);
@@ -2607,7 +2608,7 @@ var qrcode = function() {
       var rows=await api('clubs?name=ilike.'+encodeURIComponent(CLUB_NAME)+'&select=id&limit=1');
       if(!rows.length) rows=await api('clubs?name=ilike.'+encodeURIComponent('%Brentwood%')+'&select=id&limit=1');
       if(!rows.length) return;
-      var comps=await api('public_leagues_by_club?main_club_id=eq.'+encodeURIComponent(rows[0].id)+'&select=*');
+      var comps=await api('tournaments?select=id,name,format,registration_code,registration_status,start_date,status'+'&main_club_id=eq.'+encodeURIComponent(rows[0].id)+'&visibility=eq.public&registration_status=eq.open&order=start_date.asc.nullsfirst');
       render(comps);
     }catch(e){}
   }
