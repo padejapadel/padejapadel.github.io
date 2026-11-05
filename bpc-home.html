@@ -95,12 +95,12 @@ window.BPCGate = (function(){
 
   /* Hero */
   .hero{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.2cqh; text-align:center; }
-  .hero img{ height:20cqh; width:auto; mix-blend-mode:screen; }
+  .hero img{ height:14cqh; width:auto; mix-blend-mode:screen; }
   .hero .eyebrow{ font-family:var(--display); font-weight:700; letter-spacing:.42em; text-transform:uppercase; font-size:1.5cqh; color:var(--brand); }
   .hero .sub{ color:var(--muted); font-size:1.7cqh; font-weight:500; letter-spacing:.02em; }
 
   /* Menu grid */
-  .menu{ flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto auto; gap:2.2cqh; align-content:stretch; }
+  .menu{ flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto auto auto; gap:1.8cqh; align-content:start; }
   .group{ display:flex; flex-direction:column; gap:1.1cqh; min-height:0; }
   .group.full{ grid-column:1 / -1; }
   .group-h{ display:flex; align-items:baseline; gap:1.2cqw; }
@@ -136,15 +136,15 @@ window.BPCGate = (function(){
 
   .foot{ text-align:center; color:var(--faint); font-size:1.15cqh; font-weight:600; letter-spacing:.16em; text-transform:uppercase; }
   /* Enter-a-competition QR panel */
-  .enter-wrap{background:rgba(59,200,245,.06);border:1px solid #1b2c45;border-radius:18px;padding:22px 24px}
-  .enter-h{font-size:22px;font-weight:800;color:#eaf2ff;margin:0 0 4px}
-  .enter-sub{font-size:14px;color:#8aa4c0;margin:0 0 18px}
-  .enter-grid{display:flex;flex-wrap:wrap;gap:20px}
-  .enter-card{background:#0d1b2e;border:1px solid #1b2c45;border-radius:14px;padding:16px;width:200px;text-align:center}
-  .enter-qr{background:#fff;border-radius:10px;padding:10px;width:150px;height:150px;margin:0 auto 10px;display:flex;align-items:center;justify-content:center}
+  .enter-wrap{background:var(--brand-dim);border:1px solid var(--line);border-radius:1.8cqh;padding:1.4cqh 1.6cqw}
+  .enter-h{font-family:var(--display);font-weight:800;font-size:1.9cqh;color:var(--ink);margin-bottom:.2cqh}
+  .enter-sub{font-size:1.25cqh;color:var(--muted);margin-bottom:1.1cqh}
+  .enter-grid{display:flex;gap:1.2cqw;align-items:stretch}
+  .enter-card{flex:1 1 0;min-width:0;background:linear-gradient(160deg,var(--panel2),var(--panel3));border:1px solid var(--line);border-radius:1.2cqh;padding:1.2cqh 1cqw;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.7cqh}
+  .enter-qr{background:#fff;border-radius:.8cqh;padding:.7cqh;width:9cqh;height:9cqh;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
   .enter-qr svg{width:100%;height:100%;display:block}
-  .enter-name{font-size:15px;font-weight:700;color:#eaf2ff;line-height:1.25}
-  .enter-code{font-size:12px;letter-spacing:2px;color:#3BC8F5;margin-top:4px;font-weight:700}
+  .enter-name{font-size:1.2cqh;font-weight:700;color:var(--ink);line-height:1.2;max-height:2.4em;overflow:hidden;flex:0 0 auto}
+  .enter-code{font-size:1.1cqh;letter-spacing:.14em;color:var(--brand);font-weight:700;flex:0 0 auto;margin-top:auto}
 </style>
 </head>
 <body>
@@ -2588,7 +2588,8 @@ var qrcode = function() {
   function render(comps){
     var group=document.getElementById('enterGroup'), panel=document.getElementById('enterComps');
     if(!group||!panel) return;
-    var open=(comps||[]).filter(function(c){ return c.registration_code && (c.registration_status||'open')==='open'; });
+    function isFutureOrToday(d){ if(!d) return true; try{ var t=new Date(String(d)+'T00:00:00'); var n=new Date(); n.setHours(0,0,0,0); return t>=n; }catch(e){ return true; } }
+    var open=(comps||[]).filter(function(c){ return c.registration_code && (c.registration_status||'open')==='open' && isFutureOrToday(c.start_date); });
     if(!open.length){ group.style.display='none'; return; }
     var cards=open.slice(0,6).map(function(c){
       var url="https://app.padeja.com/join-league.html?code="+encodeURIComponent(c.registration_code);
