@@ -95,12 +95,12 @@ window.BPCGate = (function(){
 
   /* Hero */
   .hero{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.2cqh; text-align:center; }
-  .hero img{ height:14cqh; width:auto; mix-blend-mode:screen; }
+  .hero img{ height:11cqh; width:auto; mix-blend-mode:screen; }
   .hero .eyebrow{ font-family:var(--display); font-weight:700; letter-spacing:.42em; text-transform:uppercase; font-size:1.5cqh; color:var(--brand); }
   .hero .sub{ color:var(--muted); font-size:1.7cqh; font-weight:500; letter-spacing:.02em; }
 
   /* Menu grid */
-  .menu{ flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto auto auto; gap:1.8cqh; align-content:start; }
+  .menu{ flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto auto auto; gap:1.5cqh; align-content:space-between; }
   .group{ display:flex; flex-direction:column; gap:1.1cqh; min-height:0; }
   .group.full{ grid-column:1 / -1; }
   .group-h{ display:flex; align-items:baseline; gap:1.2cqw; }
@@ -136,12 +136,12 @@ window.BPCGate = (function(){
 
   .foot{ text-align:center; color:var(--faint); font-size:1.15cqh; font-weight:600; letter-spacing:.16em; text-transform:uppercase; }
   /* Enter-a-competition QR panel */
-  .enter-wrap{background:var(--brand-dim);border:1px solid var(--line);border-radius:1.8cqh;padding:1.4cqh 1.6cqw}
+  .enter-wrap{background:var(--brand-dim);border:1px solid var(--line);border-radius:1.8cqh;padding:1.1cqh 1.6cqw}
   .enter-h{font-family:var(--display);font-weight:800;font-size:1.9cqh;color:var(--ink);margin-bottom:.2cqh}
-  .enter-sub{font-size:1.25cqh;color:var(--muted);margin-bottom:1.1cqh}
+  .enter-sub{font-size:1.25cqh;color:var(--muted);margin-bottom:.8cqh}
   .enter-grid{display:flex;gap:1.2cqw;align-items:stretch}
-  .enter-card{flex:1 1 0;min-width:0;background:linear-gradient(160deg,var(--panel2),var(--panel3));border:1px solid var(--line);border-radius:1.2cqh;padding:1.2cqh 1cqw;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.7cqh}
-  .enter-qr{background:#fff;border-radius:.8cqh;padding:.7cqh;width:9cqh;height:9cqh;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .enter-card{flex:1 1 0;min-width:0;background:linear-gradient(160deg,var(--panel2),var(--panel3));border:1px solid var(--line);border-radius:1.2cqh;padding:.9cqh 1cqw;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.5cqh}
+  .enter-qr{background:#fff;border-radius:.8cqh;padding:.6cqh;width:8cqh;height:8cqh;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
   .enter-qr svg{width:100%;height:100%;display:block}
   .enter-name{font-size:1.2cqh;font-weight:700;color:var(--ink);line-height:1.2;max-height:2.4em;overflow:hidden;flex:0 0 auto}
   .enter-code{font-size:1.1cqh;letter-spacing:.14em;color:var(--brand);font-weight:700;flex:0 0 auto;margin-top:auto}
