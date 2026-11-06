@@ -406,6 +406,7 @@ function teamLabel(t){ if(!t) return "Team"; const p=PAIRS[t.id]; const nm=((p&&
 async function fetchData(code){
   if(qs.get("demo")==="1"){ return DEMO(); }
   if(qs.get("demo")==="box"){ return DEMO_BOX(); }
+  if(qs.get("demo")==="box1"){ return DEMO_BOX1(); }
   if(qs.get("demo")==="wc"){ return DEMO_WC(); }
   if(qs.get("demo")==="bbox"){ return DEMO_BBOX(); }
   if(qs.get("demo")==="trustpadel"){ return DEMO_TRUSTPADEL(); }
@@ -571,8 +572,8 @@ function render(){
   // playoffs bracket
   const hasPo = po.length>0;
   renderBracket(po);
-  if(isBox && divList.length>1){
-    SCENES = divList.map((_,i)=>'box'+i);
+  if(isBox && divList.length>=1){
+    SCENES = divList.map((_,i)=>'box'+i);   // one scene per non-empty box (pages even if there's only one)
     if(hasPo) SCENES.push('playoffs');
   } else {
     SCENES = hasPo ? ["standings","playoffs"] : ["standings"];
@@ -1616,6 +1617,13 @@ function DEMO_OLY(){
     olympics:{ countries, categories, pairings, ties, matches } };
 }
 // ---------- demo data ----------
+function DEMO_BOX1(){
+  const d=DEMO_BOX();
+  d.teams = d.teams.filter(t=>t.league_id==="lgA");   // only box A populated (like the live Men's league today)
+  d.matches = [];                                      // no fixtures yet
+  d.teams.forEach(t=>{ t.played=0;t.won=0;t.drawn=0;t.lost=0;t.points_for=0;t.points_against=0;t.league_points=0; });
+  return d;
+}
 function DEMO_BOX(){
   const mk=(id,ln,nm,p,w,d,l,pf,pa)=>({id,league_id:ln,team_name:nm,played:p,won:w,drawn:d,lost:l,points_for:pf,points_against:pa,league_points:w*3+d});
   const divs=["A","B","C","D","E","F","G"];
