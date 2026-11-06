@@ -90,7 +90,7 @@
   th.tmh,td.tmc{width:auto}
   tr.row{border-top:1px solid var(--line)}
   tr.po td{background:var(--po)}
-  tr.po td:first-child{box-shadow:inset .35vw 0 0 var(--gold)}
+  tr.po td:first-child{box-shadow:inset .35vw 0 0 var(--gold)} tr.rel td{background:rgba(192,57,43,.16)} tr.rel td:first-child{box-shadow:inset .35vw 0 0 #C0392B} .reltag{font-size:1.05vh;color:#fff;background:#C0392B;border-radius:.5vh;padding:.15vh .4vw;font-weight:800;letter-spacing:1px;margin-left:.4vw} .tables.boxpaged{display:block;height:100%} .tables.boxpaged .lgpage{display:none;height:100%} .tables.boxpaged .lgpage.on{display:block} .tables.boxpaged .lgpage h4{font-size:2.8vh;margin-bottom:1.1vh} .tables.boxpaged table{font-size:2.35vh} .tables.boxpaged td,.tables.boxpaged th{padding:.75vh .5vw} .tables.boxpaged .potag,.tables.boxpaged .reltag{font-size:1.5vh}
   .rank{font-weight:700;color:var(--mut)}
   .pts{font-weight:800;color:var(--teal);font-size:1.9vh}
   .potag{font-size:1.05vh;color:#04121d;background:var(--gold);border-radius:.5vh;padding:.15vh .4vw;font-weight:800;letter-spacing:1px;margin-left:.4vw}
@@ -405,6 +405,7 @@ function teamLabel(t){ if(!t) return "Team"; const p=PAIRS[t.id]; const nm=((p&&
 // ---------- data ----------
 async function fetchData(code){
   if(qs.get("demo")==="1"){ return DEMO(); }
+  if(qs.get("demo")==="box"){ return DEMO_BOX(); }
   if(qs.get("demo")==="wc"){ return DEMO_WC(); }
   if(qs.get("demo")==="bbox"){ return DEMO_BBOX(); }
   if(qs.get("demo")==="trustpadel"){ return DEMO_TRUSTPADEL(); }
@@ -513,39 +514,71 @@ function render(){
   $("fixturesBody").innerHTML=fh;
 
   // tables + odds
+  const isBox = (DATA.competition||{}).variant === 'box_league';
+  const divList = leagues.filter(l => teams.some(t=>t.league_id===l.id));
+  const UPN = TOPN;                                                          // promote the top N
+  const DOWN = parseInt(qs.get("down")) || (DATA.competition||{}).relegation_teams || TOPN;  // relegate the bottom N
   let th="", oh="";
-  leagues.forEach(l=>{
+  divList.forEach((l, di)=>{
     const lt=teams.filter(t=>t.league_id===l.id).slice().sort(cmpTeam);
     if(!lt.length) return;
-    th+=`<div class="lg">${leagues.length>1?`<h4>${esc(l.name)}</h4>`:""}
+    const isFirst = di===0, isLast = di===divList.length-1;
+    th+=`<div class="${isBox?'lgpage':'lg'}">${(isBox||divList.length>1)?`<h4>${esc(l.name)}</h4>`:""}
       <table><thead><tr><th class="n">#</th><th>Team</th><th class="n">P</th><th class="n">W</th><th class="n">D</th><th class="n">L</th><th class="n">Pts</th></tr></thead><tbody>`;
-    lt.forEach((t,i)=>{ const po=i<TOPN;
-      th+=`<tr class="row ${po?'po':''}"><td class="n rank">${i+1}</td>
-        <td class="tmc"><div class="teamcell"><span class="tm">${esc(teamLabel(t))}</span>${po?'<span class="potag">PO</span>':''}</div></td>
+    lt.forEach((t,i)=>{
+      let rowcls='', tag='';
+      if(isBox){
+        const promo = !isFirst && i < UPN;                 // the top box has nothing above it
+        const releg = !isLast  && i >= lt.length - DOWN;   // the bottom box has nothing below it
+        rowcls = promo?'po':(releg?'rel':'');
+        tag = promo?'<span class="potag">PRO</span>':(releg?'<span class="reltag">REL</span>':'');
+      } else {
+        const po = i < TOPN; rowcls = po?'po':''; tag = po?'<span class="potag">PO</span>':'';
+      }
+      th+=`<tr class="row ${rowcls}"><td class="n rank">${i+1}</td>
+        <td class="tmc"><div class="teamcell"><span class="tm">${esc(teamLabel(t))}</span>${tag}</div></td>
         <td class="n">${t.played||0}</td><td class="n">${t.won||0}</td><td class="n">${t.drawn||0}</td>
-        <td class="n">${t.lost||0}</td><td class="n pts">${t.league_points||0}</td></tr>`; });
+        <td class="n">${t.lost||0}</td><td class="n pts">${t.league_points||0}</td></tr>`;
+    });
     th+=`</tbody></table></div>`;
-    // odds — one column per league, highest chance first
-    const odds=computeOdds(DATA.competition,l,teams,matches,TOPN, 2200);
-    const ranked=[...lt].sort((a,b)=>(odds[b.id]||0)-(odds[a.id]||0));
-    oh+=`<div class="oddscol">${leagues.length>1?`<div class="oddscolh">${esc(l.name)}</div>`:''}`;
-    ranked.forEach(t=>{ const p=odds[t.id]||0; const pct=Math.round(p*100);
-      const cls = pct>=100?'g':(pct<=0?'z':'');
-      oh+=`<div class="ob"><span class="nm">${esc(teamLabel(t))}</span>
+    // odds — non-box only (box leagues show promotion/relegation on the table instead)
+    if(!isBox){
+      const started = lt.some(t=>(t.played||0)>0);
+      const odds=computeOdds(DATA.competition,l,teams,matches,TOPN, 2200);
+      const ranked=[...lt].sort((a,b)=>(odds[b.id]||0)-(odds[a.id]||0));
+      oh+=`<div class="oddscol">${leagues.length>1?`<div class="oddscolh">${esc(l.name)}</div>`:''}`;
+      ranked.forEach(t=>{
+        if(!started){
+          oh+=`<div class="ob"><span class="nm">${esc(teamLabel(t))}</span>
+        <span class="bar"></span>
+        <span class="pc z">—</span></div>`;
+        } else {
+          const p=odds[t.id]||0; const pct=Math.round(p*100);
+          const cls = pct>=100?'g':(pct<=0?'z':'');
+          oh+=`<div class="ob"><span class="nm">${esc(teamLabel(t))}</span>
         <span class="bar"><span class="fill" style="width:${pct}%"></span></span>
         <span class="pc ${cls}">${pct}%</span></div>`;
-    });
-    oh+=`</div>`;
+        }
+      });
+      oh+=`</div>`;
+    }
   });
+  $("tablesBody").className = isBox ? "tables boxpaged" : "tables";
   $("tablesBody").innerHTML=th;
   $("oddsBody").innerHTML=oh;
+  { const ob=document.querySelector('.oddsband'); if(ob) ob.style.display = isBox ? 'none' : ''; }  // box leagues hide the playoff-odds band
 
   // playoffs bracket
   const hasPo = po.length>0;
   renderBracket(po);
-  SCENES = hasPo ? ["standings","playoffs"] : ["standings"];
+  if(isBox && divList.length>1){
+    SCENES = divList.map((_,i)=>'box'+i);
+    if(hasPo) SCENES.push('playoffs');
+  } else {
+    SCENES = hasPo ? ["standings","playoffs"] : ["standings"];
+  }
   if(sceneIx>=SCENES.length) sceneIx=0;
-  $("phaseLbl").textContent = hasPo ? "Playoffs" : "League stage";
+  $("phaseLbl").textContent = hasPo ? "Playoffs" : (isBox ? "Box league" : "League stage");
   applyScene();
 }
 
@@ -572,11 +605,16 @@ function renderBracket(po){
 }
 
 function applyScene(){
-  const sc=SCENES[sceneIx];
-  $("sceneStandings").style.display = sc==="standings"?"flex":"none";
+  const sc=SCENES[sceneIx]||"standings";
+  const isBoxScene = (typeof sc==="string") && sc.slice(0,3)==="box";
+  $("sceneStandings").style.display = (sc==="standings"||isBoxScene)?"flex":"none";
   $("scenePlayoffs").classList.toggle("hidden", sc!=="playoffs");
+  if(isBoxScene){
+    const ix=parseInt(sc.slice(3),10)||0;
+    document.querySelectorAll('#tablesBody .lgpage').forEach((el,i)=> el.classList.toggle('on', i===ix));
+  }
   $("sceneDots").innerHTML = SCENES.map((s,i)=>`<i class="${i===sceneIx?'on':''}"></i>`).join("");
-  if(sc==="standings") maybeStartFxScroll();  // (re)start the fixtures auto-scroll once it's visible
+  if(sc==="standings"||isBoxScene) maybeStartFxScroll();  // (re)start the fixtures auto-scroll once it's visible
 }
 function rotate(){ if(SCENES.length<2) return; sceneIx=(sceneIx+1)%SCENES.length; applyScene(); }
 
@@ -1578,6 +1616,24 @@ function DEMO_OLY(){
     olympics:{ countries, categories, pairings, ties, matches } };
 }
 // ---------- demo data ----------
+function DEMO_BOX(){
+  const mk=(id,ln,nm,p,w,d,l,pf,pa)=>({id,league_id:ln,team_name:nm,played:p,won:w,drawn:d,lost:l,points_for:pf,points_against:pa,league_points:w*3+d});
+  const divs=["A","B","C","D","E","F","G"];
+  const leagues=divs.map(x=>({id:"lg"+x,name:"League "+x,league_letter:x}));
+  const nm=["Oliver & Craig","Woodford & Watts","Madden & Smith","Whitney & Dean","Daniels & McGee","Revel & Lee"];
+  const wins=[4,3,2,2,1,0];
+  const teams=[], matches=[]; let idc=0;
+  const add=(ln,h,a,hs,as,done)=>matches.push({id:"m"+(idc++),league_id:ln,home_team_id:h,away_team_id:a,home_score:hs,away_score:as,status:done?"completed":"pending",created_at:idc});
+  divs.forEach((x,di)=>{
+    const ln="lg"+x, started = di<6;   // last box (G) not started yet
+    for(let i=0;i<6;i++){
+      const tid=x.toLowerCase()+i, w=started?wins[i]:0;
+      teams.push(mk(tid,ln,nm[i]+" ("+x+")", started?4:0, w, 0, started?4-w:0, started?50-i*3:0, started?40+i*3:0));
+    }
+    if(started){ add(ln,x.toLowerCase()+"0",x.toLowerCase()+"5",6,3,true); add(ln,x.toLowerCase()+"1",x.toLowerCase()+"4",6,4,true); add(ln,x.toLowerCase()+"2",x.toLowerCase()+"3",null,null,false); }
+  });
+  return { found:true, competition:{ name:"Beaulieu’s Mens Box League (Winter 2026-27)", venue_name:"Beaulieu Padel", variant:"box_league", format:"league", tournament_phase:"active", points_for_win:3, points_for_draw:1, points_for_loss:0, playoff_teams:2 }, leagues, teams, matches, playoffs:[] };
+}
 function DEMO(){
   const mk=(id,ln,nm,p,w,d,l,pf,pa)=>({id,league_id:ln,team_name:nm,played:p,won:w,drawn:d,lost:l,points_for:pf,points_against:pa,league_points:w*3+d});
   const A="lgA",B="lgB";
