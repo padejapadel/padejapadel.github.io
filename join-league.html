@@ -16,8 +16,8 @@
     min-height:100dvh;display:flex;align-items:flex-start;justify-content:center;
     padding:24px 16px calc(24px + env(safe-area-inset-bottom));}
   .wrap{width:100%;max-width:440px}
-  .logo{font-size:22px;font-weight:800;letter-spacing:.5px;text-align:center;margin-bottom:14px}
-  .logo span{color:var(--brand)}
+  .logo{text-align:center;margin-bottom:16px}
+  .logo img{width:64px;height:64px;border-radius:15px;display:inline-block;vertical-align:middle}
   .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px 20px;margin-bottom:14px}
   .eyebrow{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:0 0 6px}
   h1{font-size:23px;line-height:1.25;margin:0 0 8px;font-weight:800}
@@ -43,7 +43,7 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="logo">Pade<span>ja</span></div>
+  <div class="logo"><img src="assets/padeja-appicon.png" alt="Padeja" /></div>
 
   <div id="loading" class="card"><div class="spin">Loading competition…</div></div>
 
