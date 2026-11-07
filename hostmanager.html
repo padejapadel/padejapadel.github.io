@@ -950,6 +950,20 @@
       t.onclick=()=>run(async()=>{ const next= rs==="open"?"closed":"open"; const { error }=await sb.from("tournaments").update({registration_status:next}).eq("id",c.id); if(error) throw error; c.registration_status=next; }, rs==="open"?"Registration closed.":"Registration opened.");
       el.appendChild(t);
     }
+    if(isOwner){
+      const del=document.createElement("button"); del.className="btn btn-danger btn-sm"; del.textContent="Delete competition";
+      del.onclick=()=>confirmDeleteComp(c); el.appendChild(del);
+    }
+  }
+  function confirmDeleteComp(c){
+    openModal("Delete competition?",
+      '<p style="font-size:14px;line-height:1.5">This permanently deletes <b>'+esc(c.name||"this competition")+'</b> and everything in it \u2014 registrations, teams, fixtures and results. This cannot be undone.</p>',
+      [ { label:"Cancel" },
+        { label:"Delete permanently", cls:"btn-danger", onClick:async function(close){
+            try{ const { error }=await sb.rpc("delete_competition",{ p_tournament_id:c.id }); if(error) throw error;
+              close(); toast("Competition deleted."); showList(); if(typeof loadCompetitions==="function") await loadCompetitions();
+            }catch(e){ toast((e&&e.message)?e.message:"Couldn't delete the competition.", true); }
+        } } ]);
   }
 
   function openEdit(c, isOwner){
