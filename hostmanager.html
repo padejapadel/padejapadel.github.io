@@ -149,7 +149,7 @@
     <div id="dActions" style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap"></div>
     <div class="info-grid" id="dInfo"></div>
     <div id="detailSpinner" class="spinner">Loading…</div>
-    <div id="regSections"></div>
+    <div id="addPlayerRow" style="margin:4px 0 12px"><button class="btn btn-green btn-sm" id="addPlayerBtn">+ Add player</button></div><div id="regSections"></div>
     <div id="divArea"></div>
   </div>
 
@@ -263,6 +263,97 @@
     ov.addEventListener("click",(e)=>{ if(e.target===ov) close(); });
     document.body.appendChild(ov); return close;
   }
+  // ----- Add player (host adds an existing Padeja user OR a guest) -----
+  let AP_profileId=null, AP_profileName=null, AP_searchT=null;
+  function openAddPlayer(){
+    const c=CURRENT_COMP; if(!c) return;
+    AP_profileId=null; AP_profileName=null;
+    const fee=requiresPaymentOf(c);
+    const inp='width:100%;padding:9px 11px;border-radius:8px;border:1px solid #28415c;background:#0d1b2b;color:#fff';
+    const body=
+      '<div style="display:flex;gap:16px;margin-bottom:12px;font-size:14px">'
+      +'<label><input type="radio" name="apMode" value="existing" checked> Existing Padeja player</label>'
+      +'<label><input type="radio" name="apMode" value="guest"> Guest (no app)</label></div>'
+      +'<div id="apExisting">'
+      +'<input id="apSearch" placeholder="Search players by name..." style="'+inp+'">'
+      +'<div id="apResults" style="margin-top:6px;max-height:180px;overflow:auto"></div>'
+      +'<div id="apPicked" style="margin-top:6px;font-size:13px;color:#4FA3E3"></div></div>'
+      +'<div id="apGuest" style="display:none">'
+      +'<input id="apName" placeholder="Player name" style="'+inp+';margin-bottom:8px">'
+      +'<input id="apEmail" placeholder="Email (needed to send a payment link)" style="'+inp+';margin-bottom:8px">'
+      +'<input id="apPhone" placeholder="Phone (optional)" style="'+inp+'"></div>'
+      +(fee?'<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px"><input type="checkbox" id="apPaid"> Already paid (collected in person)</label>':'')
+      +'<div id="apMsg" style="margin-top:8px;font-size:13px;color:#e06b6b"></div>';
+    openModal("Add a player", body, [
+      { label:"Cancel" },
+      { label:"Add to competition", cls:"btn-green", onClick:(cl)=>apSubmit(cl) }
+    ]);
+    document.querySelectorAll('input[name="apMode"]').forEach(function(r){
+      r.onchange=function(){ var ex=r.value==="existing";
+        $("apExisting").style.display=ex?"":"none"; $("apGuest").style.display=ex?"none":""; };
+    });
+    var si=$("apSearch");
+    if(si) si.oninput=function(){ clearTimeout(AP_searchT); AP_searchT=setTimeout(apSearch,250); };
+  }
+  async function apSearch(){
+    var si=$("apSearch"); var box=$("apResults"); if(!box) return;
+    var q=(si&&si.value||"").trim();
+    if(q.length<2){ box.innerHTML=""; return; }
+    try{
+      const { data, error } = await sb.rpc("search_profiles", { p_q:q });
+      if(error) throw error;
+      var rows=(data||[]).slice(0,8);
+      if(!rows.length){ box.innerHTML='<div style="font-size:13px;color:#8AA4C0;padding:4px">No players found.</div>'; return; }
+      box.innerHTML=rows.map(function(r){ var nm=r.display_name||r.name||"Player";
+        return '<div class="apRow" data-id="'+esc(r.id)+'" data-nm="'+esc(nm)+'" style="padding:8px 10px;border-radius:8px;cursor:pointer;background:#0d1b2b;margin-bottom:4px">'+esc(nm)+'</div>';
+      }).join("");
+      box.querySelectorAll(".apRow").forEach(function(el){
+        el.onclick=function(){ AP_profileId=el.getAttribute("data-id"); AP_profileName=el.getAttribute("data-nm");
+          $("apPicked").textContent="Selected: "+AP_profileName; box.innerHTML=""; if($("apSearch")) $("apSearch").value=AP_profileName; };
+      });
+    }catch(e){ box.innerHTML='<div style="font-size:13px;color:#e06b6b;padding:4px">Search failed.</div>'; }
+  }
+  async function apSubmit(close){
+    const c=CURRENT_COMP; if(!c) return;
+    var mode=(document.querySelector('input[name="apMode"]:checked')||{}).value||"existing";
+    var msg=$("apMsg"); if(msg) msg.textContent="";
+    var p_profile_id=null, p_name=null, p_email=null, p_phone=null;
+    if(mode==="existing"){
+      if(!AP_profileId){ if(msg) msg.textContent="Search and pick a player first."; return; }
+      p_profile_id=AP_profileId; p_name=AP_profileName;
+    } else {
+      p_name=($("apName")&&$("apName").value||"").trim();
+      p_email=(($("apEmail")&&$("apEmail").value||"").trim())||null;
+      p_phone=(($("apPhone")&&$("apPhone").value||"").trim())||null;
+      if(!p_name){ if(msg) msg.textContent="Enter the player's name."; return; }
+    }
+    var markPaid=!!($("apPaid")&&$("apPaid").checked);
+    try{
+      const { data:regId, error } = await sb.rpc("host_add_registration", {
+        p_tournament_id:c.id, p_profile_id:p_profile_id, p_name:p_name, p_email:p_email, p_phone:p_phone, p_mark_paid:markPaid
+      });
+      if(error) throw error;
+      var fee=requiresPaymentOf(c);
+      if(fee && !markPaid){
+        var url=null;
+        try{ const { data:ck, error:ce } = await sb.functions.invoke("create-registration-checkout", { body:{ registration_id:regId } });
+          if(ce) throw ce; url=ck&&ck.url; }catch(e){}
+        close(); await openDetail(c, true);
+        if(url){
+          var b='<p style="font-size:14px;margin:0 0 10px">Send this payment link to '+esc(p_name)+". When they pay, they'll be marked paid automatically.</p>"
+            +'<input id="apLink" readonly value="'+esc(url)+'" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #28415c;background:#0d1b2b;color:#fff">';
+          openModal("Payment link", b, [
+            { label:"Copy link", cls:"btn-green", onClick:function(){ var el=$("apLink"); if(el){ el.select(); if(navigator.clipboard){ navigator.clipboard.writeText(el.value).catch(function(){}); } else { try{ document.execCommand("copy"); }catch(_){}}} toast("Link copied"); } },
+            { label:"Done" }
+          ]);
+        } else { toast("Player added. Couldn't make a payment link — you can re-add them or use Mark paid.", true); }
+      } else {
+        close(); toast(markPaid?"Player added and marked paid.":"Player added."); await openDetail(c, true);
+      }
+    }catch(e){ if(msg) msg.textContent=(e&&e.message)?e.message:"Couldn't add the player."; }
+  }
+  var _apb=$("addPlayerBtn"); if(_apb) _apb.onclick=openAddPlayer;
+
   // run an async action with busy + reload-detail on success
   async function run(fn, successMsg){
     try{ await fn(); if(successMsg) toast(successMsg); if(CURRENT_COMP) await openDetail(CURRENT_COMP, true); }
